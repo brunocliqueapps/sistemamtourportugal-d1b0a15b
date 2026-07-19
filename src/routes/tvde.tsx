@@ -688,6 +688,18 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
                   </label>
                 )}
               </div>
+              <div className="col-span-2"><Label>Motorista</Label>
+                <Select value={editing.driver_id ?? ""} onValueChange={(v) => setEditing({ ...editing, driver_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2"><Label>Veículo</Label>
+                <Select value={editing.vehicle_id ?? ""} onValueChange={(v) => setEditing({ ...editing, vehicle_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div><Label>Km inicial</Label><Input type="number" value={editing.km_initial ?? ""} onChange={(e) => setEditing({ ...editing, km_initial: e.target.value })} /></div>
               <div><Label>Km final</Label><Input type="number" value={editing.km_final ?? ""} onChange={(e) => setEditing({ ...editing, km_final: e.target.value })} /></div>
               <div className="col-span-2"><Label>Notas</Label>
@@ -704,6 +716,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
     </>
   );
 }
+
 
 function Row({ label, v, bold }: { label: string; v: number; bold?: boolean }) {
   return (
