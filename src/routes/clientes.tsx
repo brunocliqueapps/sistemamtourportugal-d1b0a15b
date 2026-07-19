@@ -152,6 +152,19 @@ function Clientes() {
       </Dialog>
 
       <ClientHistoryDialog client={historyClient} onClose={() => setHistoryClient(null)} />
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Cliente"
+        record={viewing}
+        fields={[
+          { key: "name", label: "Nome" }, { key: "nif", label: "NIF" },
+          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
+          { key: "address", label: "Morada" }, { key: "notes", label: "Notas" },
+        ]}
+      />
     </div>
   );
 }
