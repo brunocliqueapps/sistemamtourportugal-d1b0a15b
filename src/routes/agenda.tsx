@@ -5,21 +5,58 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
+const STATUS_LABEL: Record<string, string> = {
+  agendado: "Agendado",
+  confirmado: "Confirmado",
+  motorista_designado: "Motorista designado",
+  em_deslocacao: "Em deslocação",
+  cliente_a_bordo: "Cliente a bordo",
+  em_execucao: "Em execução",
+  finalizado: "Finalizado",
+  cancelado: "Cancelado",
+  nao_realizado: "Não realizado",
+};
+const STATUS_CLASS: Record<string, string> = {
+  agendado: "bg-slate-500",
+  confirmado: "bg-blue-500",
+  motorista_designado: "bg-indigo-500",
+  em_deslocacao: "bg-amber-500",
+  cliente_a_bordo: "bg-amber-600",
+  em_execucao: "bg-orange-500",
+  finalizado: "bg-emerald-600",
+  cancelado: "bg-rose-600",
+  nao_realizado: "bg-zinc-600",
+};
+
+function paymentBadge(sale: number, received: number) {
+  if (sale <= 0) return { label: "—", cls: "bg-muted text-foreground" };
+  if (received <= 0) return { label: "Por pagar", cls: "bg-rose-500 text-white" };
+  if (received < sale) return { label: "Parcial", cls: "bg-amber-500 text-white" };
+  return { label: "Pago", cls: "bg-emerald-600 text-white" };
+}
+
 function Agenda() {
   const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
-  const to = new Date(new Date(from).getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const [range, setRange] = useState<"day" | "week" | "month">("week");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const days = range === "day" ? 0 : range === "week" ? 6 : 30;
+  const to = new Date(new Date(from).getTime() + days * 86400000).toISOString().slice(0, 10);
 
   const { data } = useQuery({
-    queryKey: ["agenda", from],
+    queryKey: ["agenda", from, range, statusFilter],
     queryFn: async () => {
-      const { data } = await supabase.from("service_orders")
-        .select("*, clients(name,phone), drivers(full_name), vehicles(plate)")
+      let q = supabase.from("service_orders")
+        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model)")
         .gte("service_date", from).lte("service_date", to)
         .order("service_date").order("start_time");
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -31,37 +68,92 @@ function Agenda() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <PageHeader title="Agenda" description="Serviços agendados na semana." actions={
-        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-44" />
-      } />
+      <PageHeader
+        title="Agenda"
+        description="Serviços agendados com informações rápidas por cliente."
+        actions={
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-44" />
+            <Select value={range} onValueChange={(v) => setRange(v as any)}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Dia</SelectItem>
+                <SelectItem value="week">Semana</SelectItem>
+                <SelectItem value="month">Mês</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
+
       {Object.keys(grouped).length === 0 && (
         <Card className="p-8 text-center text-muted-foreground">Sem serviços neste período.</Card>
       )}
+
       {Object.entries(grouped).map(([date, list]) => (
         <div key={date}>
-          <h3 className="font-semibold mb-3">{new Date(date).toLocaleDateString("pt-PT", { weekday: "long", day: "2-digit", month: "long" })}</h3>
-          <div className="space-y-2">
-            {list.map((s: any) => (
-              <Card key={s.id} className="p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{s.start_time?.slice(0, 5) ?? "—"}</span>
-                      <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline">{s.oc_code}</Link>
-                      <Badge variant="outline">{s.voucher_code}</Badge>
-                    </div>
-                    <div className="text-sm mt-1">{s.clients?.name ?? "—"} {s.clients?.phone && `· ${s.clients.phone}`}</div>
-                    <div className="text-xs text-muted-foreground">{s.origin} → {s.destination} · {s.passengers ?? 0} pax</div>
-                    <div className="text-xs text-muted-foreground">{s.drivers?.full_name ?? "Sem motorista"} · {s.vehicles?.plate ?? "Sem veículo"}</div>
-                  </div>
-                  <div className="text-right">
-                    <Badge>{s.status}</Badge>
-                    <div className="font-semibold mt-2">€ {Number(s.sale_value || 0).toFixed(2)}</div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <h3 className="font-semibold mb-3">
+            {new Date(date).toLocaleDateString("pt-PT", { weekday: "long", day: "2-digit", month: "long" })}
+          </h3>
+          <Card className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Horário</TableHead>
+                  <TableHead>OC / Voucher</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Origem → Destino</TableHead>
+                  <TableHead>Motorista</TableHead>
+                  <TableHead>Veículo</TableHead>
+                  <TableHead>Matrícula</TableHead>
+                  <TableHead className="text-center">Pax</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Pagamento</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((s: any) => {
+                  const pay = paymentBadge(Number(s.sale_value || 0), Number(s.amount_received || 0));
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-mono">{s.start_time?.slice(0, 5) ?? "—"}</TableCell>
+                      <TableCell>
+                        <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-medium">
+                          {s.oc_code}
+                        </Link>
+                        <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
+                      </TableCell>
+                      <TableCell><Badge variant="outline" className="capitalize">{s.operation_type ?? "—"}</Badge></TableCell>
+                      <TableCell>{s.clients?.name ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{s.clients?.phone ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{s.origin ?? "—"} → {s.destination ?? "—"}</TableCell>
+                      <TableCell>{s.drivers?.full_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell>{s.vehicles ? `${s.vehicles.brand ?? ""} ${s.vehicles.model ?? ""}`.trim() || "—" : "—"}</TableCell>
+                      <TableCell className="font-mono">{s.vehicles?.plate ?? "—"}</TableCell>
+                      <TableCell className="text-center">{s.passengers ?? 0}</TableCell>
+                      <TableCell className="text-right font-semibold">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
+                      <TableCell><span className={`text-xs px-2 py-0.5 rounded ${pay.cls}`}>{pay.label}</span></TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded text-white ${STATUS_CLASS[s.status] ?? "bg-slate-500"}`}>
+                          {STATUS_LABEL[s.status] ?? s.status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
         </div>
       ))}
     </div>
