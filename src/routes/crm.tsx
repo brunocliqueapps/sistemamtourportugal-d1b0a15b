@@ -133,16 +133,6 @@ function CRM() {
                     <div className="flex flex-col gap-1">
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Retirar do pipeline (arquivar)" onClick={() => { if (confirm("Retirar este lead do pipeline? Continuará visível apenas na lista.")) archive.mutate({ id: l.id, archived: true }); }}><Archive className="h-3 w-3" /></Button>
-                <Card key={l.id} className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground">{l.code}</div>
-                      <div className="font-medium truncate">{l.name}</div>
-                      <div className="text-xs text-muted-foreground">{l.origin || "Sem origem"}</div>
-                      {l.phone && <div className="text-xs">{l.phone}</div>}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(l)}><Pencil className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { if (confirm("Remover este lead?")) del.mutate(l.id); }}><Trash2 className="h-3 w-3" /></Button>
                     </div>
