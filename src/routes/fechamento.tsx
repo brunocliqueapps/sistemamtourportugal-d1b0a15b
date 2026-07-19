@@ -93,6 +93,15 @@ function Fechamento() {
     onSuccess: () => { toast.success("Período bloqueado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
   });
 
+  const unlockIt = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("monthly_closings").update({ locked: false, locked_at: null, locked_by: null }).eq("period", from);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Período reaberto"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Fechamento Mensal" description="Apuramento gerencial de IVA e provisão de IRC. Sujeito a validação do contabilista." actions={
