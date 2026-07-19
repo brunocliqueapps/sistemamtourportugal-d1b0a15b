@@ -26,6 +26,7 @@ function Financeiro() {
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
