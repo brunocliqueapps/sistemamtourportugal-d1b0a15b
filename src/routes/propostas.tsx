@@ -38,7 +38,9 @@ function Propostas() {
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at",{ascending:false})).data ?? [] });
   const { data: routes = [] } = useQuery({ queryKey: ["tour-routes-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name,region,default_price").eq("active", true).order("region").order("name")).data ?? [] });
   const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts","proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","proposal_status").eq("active",true).order("sort")).data ?? [] });
+  const { data: typeOpts = [] } = useQuery({ queryKey: ["status-opts","operation_type"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","operation_type").eq("active",true).order("sort")).data ?? [] });
   const statuses = statusOpts.length ? statusOpts : ["rascunho","enviada","aprovada","convertida","rejeitada"].map((c) => ({ code: c, label: c }));
+  const types = typeOpts.length ? typeOpts : ["servico","roteiro","transfer","outro"].map((c) => ({ code: c, label: c }));
 
   const save = useMutation({
     mutationFn: async () => {
@@ -164,15 +166,10 @@ function Propostas() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Tipo de proposta</Label>
+              <div><Label>Tipo de proposta/operação</Label>
                 <Select value={form.proposal_type} onValueChange={(v) => setForm({ ...form, proposal_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="servico">Serviço</SelectItem>
-                    <SelectItem value="roteiro">Roteiro</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
+                  <SelectContent>{types.map((t: any) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               {form.proposal_type === "roteiro" && (
