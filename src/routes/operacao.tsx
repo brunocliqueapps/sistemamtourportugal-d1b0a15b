@@ -79,14 +79,11 @@ function Operacao() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <PageHeader title="Turnos Motorista" description="Painel de controlo: todos os turnos (Privado, TVDE, Interno) de todos os motoristas no período." />
-
-      <AllShiftsPanel />
-
+      <PageHeader title="Serviços Motorista" description="Painel de controlo: todos os serviços (Privado, TVDE, Interno) de todos os motoristas no período." />
 
       {!shift ? (
         <Card className="p-6 space-y-4">
-          <h3 className="font-semibold">Abrir turno</h3>
+          <h3 className="font-semibold">Abrir Serviço</h3>
           <div className="grid gap-3 md:grid-cols-3">
             <div><Label>Tipo de operação</Label>
               <Select value={form.operation_type} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
@@ -112,13 +109,13 @@ function Operacao() {
             </div>
             <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
           </div>
-          <Button className="gradient-gold text-gold-foreground" onClick={() => open.mutate()} disabled={!form.vehicle_id}>Abrir turno</Button>
+          <Button className="gradient-gold text-gold-foreground" onClick={() => open.mutate()} disabled={!form.vehicle_id}>Abrir Serviço</Button>
         </Card>
       ) : (
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">Turno em curso</div>
+              <div className="text-sm text-muted-foreground">Serviço em curso</div>
               <div className="font-semibold">Tipo: <Badge>{shift.operation_type}</Badge> · Iniciado {new Date(shift.start_time).toLocaleTimeString("pt-PT")}</div>
             </div>
             {shift.operation_type === "tvde"
@@ -128,8 +125,11 @@ function Operacao() {
         </Card>
       )}
 
+      <AllShiftsPanel />
+
       <Card>
-        <div className="p-5 pb-0"><h3 className="font-semibold">Meus últimos serviços</h3></div>
+        <div className="p-5 pb-0"><h3 className="font-semibold">Meus Últimos Serviços Mtour</h3></div>
+
         <Table>
           <TableHeader><TableRow><TableHead>OC</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead><TableHead>Estado</TableHead><TableHead className="w-32 text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
