@@ -1,6 +1,8 @@
 -- =====================================================================
--- MTOUR PORTUGAL — SCHEMA v2 (RESET COMPLETO)
+-- MTOUR PORTUGAL — SCHEMA COMPLETO (v5 consolidado)
 -- Cole este ficheiro inteiro no SQL Editor do Supabase e execute.
+-- Este ficheiro substitui: supabase-schema.sql + migrações v3, v4 e v5.
+-- É idempotente e faz reset dos objetos v1 antigos.
 -- =====================================================================
 
 -- ---------- LIMPEZA (idempotente) -----------------------------------
@@ -21,9 +23,15 @@ drop type if exists public.app_role cascade;
 drop type if exists public.lead_status cascade;
 drop type if exists public.proposal_status cascade;
 drop type if exists public.transaction_type cascade;
+drop type if exists public.service_status cascade;
+drop type if exists public.operation_type cascade;
+drop type if exists public.tvde_platform cascade;
+drop type if exists public.invoice_kind cascade;
+drop type if exists public.invoice_status cascade;
+drop type if exists public.doc_type cascade;
 
 -- ---------- ENUMS ---------------------------------------------------
-create type public.app_role as enum ('admin','financeiro','comercial','operacional','motorista');
+create type public.app_role as enum ('admin','financeiro','comercial','operacional','motorista','administrativo');
 create type public.lead_status as enum ('novo','em_negociacao','fechado','perdido');
 create type public.proposal_status as enum ('rascunho','enviada','aprovada','rejeitada','convertida');
 create type public.service_status as enum (
@@ -104,7 +112,7 @@ create table public.audit_log (
   actor uuid references auth.users(id),
   table_name text not null,
   record_id text,
-  action text not null,           -- insert|update|delete
+  action text not null,
   diff jsonb,
   created_at timestamptz default now()
 );
@@ -169,8 +177,8 @@ create table public.bank_accounts (
 
 create table public.vat_rates (
   id uuid primary key default gen_random_uuid(),
-  name text not null,             -- ex: 'Normal 23%','Intermédia 13%','Reduzida 6%','Isento'
-  rate numeric(5,2) not null,     -- 23.00, 13.00, 6.00, 0.00
+  name text not null,
+  rate numeric(5,2) not null,
   is_exempt boolean default false,
   active boolean default true,
   unique(name)
@@ -258,7 +266,7 @@ create table public.suppliers (
 create table public.partners (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  type text,                       -- guia, freelancer, etc.
+  type text,
   nif text, email text, phone text,
   commission_pct numeric(5,2),
   notes text,
@@ -294,7 +302,7 @@ create table public.agencies (
 create table public.products_services (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  kind text,                        -- transfer, tour, aluguer, etc.
+  kind text,
   default_price numeric(12,2),
   default_vat_rate_id uuid references public.vat_rates(id),
   cost_center_id uuid references public.cost_centers(id),
@@ -324,7 +332,7 @@ create table public.leads (
   code text unique default public.next_code('LEAD', 'public.seq_lead'::regclass),
   name text not null,
   email text, phone text,
-  origin text,                     -- Instagram, Site, Indicação, Google...
+  origin text,
   status lead_status default 'novo',
   lost_reason text,
   owner_id uuid references auth.users(id),
@@ -392,6 +400,7 @@ create table public.service_orders (
   client_id uuid references public.clients(id),
   driver_id uuid references public.drivers(id),
   vehicle_id uuid references public.vehicles(id),
+  operation_type public.operation_type default 'privado',
   service_date date not null,
   start_time time,
   origin text,
@@ -409,6 +418,7 @@ create table public.service_orders (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+comment on column public.service_orders.operation_type is 'Tipo de serviço: privado, tvde, interno, outro';
 create trigger tg_so_upd before update on public.service_orders for each row execute function public.tg_set_updated_at();
 create trigger tg_so_audit after insert or update or delete on public.service_orders for each row execute function public.tg_audit();
 grant select, insert, update, delete on public.service_orders to authenticated;
@@ -443,12 +453,12 @@ grant all on public.service_closings to service_role;
 alter table public.service_closings enable row level security;
 create policy "sc all" on public.service_closings for all to authenticated using (true) with check (true);
 
--- Despesas do serviço (estacionamento, portagens, abastecimento, outras)
+-- Despesas do serviço
 create table public.service_expenses (
   id uuid primary key default gen_random_uuid(),
   service_order_id uuid references public.service_orders(id) on delete cascade,
-  tvde_shift_id uuid,  -- FK adicionado abaixo
-  category text not null,          -- estacionamento|abastecimento|portagem|lavagem|outra
+  tvde_shift_id uuid,
+  category text not null,
   description text,
   amount numeric(12,2) not null,
   payment_method_id uuid references public.payment_methods(id),
@@ -527,14 +537,14 @@ create policy "tpj all" on public.tvde_private_jobs for all to authenticated usi
 -- ---------- FINANCEIRO / FATURAS -----------------------------------
 create table public.invoices (
   id uuid primary key default gen_random_uuid(),
-  kind invoice_kind not null,      -- entrada|saida
-  code text unique,                -- interno; para saída pode ser nº do fornecedor
+  kind invoice_kind not null,
+  code text unique,
   doc_type doc_type default 'fatura',
-  invoice_number text,             -- nº fatura oficial
+  invoice_number text,
   series text,
   issue_date date,
   due_date date,
-  entity_name text,                -- fornecedor (saida) ou cliente (entrada)
+  entity_name text,
   entity_nif text,
   client_id uuid references public.clients(id),
   supplier_id uuid references public.suppliers(id),
@@ -570,7 +580,6 @@ create policy "inv write" on public.invoices for insert to authenticated with ch
 create policy "inv upd" on public.invoices for update to authenticated using (true);
 create policy "inv del" on public.invoices for delete to authenticated using (public.is_admin(auth.uid()));
 
--- gera code automático por tipo
 create or replace function public.tg_invoice_code()
 returns trigger language plpgsql as $$
 begin
@@ -584,11 +593,11 @@ end $$;
 create trigger tg_invoice_code_bi before insert on public.invoices
   for each row execute function public.tg_invoice_code();
 
--- Movimento de caixa/conta corrente (extrato)
+-- Movimento de caixa/conta corrente
 create table public.cash_movements (
   id uuid primary key default gen_random_uuid(),
   movement_date date not null default current_date,
-  kind invoice_kind not null,      -- entrada|saida
+  kind invoice_kind not null,
   amount numeric(12,2) not null,
   bank_account_id uuid references public.bank_accounts(id),
   payment_method_id uuid references public.payment_methods(id),
@@ -611,7 +620,7 @@ create policy "cm del" on public.cash_movements for delete to authenticated usin
 -- ---------- FECHAMENTO MENSAL / IVA / IRC --------------------------
 create table public.monthly_closings (
   id uuid primary key default gen_random_uuid(),
-  period date not null unique,     -- primeiro dia do mês
+  period date not null unique,
   revenue numeric(12,2) default 0,
   expenses numeric(12,2) default 0,
   gross_profit numeric(12,2) default 0,
@@ -645,7 +654,7 @@ create policy "mc read" on public.monthly_closings for select to authenticated u
 create policy "mc write" on public.monthly_closings for insert to authenticated with check (public.is_admin(auth.uid()) or public.has_role(auth.uid(),'financeiro'));
 create policy "mc upd"  on public.monthly_closings for update to authenticated using (public.is_admin(auth.uid()));
 
--- ---------- ALERTAS DE DOCUMENTOS ----------------------------------
+-- ---------- ALERTAS DE DOCUMENTOS (view derivada de motoristas/veículos) --
 create or replace view public.document_alerts as
   select 'driver' as entity, d.id as entity_id, d.full_name as name,
          'Carta de condução' as doc, d.license_expiry as expiry
@@ -666,6 +675,155 @@ create or replace view public.document_alerts as
   select 'vehicle', v.id, v.plate, 'Licença TVDE', v.tvde_license_expiry
     from public.vehicles v where v.tvde_license_expiry is not null;
 grant select on public.document_alerts to authenticated;
+
+-- ---------- DOCUMENTOS DA EMPRESA (v5) -----------------------------
+-- Registo manual de seguros, taxas, licenças, impostos, contratos, etc.
+create table public.company_documents (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  category text not null default 'documento',
+  -- seguro | licenca | taxa | imposto | alvara | certidao |
+  -- contrato | documento | veiculo | outro
+  entity text,
+  document_number text,
+  issuer text,
+  amount numeric(12,2),
+  currency text default 'EUR',
+  issue_date date,
+  due_date date not null,
+  reminder_days integer not null default 30,
+  status text not null default 'ativo', -- ativo | pago | renovado | expirado | cancelado
+  responsible text,
+  attachment_url text,
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  created_by uuid references auth.users(id) on delete set null
+);
+grant select, insert, update, delete on public.company_documents to authenticated;
+grant all on public.company_documents to service_role;
+alter table public.company_documents enable row level security;
+create policy "company_documents read"  on public.company_documents for select to authenticated using (true);
+create policy "company_documents write" on public.company_documents for all    to authenticated using (true) with check (true);
+create index company_documents_due_date_idx on public.company_documents (due_date);
+create index company_documents_status_idx   on public.company_documents (status);
+create trigger tg_cdoc_upd before update on public.company_documents for each row execute function public.tg_set_updated_at();
+
+-- ---------- CONFIGURAÇÕES DA EMPRESA (v3) --------------------------
+create table public.company_settings (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default 'Mtour Portugal',
+  nif text,
+  address text,
+  postal_code text,
+  city text,
+  country text default 'Portugal',
+  phone text,
+  email text,
+  website text,
+  iban text,
+  logo_url text,
+  invoice_footer text,
+  singleton boolean unique default true,
+  updated_at timestamptz default now()
+);
+grant select on public.company_settings to authenticated;
+grant all on public.company_settings to service_role;
+alter table public.company_settings enable row level security;
+create policy "company read" on public.company_settings for select to authenticated using (true);
+create policy "company write admin" on public.company_settings for all to authenticated
+  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+insert into public.company_settings (name, singleton) values ('Mtour Portugal', true)
+  on conflict (singleton) do nothing;
+
+-- ---------- RBAC POR MÓDULO (v3) -----------------------------------
+create table public.role_permissions (
+  id uuid primary key default gen_random_uuid(),
+  role app_role not null,
+  module text not null,
+  unique (role, module)
+);
+grant select on public.role_permissions to authenticated;
+grant all on public.role_permissions to service_role;
+alter table public.role_permissions enable row level security;
+create policy "perm read" on public.role_permissions for select to authenticated using (true);
+create policy "perm write admin" on public.role_permissions for all to authenticated
+  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+
+create or replace function public.has_module(_user uuid, _module text)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.user_roles ur
+    join public.role_permissions rp on rp.role = ur.role
+    where ur.user_id = _user and rp.module = _module
+  );
+$$;
+
+insert into public.role_permissions (role, module) values
+  ('admin','dashboard'),('admin','crm'),('admin','propostas'),('admin','oc'),('admin','operacao'),
+  ('admin','tvde'),('admin','financeiro'),('admin','conta_corrente'),('admin','fechamento'),
+  ('admin','relatorios'),('admin','cadastros'),('admin','pos_venda'),('admin','importar'),
+  ('admin','configuracoes'),('admin','agenda'),('admin','alertas'),
+  ('comercial','dashboard'),('comercial','crm'),('comercial','propostas'),('comercial','pos_venda'),('comercial','agenda'),
+  ('administrativo','dashboard'),('administrativo','financeiro'),('administrativo','conta_corrente'),
+  ('administrativo','fechamento'),('administrativo','relatorios'),('administrativo','cadastros'),
+  ('administrativo','agenda'),('administrativo','alertas'),
+  ('motorista','dashboard'),('motorista','operacao'),('motorista','tvde'),('motorista','agenda')
+on conflict (role, module) do nothing;
+
+-- ---------- PÓS-VENDA / PESQUISAS (v3) -----------------------------
+create table public.survey_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  questions jsonb not null default '[]'::jsonb,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.survey_templates to authenticated;
+grant all on public.survey_templates to service_role;
+alter table public.survey_templates enable row level security;
+create policy "st read" on public.survey_templates for select to authenticated using (true);
+create policy "st write admin" on public.survey_templates for all to authenticated
+  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+
+create table public.surveys (
+  id uuid primary key default gen_random_uuid(),
+  token text unique not null default encode(gen_random_bytes(16),'hex'),
+  template_id uuid references public.survey_templates(id) on delete set null,
+  service_order_id uuid references public.service_orders(id) on delete set null,
+  client_id uuid references public.clients(id) on delete set null,
+  client_email text,
+  client_name text,
+  status text default 'pendente',
+  sent_at timestamptz,
+  answered_at timestamptz,
+  nps_score int,
+  average_score numeric(4,2),
+  answers jsonb default '[]'::jsonb,
+  notes text,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.surveys to authenticated;
+grant select, update on public.surveys to anon;
+grant all on public.surveys to service_role;
+alter table public.surveys enable row level security;
+create policy "srv read auth"  on public.surveys for select to authenticated using (true);
+create policy "srv write auth" on public.surveys for all    to authenticated using (true) with check (true);
+create policy "srv public read token" on public.surveys for select to anon using (true);
+create policy "srv public answer"     on public.surveys for update to anon using (status <> 'respondido') with check (true);
+
+insert into public.survey_templates (name, description, questions) values
+  ('Pesquisa Pós-Serviço Padrão','Avaliação geral do serviço prestado.',
+   '[
+     {"id":"q1","label":"Como avalia o serviço prestado?","type":"rating","required":true},
+     {"id":"q2","label":"Como avalia o motorista?","type":"rating","required":true},
+     {"id":"q3","label":"Como avalia o veículo?","type":"rating","required":true},
+     {"id":"q4","label":"Recomendaria os nossos serviços? (0-10)","type":"nps","required":true},
+     {"id":"q5","label":"Comentários adicionais","type":"text","required":false}
+   ]'::jsonb)
+on conflict do nothing;
 
 -- ---------- STORAGE (faturas) --------------------------------------
 insert into storage.buckets (id, name, public) values ('invoices','invoices', true)
@@ -709,5 +867,5 @@ insert into public.user_roles (user_id, role)
   on conflict do nothing;
 
 -- =====================================================================
--- FIM DO SCHEMA v2
+-- FIM DO SCHEMA CONSOLIDADO (v5)
 -- =====================================================================
