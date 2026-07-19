@@ -294,6 +294,8 @@ function ServicosPrivados() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NewPrivateServiceDialog open={creating} onClose={() => setCreating(false)} />
     </div>
   );
 }
