@@ -308,6 +308,29 @@ function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Fatura"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "kind", label: "Tipo (E/S)" },
+          { key: "doc_type", label: "Tipo doc" },
+          { key: "series", label: "Série" }, { key: "invoice_number", label: "Nº Fatura" },
+          { key: "issue_date", label: "Emissão" }, { key: "due_date", label: "Vencimento" },
+          { key: "entity_name", label: "Entidade" }, { key: "entity_nif", label: "NIF" },
+          { key: "description", label: "Descrição" },
+          { key: "value_ex_vat", label: "Base s/IVA", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_amount", label: "IVA", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_deductible", label: "IVA dedutível", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_non_deductible", label: "IVA não dedut.", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "total", label: "Total", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "status", label: "Estado" },
+          { key: "paid_amount", label: "Pago", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "observations", label: "Observações" },
+        ]}
+      />
     </div>
   );
 }
