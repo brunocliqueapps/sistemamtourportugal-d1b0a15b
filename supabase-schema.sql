@@ -1,447 +1,713 @@
 -- =====================================================================
--- MTOUR PORTUGAL — Schema completo (execute no SQL Editor do Supabase)
--- Projeto: https://owbrfxntriauzkhoesap.supabase.co
+-- MTOUR PORTUGAL — SCHEMA v2 (RESET COMPLETO)
+-- Cole este ficheiro inteiro no SQL Editor do Supabase e execute.
 -- =====================================================================
 
--- Extensões
-create extension if not exists "pgcrypto";
+-- ---------- LIMPEZA (idempotente) -----------------------------------
+drop schema if exists mtour cascade;
+create schema mtour;
 
--- ---------- ENUMS ----------
-do $$ begin
-  create type app_role as enum ('admin', 'comercial', 'motorista', 'pos_venda');
-exception when duplicate_object then null; end $$;
+-- Dropar tabelas antigas do v1 (se existirem)
+do $$ declare r record; begin
+  for r in (select tablename from pg_tables where schemaname='public'
+            and tablename in (
+              'evaluations','referrals','maintenances','driver_day_checklist','checklist_items',
+              'driver_days','vehicle_costs','vehicles','payments','proposal_days','proposals',
+              'travels','client_qualifications','leads','transactions','user_roles','profiles'))
+  loop execute format('drop table if exists public.%I cascade', r.tablename); end loop;
+end $$;
 
-do $$ begin
-  create type lead_status as enum ('novo', 'qualificado', 'proposta', 'fechado', 'perdido');
-exception when duplicate_object then null; end $$;
+drop type if exists public.app_role cascade;
+drop type if exists public.lead_status cascade;
+drop type if exists public.proposal_status cascade;
+drop type if exists public.transaction_type cascade;
 
-do $$ begin
-  create type proposal_status as enum ('rascunho', 'enviada', 'aceita', 'recusada', 'concluida');
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  create type transaction_type as enum ('entrada', 'saida');
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  create type vehicle_cost_type as enum ('fixo', 'variavel');
-exception when duplicate_object then null; end $$;
-
--- ---------- PROFILES ----------
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  name text not null default '',
-  email text,
-  avatar_url text,
-  created_at timestamptz not null default now()
+-- ---------- ENUMS ---------------------------------------------------
+create type public.app_role as enum ('admin','financeiro','comercial','operacional','motorista');
+create type public.lead_status as enum ('novo','em_negociacao','fechado','perdido');
+create type public.proposal_status as enum ('rascunho','enviada','aprovada','rejeitada','convertida');
+create type public.service_status as enum (
+  'agendado','confirmado','motorista_designado','em_deslocacao',
+  'cliente_a_bordo','em_execucao','finalizado','cancelado','nao_realizado'
 );
+create type public.operation_type as enum ('privado','tvde','interno','outro');
+create type public.tvde_platform as enum ('uber','bolt','outra');
+create type public.invoice_kind as enum ('entrada','saida');
+create type public.invoice_status as enum ('pendente','pago','parcialmente_pago','vencido','cancelado');
+create type public.doc_type as enum ('fatura','fatura_recibo','recibo','nota_credito','nota_debito','fatura_simplificada');
 
+-- ---------- UTIL: updated_at ---------------------------------------
+create or replace function public.tg_set_updated_at()
+returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end $$;
+
+-- ---------- PROFILES + ROLES ---------------------------------------
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  phone text,
+  avatar_url text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 grant select, insert, update on public.profiles to authenticated;
 grant all on public.profiles to service_role;
 alter table public.profiles enable row level security;
+create policy "own profile read" on public.profiles for select to authenticated using (auth.uid()=id);
+create policy "own profile write" on public.profiles for update to authenticated using (auth.uid()=id);
+create policy "own profile insert" on public.profiles for insert to authenticated with check (auth.uid()=id);
+create trigger tg_profiles_upd before update on public.profiles for each row execute function public.tg_set_updated_at();
 
-drop policy if exists "profiles: self read" on public.profiles;
-create policy "profiles: self read" on public.profiles for select
-  to authenticated using (auth.uid() = id);
-
-drop policy if exists "profiles: self update" on public.profiles;
-create policy "profiles: self update" on public.profiles for update
-  to authenticated using (auth.uid() = id);
-
-drop policy if exists "profiles: self insert" on public.profiles;
-create policy "profiles: self insert" on public.profiles for insert
-  to authenticated with check (auth.uid() = id);
-
--- ---------- USER ROLES (nunca no profiles) ----------
-create table if not exists public.user_roles (
+create table public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   role app_role not null,
   unique (user_id, role)
 );
-
 grant select on public.user_roles to authenticated;
 grant all on public.user_roles to service_role;
 alter table public.user_roles enable row level security;
 
-drop policy if exists "roles: self read" on public.user_roles;
-create policy "roles: self read" on public.user_roles for select
-  to authenticated using (auth.uid() = user_id);
-
 create or replace function public.has_role(_user_id uuid, _role app_role)
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.user_roles where user_id = _user_id and role = _role)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(select 1 from public.user_roles where user_id=_user_id and role=_role)
 $$;
 
--- Auto-cria profile + role padrão 'comercial' ao registar
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  insert into public.profiles (id, name, email, avatar_url)
-  values (
-    new.id,
-    coalesce(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'full_name', split_part(new.email,'@',1)),
-    new.email,
-    new.raw_user_meta_data->>'avatar_url'
-  )
-  on conflict (id) do nothing;
+create or replace function public.is_admin(_user_id uuid)
+returns boolean language sql stable security definer set search_path=public as $$
+  select public.has_role(_user_id,'admin')
+$$;
 
-  insert into public.user_roles (user_id, role) values (new.id, 'comercial')
-  on conflict do nothing;
+create policy "read own roles" on public.user_roles for select to authenticated
+  using (user_id=auth.uid() or public.is_admin(auth.uid()));
+create policy "admin manage roles" on public.user_roles for all to authenticated
+  using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+
+-- Auto-criação de profile + promoção do admin
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  insert into public.profiles(id, full_name) values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email))
+    on conflict (id) do nothing;
+  if lower(new.email) = 'sistemamtour@gmail.com' then
+    insert into public.user_roles(user_id, role) values (new.id,'admin') on conflict do nothing;
+  end if;
   return new;
 end $$;
-
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- ---------- LEADS ----------
-create table if not exists public.leads (
+-- ---------- AUDIT LOG ----------------------------------------------
+create table public.audit_log (
+  id bigserial primary key,
+  actor uuid references auth.users(id),
+  table_name text not null,
+  record_id text,
+  action text not null,           -- insert|update|delete
+  diff jsonb,
+  created_at timestamptz default now()
+);
+grant select, insert on public.audit_log to authenticated;
+grant all on public.audit_log to service_role;
+alter table public.audit_log enable row level security;
+create policy "admin read log" on public.audit_log for select to authenticated using (public.is_admin(auth.uid()));
+create policy "system insert log" on public.audit_log for insert to authenticated with check (true);
+
+create or replace function public.tg_audit()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare v_id text;
+begin
+  v_id := coalesce((case when tg_op='DELETE' then old.id::text else new.id::text end),'');
+  insert into public.audit_log(actor, table_name, record_id, action, diff)
+  values (auth.uid(), tg_table_name, v_id, lower(tg_op),
+          case when tg_op='DELETE' then to_jsonb(old)
+               when tg_op='INSERT' then to_jsonb(new)
+               else jsonb_build_object('old',to_jsonb(old),'new',to_jsonb(new)) end);
+  return coalesce(new, old);
+end $$;
+
+-- ---------- SEQUÊNCIAS (numeração automática) ----------------------
+create sequence public.seq_lead        start 1;
+create sequence public.seq_proposal    start 1;
+create sequence public.seq_voucher     start 1;
+create sequence public.seq_service     start 1;
+create sequence public.seq_oc          start 1;
+create sequence public.seq_invoice_in  start 1;
+create sequence public.seq_invoice_out start 1;
+
+create or replace function public.next_code(prefix text, seq regclass)
+returns text language sql volatile as $$
+  select prefix || '-' || to_char(now(),'YYYY') || '-' || lpad(nextval(seq)::text, 5, '0')
+$$;
+
+-- ---------- CADASTROS ----------------------------------------------
+create table public.cost_centers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  active boolean default true
+);
+
+create table public.bank_accounts (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  bank text,
+  iban text,
+  currency text default 'EUR',
+  opening_balance numeric(12,2) default 0,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.vat_rates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,             -- ex: 'Normal 23%','Intermédia 13%','Reduzida 6%','Isento'
+  rate numeric(5,2) not null,     -- 23.00, 13.00, 6.00, 0.00
+  is_exempt boolean default false,
+  active boolean default true,
+  unique(name)
+);
+
+create table public.clients (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  nif text,
   email text,
   phone text,
-  origin text,
-  indication_name text,
-  partner text,
+  address text,
+  city text,
+  country text default 'Portugal',
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_clients_upd before update on public.clients for each row execute function public.tg_set_updated_at();
+
+create table public.drivers (
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete set null,
-  status lead_status not null default 'novo',
-  created_at timestamptz not null default now()
+  full_name text not null,
+  phone text,
+  email text,
+  license_number text,
+  license_expiry date,
+  tvde_card_number text,
+  tvde_card_expiry date,
+  hire_date date,
+  active boolean default true,
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
-grant select, insert, update, delete on public.leads to authenticated;
-grant all on public.leads to service_role;
-alter table public.leads enable row level security;
-drop policy if exists "leads: auth all" on public.leads;
-create policy "leads: auth all" on public.leads for all
-  to authenticated using (true) with check (true);
+create trigger tg_drivers_upd before update on public.drivers for each row execute function public.tg_set_updated_at();
 
--- ---------- CLIENT QUALIFICATIONS ----------
-create table if not exists public.client_qualifications (
+create table public.vehicles (
   id uuid primary key default gen_random_uuid(),
-  lead_id uuid not null references public.leads(id) on delete cascade,
-  passenger_count int,
-  profile text,
-  language text,
-  special_needs text,
-  accommodation text,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.client_qualifications to authenticated;
-grant all on public.client_qualifications to service_role;
-alter table public.client_qualifications enable row level security;
-drop policy if exists "qual: auth all" on public.client_qualifications;
-create policy "qual: auth all" on public.client_qualifications for all
-  to authenticated using (true) with check (true);
-
--- ---------- TRAVELS ----------
-create table if not exists public.travels (
-  id uuid primary key default gen_random_uuid(),
-  lead_id uuid not null references public.leads(id) on delete cascade,
-  arrival_datetime timestamptz,
-  arrival_flight text,
-  departure_datetime timestamptz,
-  departure_flight text,
-  objective text,
-  interests jsonb default '[]'::jsonb,
-  user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.travels to authenticated;
-grant all on public.travels to service_role;
-alter table public.travels enable row level security;
-drop policy if exists "travels: auth all" on public.travels;
-create policy "travels: auth all" on public.travels for all
-  to authenticated using (true) with check (true);
-
--- ---------- PROPOSALS ----------
-create table if not exists public.proposals (
-  id uuid primary key default gen_random_uuid(),
-  lead_id uuid not null references public.leads(id) on delete cascade,
-  service_number text unique,
-  proposal_date date default current_date,
-  service_type text,
-  total_value numeric(12,2) default 0,
-  user_id uuid references auth.users(id) on delete set null,
-  status proposal_status not null default 'rascunho',
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.proposals to authenticated;
-grant all on public.proposals to service_role;
-alter table public.proposals enable row level security;
-drop policy if exists "proposals: auth all" on public.proposals;
-create policy "proposals: auth all" on public.proposals for all
-  to authenticated using (true) with check (true);
-
--- ---------- PROPOSAL DAYS ----------
-create table if not exists public.proposal_days (
-  id uuid primary key default gen_random_uuid(),
-  proposal_id uuid not null references public.proposals(id) on delete cascade,
-  day_number int not null,
-  description text,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.proposal_days to authenticated;
-grant all on public.proposal_days to service_role;
-alter table public.proposal_days enable row level security;
-drop policy if exists "pdays: auth all" on public.proposal_days;
-create policy "pdays: auth all" on public.proposal_days for all
-  to authenticated using (true) with check (true);
-
--- ---------- PAYMENTS ----------
-create table if not exists public.payments (
-  id uuid primary key default gen_random_uuid(),
-  proposal_id uuid not null references public.proposals(id) on delete cascade,
-  payment_method text,
-  amount numeric(12,2) not null,
-  payment_date date not null default current_date,
-  user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.payments to authenticated;
-grant all on public.payments to service_role;
-alter table public.payments enable row level security;
-drop policy if exists "payments: auth all" on public.payments;
-create policy "payments: auth all" on public.payments for all
-  to authenticated using (true) with check (true);
-
--- ---------- VEHICLES ----------
-create table if not exists public.vehicles (
-  id uuid primary key default gen_random_uuid(),
-  plate text unique not null,
+  plate text not null unique,
   brand text,
   model text,
   year int,
+  color text,
+  seats int,
+  fuel_type text,
+  operates_tvde boolean default false,
+  insurance_expiry date,
+  inspection_expiry date,
+  iuc_expiry date,
+  tvde_license_expiry date,
+  active boolean default true,
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_vehicles_upd before update on public.vehicles for each row execute function public.tg_set_updated_at();
+
+create table public.employees (
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  full_name text not null,
+  role text,
+  email text,
+  phone text,
+  hire_date date,
+  active boolean default true,
+  created_at timestamptz default now()
 );
-grant select, insert, update, delete on public.vehicles to authenticated;
-grant all on public.vehicles to service_role;
-alter table public.vehicles enable row level security;
-drop policy if exists "vehicles: auth all" on public.vehicles;
-create policy "vehicles: auth all" on public.vehicles for all
-  to authenticated using (true) with check (true);
 
--- ---------- VEHICLE COSTS ----------
-create table if not exists public.vehicle_costs (
+create table public.suppliers (
   id uuid primary key default gen_random_uuid(),
-  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
-  type vehicle_cost_type not null,
   name text not null,
-  amount numeric(12,2) not null,
-  date date not null default current_date,
-  created_at timestamptz not null default now()
+  nif text,
+  category text,
+  email text,
+  phone text,
+  address text,
+  notes text,
+  active boolean default true,
+  created_at timestamptz default now()
 );
-grant select, insert, update, delete on public.vehicle_costs to authenticated;
-grant all on public.vehicle_costs to service_role;
-alter table public.vehicle_costs enable row level security;
-drop policy if exists "vcosts: auth all" on public.vehicle_costs;
-create policy "vcosts: auth all" on public.vehicle_costs for all
-  to authenticated using (true) with check (true);
 
--- ---------- DRIVER DAYS ----------
-create table if not exists public.driver_days (
+create table public.partners (
   id uuid primary key default gen_random_uuid(),
-  driver_id uuid references auth.users(id) on delete set null,
-  vehicle_id uuid references public.vehicles(id) on delete set null,
-  date date not null default current_date,
+  name text not null,
+  type text,                       -- guia, freelancer, etc.
+  nif text, email text, phone text,
+  commission_pct numeric(5,2),
+  notes text,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.hotels (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  city text, address text, phone text, email text, contact_person text,
+  notes text, active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.restaurants (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  city text, address text, phone text, email text, cuisine text,
+  notes text, active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.agencies (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  nif text, contact_person text, email text, phone text,
+  commission_pct numeric(5,2),
+  notes text, active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.products_services (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  kind text,                        -- transfer, tour, aluguer, etc.
+  default_price numeric(12,2),
+  default_vat_rate_id uuid references public.vat_rates(id),
+  cost_center_id uuid references public.cost_centers(id),
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- Grants + RLS genéricos para cadastros (autenticados)
+do $$ declare t text; begin
+  foreach t in array array['cost_centers','payment_methods','bank_accounts','vat_rates',
+    'clients','drivers','vehicles','employees','suppliers','partners','hotels','restaurants',
+    'agencies','products_services']
+  loop
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    execute format('grant all on public.%I to service_role', t);
+    execute format('alter table public.%I enable row level security', t);
+    execute format($f$create policy "auth read %1$s" on public.%1$s for select to authenticated using (true)$f$, t);
+    execute format($f$create policy "auth write %1$s" on public.%1$s for insert to authenticated with check (true)$f$, t);
+    execute format($f$create policy "auth upd %1$s" on public.%1$s for update to authenticated using (true)$f$, t);
+    execute format($f$create policy "admin del %1$s" on public.%1$s for delete to authenticated using (public.is_admin(auth.uid()))$f$, t);
+  end loop;
+end $$;
+
+-- ---------- CRM: LEADS + PROPOSTAS ---------------------------------
+create table public.leads (
+  id uuid primary key default gen_random_uuid(),
+  code text unique default public.next_code('LEAD', 'public.seq_lead'::regclass),
+  name text not null,
+  email text, phone text,
+  origin text,                     -- Instagram, Site, Indicação, Google...
+  status lead_status default 'novo',
+  lost_reason text,
+  owner_id uuid references auth.users(id),
+  client_id uuid references public.clients(id),
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_leads_upd before update on public.leads for each row execute function public.tg_set_updated_at();
+grant select, insert, update, delete on public.leads to authenticated;
+grant all on public.leads to service_role;
+alter table public.leads enable row level security;
+create policy "leads read" on public.leads for select to authenticated using (true);
+create policy "leads write" on public.leads for insert to authenticated with check (true);
+create policy "leads upd" on public.leads for update to authenticated using (true);
+create policy "leads del" on public.leads for delete to authenticated using (public.is_admin(auth.uid()));
+
+create table public.proposals (
+  id uuid primary key default gen_random_uuid(),
+  code text unique default public.next_code('PROP','public.seq_proposal'::regclass),
+  lead_id uuid references public.leads(id) on delete set null,
+  client_id uuid references public.clients(id),
+  title text not null,
+  description text,
+  total_value numeric(12,2) default 0,
+  vat_rate_id uuid references public.vat_rates(id),
+  status proposal_status default 'rascunho',
+  valid_until date,
+  approved_at timestamptz,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_proposals_upd before update on public.proposals for each row execute function public.tg_set_updated_at();
+grant select, insert, update, delete on public.proposals to authenticated;
+grant all on public.proposals to service_role;
+alter table public.proposals enable row level security;
+create policy "prop read" on public.proposals for select to authenticated using (true);
+create policy "prop write" on public.proposals for insert to authenticated with check (true);
+create policy "prop upd" on public.proposals for update to authenticated using (true);
+create policy "prop del" on public.proposals for delete to authenticated using (public.is_admin(auth.uid()));
+
+create table public.proposal_items (
+  id uuid primary key default gen_random_uuid(),
+  proposal_id uuid not null references public.proposals(id) on delete cascade,
+  product_service_id uuid references public.products_services(id),
+  description text,
+  quantity numeric(12,2) default 1,
+  unit_price numeric(12,2) default 0,
+  vat_rate_id uuid references public.vat_rates(id),
+  total numeric(12,2) generated always as (quantity * unit_price) stored
+);
+grant select, insert, update, delete on public.proposal_items to authenticated;
+grant all on public.proposal_items to service_role;
+alter table public.proposal_items enable row level security;
+create policy "propi all" on public.proposal_items for all to authenticated using (true) with check (true);
+
+-- ---------- SERVIÇOS / OC / VOUCHERS -------------------------------
+create table public.service_orders (
+  id uuid primary key default gen_random_uuid(),
+  oc_code text unique default public.next_code('OC','public.seq_oc'::regclass),
+  voucher_code text unique default public.next_code('VCH','public.seq_voucher'::regclass),
+  service_code text unique default public.next_code('SVC','public.seq_service'::regclass),
+  proposal_id uuid references public.proposals(id) on delete set null,
+  client_id uuid references public.clients(id),
+  driver_id uuid references public.drivers(id),
+  vehicle_id uuid references public.vehicles(id),
+  service_date date not null,
+  start_time time,
+  origin text,
+  destination text,
+  itinerary text,
+  passengers int,
+  sale_value numeric(12,2) default 0,
+  payment_method_id uuid references public.payment_methods(id),
+  amount_received numeric(12,2) default 0,
+  amount_pending numeric(12,2) default 0,
+  received_by uuid references auth.users(id),
+  status service_status default 'agendado',
+  notes text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_so_upd before update on public.service_orders for each row execute function public.tg_set_updated_at();
+create trigger tg_so_audit after insert or update or delete on public.service_orders for each row execute function public.tg_audit();
+grant select, insert, update, delete on public.service_orders to authenticated;
+grant all on public.service_orders to service_role;
+alter table public.service_orders enable row level security;
+create policy "so read" on public.service_orders for select to authenticated using (true);
+create policy "so write" on public.service_orders for insert to authenticated with check (true);
+create policy "so upd" on public.service_orders for update to authenticated using (true);
+create policy "so del" on public.service_orders for delete to authenticated using (public.is_admin(auth.uid()));
+
+-- Fechamento do serviço (privado)
+create table public.service_closings (
+  id uuid primary key default gen_random_uuid(),
+  service_order_id uuid not null unique references public.service_orders(id) on delete cascade,
   start_time timestamptz,
   end_time timestamptz,
   km_initial numeric(10,1),
   km_final numeric(10,1),
-  fuel_initial numeric(5,2),
-  fuel_final numeric(5,2),
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.driver_days to authenticated;
-grant all on public.driver_days to service_role;
-alter table public.driver_days enable row level security;
-drop policy if exists "ddays: auth all" on public.driver_days;
-create policy "ddays: auth all" on public.driver_days for all
-  to authenticated using (true) with check (true);
-
--- ---------- CHECKLIST ----------
-create table if not exists public.checklist_items (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text
-);
-grant select, insert, update, delete on public.checklist_items to authenticated;
-grant all on public.checklist_items to service_role;
-alter table public.checklist_items enable row level security;
-drop policy if exists "citems: auth all" on public.checklist_items;
-create policy "citems: auth all" on public.checklist_items for all
-  to authenticated using (true) with check (true);
-
-create table if not exists public.driver_day_checklist (
-  id uuid primary key default gen_random_uuid(),
-  driver_day_id uuid not null references public.driver_days(id) on delete cascade,
-  checklist_item_id uuid not null references public.checklist_items(id) on delete cascade,
-  checked boolean not null default false
-);
-grant select, insert, update, delete on public.driver_day_checklist to authenticated;
-grant all on public.driver_day_checklist to service_role;
-alter table public.driver_day_checklist enable row level security;
-drop policy if exists "ddc: auth all" on public.driver_day_checklist;
-create policy "ddc: auth all" on public.driver_day_checklist for all
-  to authenticated using (true) with check (true);
-
--- ---------- DRIVER SERVICES ----------
-create table if not exists public.driver_services (
-  id uuid primary key default gen_random_uuid(),
-  driver_day_id uuid not null references public.driver_days(id) on delete cascade,
-  proposal_id uuid not null references public.proposals(id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.driver_services to authenticated;
-grant all on public.driver_services to service_role;
-alter table public.driver_services enable row level security;
-drop policy if exists "dservices: auth all" on public.driver_services;
-create policy "dservices: auth all" on public.driver_services for all
-  to authenticated using (true) with check (true);
-
--- ---------- TRANSACTIONS ----------
-create table if not exists public.transactions (
-  id uuid primary key default gen_random_uuid(),
-  driver_day_id uuid references public.driver_days(id) on delete set null,
-  type transaction_type not null,
-  establishment text,
-  invoice_number text,
-  amount numeric(12,2) not null,
-  photo_url text,
-  user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-grant select, insert, update, delete on public.transactions to authenticated;
-grant all on public.transactions to service_role;
-alter table public.transactions enable row level security;
-drop policy if exists "tx: auth all" on public.transactions;
-create policy "tx: auth all" on public.transactions for all
-  to authenticated using (true) with check (true);
-
--- ---------- MAINTENANCE ----------
-create table if not exists public.maintenances (
-  id uuid primary key default gen_random_uuid(),
-  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
-  type text,
-  km numeric(10,1),
-  date date not null default current_date,
+  km_traveled numeric(10,1) generated always as (coalesce(km_final,0) - coalesce(km_initial,0)) stored,
+  sale_value numeric(12,2),
+  amount_received numeric(12,2),
+  payment_method_id uuid references public.payment_methods(id),
+  received_by uuid references auth.users(id),
+  balance_pending numeric(12,2),
+  incidents text,
   notes text,
-  user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  closed_at timestamptz default now(),
+  closed_by uuid references auth.users(id)
 );
-grant select, insert, update, delete on public.maintenances to authenticated;
-grant all on public.maintenances to service_role;
-alter table public.maintenances enable row level security;
-drop policy if exists "mt: auth all" on public.maintenances;
-create policy "mt: auth all" on public.maintenances for all
-  to authenticated using (true) with check (true);
+grant select, insert, update, delete on public.service_closings to authenticated;
+grant all on public.service_closings to service_role;
+alter table public.service_closings enable row level security;
+create policy "sc all" on public.service_closings for all to authenticated using (true) with check (true);
 
-create table if not exists public.maintenance_items (
+-- Despesas do serviço (estacionamento, portagens, abastecimento, outras)
+create table public.service_expenses (
   id uuid primary key default gen_random_uuid(),
-  name text not null
+  service_order_id uuid references public.service_orders(id) on delete cascade,
+  tvde_shift_id uuid,  -- FK adicionado abaixo
+  category text not null,          -- estacionamento|abastecimento|portagem|lavagem|outra
+  description text,
+  amount numeric(12,2) not null,
+  payment_method_id uuid references public.payment_methods(id),
+  paid_by uuid references auth.users(id),
+  vehicle_id uuid references public.vehicles(id),
+  cost_center_id uuid references public.cost_centers(id),
+  notes text,
+  created_at timestamptz default now()
 );
-grant select, insert, update, delete on public.maintenance_items to authenticated;
-grant all on public.maintenance_items to service_role;
-alter table public.maintenance_items enable row level security;
-drop policy if exists "mti: auth all" on public.maintenance_items;
-create policy "mti: auth all" on public.maintenance_items for all
-  to authenticated using (true) with check (true);
+grant select, insert, update, delete on public.service_expenses to authenticated;
+grant all on public.service_expenses to service_role;
+alter table public.service_expenses enable row level security;
+create policy "se all" on public.service_expenses for all to authenticated using (true) with check (true);
 
-create table if not exists public.maintenance_item_checks (
+-- ---------- TVDE ---------------------------------------------------
+create table public.tvde_shifts (
   id uuid primary key default gen_random_uuid(),
-  maintenance_id uuid not null references public.maintenances(id) on delete cascade,
-  maintenance_item_id uuid not null references public.maintenance_items(id) on delete cascade,
-  checked boolean not null default false
+  driver_id uuid references public.drivers(id),
+  vehicle_id uuid references public.vehicles(id),
+  operation_type operation_type default 'tvde',
+  shift_date date not null,
+  start_time timestamptz,
+  end_time timestamptz,
+  km_initial numeric(10,1),
+  km_final numeric(10,1),
+  notes text,
+  closed_at timestamptz,
+  closed_by uuid references auth.users(id),
+  created_at timestamptz default now()
 );
-grant select, insert, update, delete on public.maintenance_item_checks to authenticated;
-grant all on public.maintenance_item_checks to service_role;
-alter table public.maintenance_item_checks enable row level security;
-drop policy if exists "mtic: auth all" on public.maintenance_item_checks;
-create policy "mtic: auth all" on public.maintenance_item_checks for all
-  to authenticated using (true) with check (true);
+alter table public.service_expenses
+  add constraint service_expenses_tvde_fk foreign key (tvde_shift_id) references public.tvde_shifts(id) on delete cascade;
+grant select, insert, update, delete on public.tvde_shifts to authenticated;
+grant all on public.tvde_shifts to service_role;
+alter table public.tvde_shifts enable row level security;
+create policy "shift all" on public.tvde_shifts for all to authenticated using (true) with check (true);
 
--- ---------- EVALUATIONS ----------
-create table if not exists public.evaluations (
+create table public.tvde_earnings (
   id uuid primary key default gen_random_uuid(),
-  lead_id uuid not null references public.leads(id) on delete cascade,
-  rating int check (rating between 1 and 5),
-  comments text,
-  image_authorization boolean not null default false,
-  created_at timestamptz not null default now()
+  tvde_shift_id uuid not null references public.tvde_shifts(id) on delete cascade,
+  platform tvde_platform not null,
+  gross numeric(12,2) default 0,
+  tips numeric(12,2) default 0,
+  bonus numeric(12,2) default 0,
+  commissions numeric(12,2) default 0,
+  other_deductions numeric(12,2) default 0,
+  net numeric(12,2) generated always as (
+    coalesce(gross,0)+coalesce(tips,0)+coalesce(bonus,0)-coalesce(commissions,0)-coalesce(other_deductions,0)
+  ) stored,
+  notes text
 );
-grant select, insert, update, delete on public.evaluations to authenticated;
-grant all on public.evaluations to service_role;
-alter table public.evaluations enable row level security;
-drop policy if exists "eval: auth all" on public.evaluations;
-create policy "eval: auth all" on public.evaluations for all
-  to authenticated using (true) with check (true);
+grant select, insert, update, delete on public.tvde_earnings to authenticated;
+grant all on public.tvde_earnings to service_role;
+alter table public.tvde_earnings enable row level security;
+create policy "earn all" on public.tvde_earnings for all to authenticated using (true) with check (true);
 
--- ---------- REFERRALS ----------
-create table if not exists public.referrals (
+create table public.tvde_private_jobs (
   id uuid primary key default gen_random_uuid(),
-  lead_id_original uuid references public.leads(id) on delete set null,
-  referred_name text not null,
-  referred_phone text,
-  referred_email text,
-  new_lead_id uuid references public.leads(id) on delete set null,
-  user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  tvde_shift_id uuid not null references public.tvde_shifts(id) on delete cascade,
+  client_name text,
+  client_phone text,
+  origin text, destination text,
+  value numeric(12,2) default 0,
+  payment_method_id uuid references public.payment_methods(id),
+  payment_status text default 'pendente',
+  received_by uuid references auth.users(id),
+  approved_by uuid references auth.users(id),
+  oc_code text,
+  notes text
 );
-grant select, insert, update, delete on public.referrals to authenticated;
-grant all on public.referrals to service_role;
-alter table public.referrals enable row level security;
-drop policy if exists "ref: auth all" on public.referrals;
-create policy "ref: auth all" on public.referrals for all
-  to authenticated using (true) with check (true);
+grant select, insert, update, delete on public.tvde_private_jobs to authenticated;
+grant all on public.tvde_private_jobs to service_role;
+alter table public.tvde_private_jobs enable row level security;
+create policy "tpj all" on public.tvde_private_jobs for all to authenticated using (true) with check (true);
 
--- ---------- STORAGE (faturas) ----------
-insert into storage.buckets (id, name, public) values ('invoices','invoices', true)
-on conflict (id) do nothing;
+-- ---------- FINANCEIRO / FATURAS -----------------------------------
+create table public.invoices (
+  id uuid primary key default gen_random_uuid(),
+  kind invoice_kind not null,      -- entrada|saida
+  code text unique,                -- interno; para saída pode ser nº do fornecedor
+  doc_type doc_type default 'fatura',
+  invoice_number text,             -- nº fatura oficial
+  series text,
+  issue_date date,
+  due_date date,
+  entity_name text,                -- fornecedor (saida) ou cliente (entrada)
+  entity_nif text,
+  client_id uuid references public.clients(id),
+  supplier_id uuid references public.suppliers(id),
+  description text,
+  value_ex_vat numeric(12,2) default 0,
+  vat_rate_id uuid references public.vat_rates(id),
+  vat_amount numeric(12,2) default 0,
+  vat_deductible numeric(12,2) default 0,
+  vat_non_deductible numeric(12,2) default 0,
+  deduction_pct numeric(5,2),
+  total numeric(12,2) default 0,
+  cost_center_id uuid references public.cost_centers(id),
+  payment_method_id uuid references public.payment_methods(id),
+  bank_account_id uuid references public.bank_accounts(id),
+  status invoice_status default 'pendente',
+  paid_at date,
+  paid_amount numeric(12,2) default 0,
+  service_order_id uuid references public.service_orders(id) on delete set null,
+  voucher_code text,
+  photo_url text,
+  observations text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_inv_upd before update on public.invoices for each row execute function public.tg_set_updated_at();
+create trigger tg_inv_audit after insert or update or delete on public.invoices for each row execute function public.tg_audit();
+grant select, insert, update, delete on public.invoices to authenticated;
+grant all on public.invoices to service_role;
+alter table public.invoices enable row level security;
+create policy "inv read" on public.invoices for select to authenticated using (true);
+create policy "inv write" on public.invoices for insert to authenticated with check (true);
+create policy "inv upd" on public.invoices for update to authenticated using (true);
+create policy "inv del" on public.invoices for delete to authenticated using (public.is_admin(auth.uid()));
 
-drop policy if exists "invoices: auth upload" on storage.objects;
-create policy "invoices: auth upload" on storage.objects for insert
-  to authenticated with check (bucket_id = 'invoices');
-
-drop policy if exists "invoices: public read" on storage.objects;
-create policy "invoices: public read" on storage.objects for select
-  using (bucket_id = 'invoices');
-
--- ---------- SEEDS ----------
-insert into public.checklist_items (name) values
-  ('Pneus'), ('Óleo'), ('Luzes'), ('Freios'), ('Documentação'), ('Limpeza')
-on conflict do nothing;
-
-insert into public.maintenance_items (name) values
-  ('Troca de óleo'), ('Filtros'), ('Pastilhas de freio'), ('Alinhamento'), ('Correia dentada')
-on conflict do nothing;
-
--- ---------- ADMIN BOOTSTRAP ----------
-create or replace function public.promote_mtour_admin()
-returns trigger language plpgsql security definer set search_path = public as $$
+-- gera code automático por tipo
+create or replace function public.tg_invoice_code()
+returns trigger language plpgsql as $$
 begin
-  if lower(new.email) = 'sistemamtour@gmail.com' then
-    insert into public.user_roles (user_id, role) values (new.id, 'admin')
-    on conflict (user_id, role) do nothing;
+  if new.code is null then
+    new.code := case when new.kind='entrada'
+      then public.next_code('FIN','public.seq_invoice_in'::regclass)
+      else public.next_code('FOUT','public.seq_invoice_out'::regclass) end;
   end if;
   return new;
 end $$;
+create trigger tg_invoice_code_bi before insert on public.invoices
+  for each row execute function public.tg_invoice_code();
 
-drop trigger if exists on_auth_user_created_admin on auth.users;
-create trigger on_auth_user_created_admin
-  after insert on auth.users
-  for each row execute function public.promote_mtour_admin();
+-- Movimento de caixa/conta corrente (extrato)
+create table public.cash_movements (
+  id uuid primary key default gen_random_uuid(),
+  movement_date date not null default current_date,
+  kind invoice_kind not null,      -- entrada|saida
+  amount numeric(12,2) not null,
+  bank_account_id uuid references public.bank_accounts(id),
+  payment_method_id uuid references public.payment_methods(id),
+  invoice_id uuid references public.invoices(id) on delete set null,
+  service_order_id uuid references public.service_orders(id) on delete set null,
+  tvde_shift_id uuid references public.tvde_shifts(id) on delete set null,
+  service_expense_id uuid references public.service_expenses(id) on delete set null,
+  description text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.cash_movements to authenticated;
+grant all on public.cash_movements to service_role;
+alter table public.cash_movements enable row level security;
+create policy "cm read" on public.cash_movements for select to authenticated using (true);
+create policy "cm write" on public.cash_movements for insert to authenticated with check (true);
+create policy "cm upd" on public.cash_movements for update to authenticated using (public.is_admin(auth.uid()) or public.has_role(auth.uid(),'financeiro'));
+create policy "cm del" on public.cash_movements for delete to authenticated using (public.is_admin(auth.uid()));
 
+-- ---------- FECHAMENTO MENSAL / IVA / IRC --------------------------
+create table public.monthly_closings (
+  id uuid primary key default gen_random_uuid(),
+  period date not null unique,     -- primeiro dia do mês
+  revenue numeric(12,2) default 0,
+  expenses numeric(12,2) default 0,
+  gross_profit numeric(12,2) default 0,
+  operating_profit numeric(12,2) default 0,
+  net_profit_est numeric(12,2) default 0,
+  vat_charged numeric(12,2) default 0,
+  vat_supported numeric(12,2) default 0,
+  vat_deductible numeric(12,2) default 0,
+  vat_non_deductible numeric(12,2) default 0,
+  vat_prev_credit numeric(12,2) default 0,
+  vat_to_pay numeric(12,2) default 0,
+  vat_credit_carry numeric(12,2) default 0,
+  irc_taxable_base_est numeric(12,2) default 0,
+  irc_estimate numeric(12,2) default 0,
+  irc_payments_on_account numeric(12,2) default 0,
+  irc_withholdings numeric(12,2) default 0,
+  irc_balance_est numeric(12,2) default 0,
+  locked boolean default false,
+  locked_at timestamptz,
+  locked_by uuid references auth.users(id),
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create trigger tg_mc_upd before update on public.monthly_closings for each row execute function public.tg_set_updated_at();
+create trigger tg_mc_audit after insert or update or delete on public.monthly_closings for each row execute function public.tg_audit();
+grant select, insert, update, delete on public.monthly_closings to authenticated;
+grant all on public.monthly_closings to service_role;
+alter table public.monthly_closings enable row level security;
+create policy "mc read" on public.monthly_closings for select to authenticated using (true);
+create policy "mc write" on public.monthly_closings for insert to authenticated with check (public.is_admin(auth.uid()) or public.has_role(auth.uid(),'financeiro'));
+create policy "mc upd"  on public.monthly_closings for update to authenticated using (public.is_admin(auth.uid()));
+
+-- ---------- ALERTAS DE DOCUMENTOS ----------------------------------
+create or replace view public.document_alerts as
+  select 'driver' as entity, d.id as entity_id, d.full_name as name,
+         'Carta de condução' as doc, d.license_expiry as expiry
+    from public.drivers d where d.license_expiry is not null
+  union all
+  select 'driver', d.id, d.full_name, 'Cartão TVDE', d.tvde_card_expiry
+    from public.drivers d where d.tvde_card_expiry is not null
+  union all
+  select 'vehicle', v.id, v.plate, 'Seguro', v.insurance_expiry
+    from public.vehicles v where v.insurance_expiry is not null
+  union all
+  select 'vehicle', v.id, v.plate, 'Inspeção', v.inspection_expiry
+    from public.vehicles v where v.inspection_expiry is not null
+  union all
+  select 'vehicle', v.id, v.plate, 'IUC', v.iuc_expiry
+    from public.vehicles v where v.iuc_expiry is not null
+  union all
+  select 'vehicle', v.id, v.plate, 'Licença TVDE', v.tvde_license_expiry
+    from public.vehicles v where v.tvde_license_expiry is not null;
+grant select on public.document_alerts to authenticated;
+
+-- ---------- STORAGE (faturas) --------------------------------------
+insert into storage.buckets (id, name, public) values ('invoices','invoices', true)
+  on conflict (id) do nothing;
+do $$ begin
+  begin
+    create policy "invoices read" on storage.objects for select to authenticated using (bucket_id='invoices');
+  exception when duplicate_object then null; end;
+  begin
+    create policy "invoices write" on storage.objects for insert to authenticated with check (bucket_id='invoices');
+  exception when duplicate_object then null; end;
+  begin
+    create policy "invoices upd" on storage.objects for update to authenticated using (bucket_id='invoices');
+  exception when duplicate_object then null; end;
+end $$;
+
+-- ---------- SEEDS --------------------------------------------------
+insert into public.vat_rates (name, rate, is_exempt) values
+  ('Normal 23%',23,false),('Intermédia 13%',13,false),('Reduzida 6%',6,false),('Isento',0,true)
+  on conflict do nothing;
+
+insert into public.payment_methods (name) values
+  ('Dinheiro'),('Multibanco'),('MB WAY'),('Transferência'),('Cartão de Crédito'),('Uber'),('Bolt'),('Outro')
+  on conflict do nothing;
+
+insert into public.cost_centers (name, description) values
+  ('Combustível','Abastecimento e energia'),
+  ('Portagens','Vias com portagem'),
+  ('Estacionamento','Parques e vias'),
+  ('Manutenção','Oficina e peças'),
+  ('Lavagem','Higienização de veículos'),
+  ('Administrativo','Despesas gerais'),
+  ('Comercial','Marketing e comissões'),
+  ('Salários','Pessoal'),
+  ('Impostos','Obrigações fiscais')
+  on conflict do nothing;
+
+-- Promoção do admin caso já exista
 insert into public.user_roles (user_id, role)
-select id, 'admin'::app_role from auth.users where lower(email) = 'sistemamtour@gmail.com'
-on conflict do nothing;
+  select id, 'admin'::app_role from auth.users where lower(email)='sistemamtour@gmail.com'
+  on conflict do nothing;
 
 -- =====================================================================
--- FIM.
--- 1) Executa este SQL no SQL Editor do Supabase.
--- 2) Authentication → Providers → ativa Email (e Google se quiseres).
--- 3) Authentication → Users → Add user:
---      email: sistemamtour@gmail.com
---      password: Admin123!
---      marca "Auto Confirm User"
---    O trigger acima promove automaticamente a admin.
+-- FIM DO SCHEMA v2
 -- =====================================================================
