@@ -85,6 +85,8 @@ function Financeiro() {
         photo_url = supabase.storage.from("invoices").getPublicUrl(path).data.publicUrl;
       }
       const payload: any = { ...f, kind, photo_url };
+      delete payload.entity_id; // not persisted (schema keeps free-text name/nif for fiscal print)
+
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
         const { error } = await supabase.from("invoices").update(payload).eq("id", editing.id);
