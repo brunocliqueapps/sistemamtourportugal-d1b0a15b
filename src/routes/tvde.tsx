@@ -137,18 +137,45 @@ function TVDE() {
 
   const closeShift = useMutation({
     mutationFn: async () => {
+      const kmFinal = close.km_final ? Number(close.km_final) : null;
+      const closedAt = new Date().toISOString();
       const { error } = await supabase.from("tvde_shifts").update({
-        end_time: new Date().toISOString(),
-        km_final: close.km_final ? Number(close.km_final) : null,
-        closed_at: new Date().toISOString(),
+        end_time: closedAt,
+        km_final: kmFinal,
+        closed_at: closedAt,
         closed_by: user!.id,
         notes: [shift!.notes, close.notes && `Acerto: ${close.notes}`, `Motorista %: ${close.driver_pct}%`].filter(Boolean).join(" · "),
       }).eq("id", shift!.id);
       if (error) throw error;
+
+      // Lançamentos automáticos no financeiro (Conta Corrente):
+      // 1) Entrada: líquido de plataformas (bruto - comissões - retenções)
+      if (netPlat > 0) {
+        const { data: existing } = await supabase.from("cash_movements")
+          .select("id").eq("tvde_shift_id", shift!.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from("cash_movements").insert({
+            kind: "entrada", amount: Number(netPlat.toFixed(2)),
+            tvde_shift_id: shift!.id,
+            description: `TVDE · líquido plataformas (${shift!.shift_date})`,
+            created_by: user!.id,
+          });
+        }
+      }
+      // 2) Saída: comissão do motorista
+      if (devidoMotorista > 0) {
+        await supabase.from("cash_movements").insert({
+          kind: "saida", amount: Number(devidoMotorista.toFixed(2)),
+          tvde_shift_id: shift!.id,
+          description: `TVDE · comissão motorista ${driverPct}% (${shift!.shift_date})`,
+          created_by: user!.id,
+        });
+      }
     },
-    onSuccess: () => { toast.success("Turno TVDE fechado"); qc.invalidateQueries(); },
+    onSuccess: () => { toast.success("Turno TVDE fechado e lançado no financeiro"); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   if (!shift) {
     return (
