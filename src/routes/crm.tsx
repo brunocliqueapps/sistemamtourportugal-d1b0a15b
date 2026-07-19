@@ -198,6 +198,7 @@ function CRM() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Visualizar" onClick={() => setViewing(l)}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-4 w-4" /></Button>
                       {l.archived ? (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Restaurar ao pipeline" onClick={() => archive.mutate({ id: l.id, archived: false })}><ArchiveRestore className="h-4 w-4" /></Button>
