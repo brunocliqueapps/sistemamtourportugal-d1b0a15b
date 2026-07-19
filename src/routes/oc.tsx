@@ -103,6 +103,8 @@ function OCList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar OC {editing?.oc_code}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} /></div>
+            <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} /></div>
             <div><Label>Data</Label><Input type="date" value={form.service_date ?? ""} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
             <div><Label>Horário</Label><Input type="time" value={form.start_time ?? ""} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
             <div><Label>Origem</Label><Input value={form.origin ?? ""} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
