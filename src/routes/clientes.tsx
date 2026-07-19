@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, History, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
