@@ -33,6 +33,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const cols = columns ?? fields.slice(0, 4).map((f) => f.key);
 
