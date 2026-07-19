@@ -237,7 +237,7 @@ function ServicosPrivados() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex items-center gap-1">
-                      <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing({ ...s, _closing: c })}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing({ ...s })}><Pencil className="h-4 w-4" /></Button>
                       <FinalizeDialog service={s} closing={c} />
                     </div>
@@ -257,22 +257,36 @@ function ServicosPrivados() {
       <QuickViewDialog
         open={!!viewing}
         onClose={() => setViewing(null)}
-        title="Serviço privado"
+        title="Serviço privado — detalhes da operação"
         record={viewing}
         fields={[
           { key: "oc_code", label: "Nº OC" },
           { key: "voucher_code", label: "Voucher" },
           { key: "service_date", label: "Data" },
-          { key: "start_time", label: "Hora" },
+          { key: "start_time", label: "Hora prevista", format: (v) => v ? String(v).slice(0, 5) : "—" },
+          { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
+          { key: "clients", label: "Telefone", format: (v) => v?.phone ?? "—" },
+          { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
+          { key: "vehicles", label: "Veículo", format: (v) => v ? `${v.plate ?? ""} ${v.brand ?? ""} ${v.model ?? ""}`.trim() : "—" },
           { key: "origin", label: "Origem" },
           { key: "destination", label: "Destino" },
-          { key: "status", label: "Estado" },
-          { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "status", label: "Estado operacional" },
+          { key: "financial_status", label: "Estado financeiro" },
+          { key: "sale_value", label: "Valor do serviço", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
           { key: "amount_received", label: "Recebido", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
           { key: "amount_pending", label: "Pendente", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "_closing", label: "Início real", format: (c) => c?.start_time ? new Date(c.start_time).toLocaleString("pt-PT") : "—" },
+          { key: "_closing", label: "Término real", format: (c) => c?.end_time ? new Date(c.end_time).toLocaleString("pt-PT") : "—" },
+          { key: "_closing", label: "Km inicial", format: (c) => c?.km_initial ?? "—" },
+          { key: "_closing", label: "Km final", format: (c) => c?.km_final ?? "—" },
+          { key: "_closing", label: "Km percorridos", format: (c) => (c?.km_initial != null && c?.km_final != null) ? Math.max(0, Number(c.km_final) - Number(c.km_initial)) : "—" },
+          { key: "_closing", label: "Saldo pendente (fechamento)", format: (c) => c ? `€ ${Number(c.balance_pending || 0).toFixed(2)}` : "—" },
+          { key: "_closing", label: "Ocorrências", format: (c) => c?.incidents || "—" },
+          { key: "_closing", label: "Fechado em", format: (c) => c?.closed_at ? new Date(c.closed_at).toLocaleString("pt-PT") : "—" },
           { key: "notes", label: "Notas" },
         ]}
       />
+
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl">
