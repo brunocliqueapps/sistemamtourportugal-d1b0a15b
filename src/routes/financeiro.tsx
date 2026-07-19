@@ -159,7 +159,18 @@ function Financeiro() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <Label className="text-xs">Centro de custo</Label>
+          <Select value={ccFilter} onValueChange={setCcFilter}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {cc.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </Card>
+
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Entradas</div><div className="text-2xl font-bold text-emerald-600">€ {totalIn.toFixed(2)}</div></Card>
