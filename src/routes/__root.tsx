@@ -126,6 +126,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (user && isAuthRoute) nav({ to: "/dashboard" });
   }, [user, loading, isAuthRoute, nav]);
 
+  if (isPublicRoute) return <>{children}</>;
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">A carregar…</div>;
   }
