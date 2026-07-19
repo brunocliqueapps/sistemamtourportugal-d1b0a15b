@@ -186,7 +186,8 @@ function OCList() {
           { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
           { key: "vehicles", label: "Veículo", format: (v) => v?.plate ?? "—" },
           { key: "operation_type", label: "Operação" },
-          { key: "status", label: "Estado" },
+          { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
+          { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "nao_faturado") },
           { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
         ]}
       />
