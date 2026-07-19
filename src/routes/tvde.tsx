@@ -541,7 +541,7 @@ function TvdeHistory() {
     queryKey: ["tvde-shifts-hist", from, to, driverId, statusFilter],
     queryFn: async () => {
       let q = supabase.from("tvde_shifts")
-        .select("*, drivers(full_name), vehicles(plate), tvde_earnings(gross,tips,bonus,commissions,other_deductions), tvde_private_jobs(id,value)")
+        .select("*, drivers(full_name), vehicles(plate), tvde_earnings(gross,tips,bonus,commissions,other_deductions)")
         .eq("operation_type", "tvde")
         .gte("shift_date", from).lte("shift_date", to)
         .order("shift_date", { ascending: false });
