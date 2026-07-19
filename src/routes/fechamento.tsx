@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Lock } from "lucide-react";
+import { AlertTriangle, Lock, Unlock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
 
 export const Route = createFileRoute("/fechamento")({ component: Fechamento });
 
@@ -22,6 +23,7 @@ function ymLast(ym: string) {
 
 function Fechamento() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const qc = useQueryClient();
   const [ym, setYm] = useState(new Date().toISOString().slice(0, 7));
   const [ircRate, setIrcRate] = useState(21);
@@ -93,6 +95,15 @@ function Fechamento() {
     onSuccess: () => { toast.success("Período bloqueado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
   });
 
+  const unlockIt = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("monthly_closings").update({ locked: false, locked_at: null, locked_by: null }).eq("period", from);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Período reaberto"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Fechamento Mensal" description="Apuramento gerencial de IVA e provisão de IRC. Sujeito a validação do contabilista." actions={
@@ -145,7 +156,10 @@ function Fechamento() {
       <div className="flex flex-wrap gap-3">
         <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={locked}>Gravar fechamento</Button>
         {current && !locked && <Button variant="destructive" onClick={() => { if (confirm("Bloquear período? Só admin pode reabrir.")) lockIt.mutate(); }}><Lock className="h-4 w-4 mr-1" /> Bloquear período</Button>}
-        {locked && <Badge className="self-center">Período bloqueado</Badge>}
+        {locked && <>
+          <Badge className="self-center">Período bloqueado</Badge>
+          {isAdmin && <Button variant="outline" onClick={() => { if (confirm("Reabrir período bloqueado?")) unlockIt.mutate(); }}><Unlock className="h-4 w-4 mr-1" /> Reabrir período</Button>}
+        </>}
       </div>
     </div>
   );
