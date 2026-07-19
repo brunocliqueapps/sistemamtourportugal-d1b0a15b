@@ -227,23 +227,28 @@ function SendPanel() {
 function GoogleReviewPanel() {
   const [googleUrl, setGoogleUrl] = useState<string>(() => localStorage.getItem("google_review_url") ?? "");
   const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [sent, setSent] = useState<{ id: string; name: string; date: string; sent: boolean }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("google_review_sent") ?? "[]"); } catch { return []; }
+  });
+  const persist = (list: typeof sent) => { setSent(list); localStorage.setItem("google_review_sent", JSON.stringify(list)); };
 
   const saveUrl = () => {
     localStorage.setItem("google_review_url", googleUrl);
     toast.success("Link Google guardado");
   };
 
-  const shareLink = () => {
+  const copyAndTrack = () => {
     if (!googleUrl) { toast.error("Configura primeiro o link Google."); return; }
-    const msg = `Olá ${clientName || ""}! Obrigado por escolher a MTOUR Portugal. Se gostou do serviço, ajude-nos com uma avaliação Google: ${googleUrl}`;
+    if (!clientName.trim()) { toast.error("Indica o nome do cliente."); return; }
+    const msg = `Olá ${clientName}! Obrigado por escolher a MTOUR Portugal. Se gostou do serviço, ajude-nos com uma avaliação Google: ${googleUrl}`;
     navigator.clipboard.writeText(msg);
-    toast.success("Mensagem copiada — pode enviar por email/WhatsApp.");
+    persist([{ id: crypto.randomUUID(), name: clientName, date: new Date().toISOString().slice(0,10), sent: false }, ...sent]);
+    setClientName("");
+    toast.success("Mensagem copiada e registada.");
   };
 
-  const mailto = clientEmail
-    ? `mailto:${clientEmail}?subject=${encodeURIComponent("Avalie a MTOUR Portugal no Google")}&body=${encodeURIComponent(`Olá ${clientName},\n\nObrigado por escolher a MTOUR Portugal. Se gostou do serviço, deixe-nos uma avaliação Google:\n${googleUrl}\n\nObrigado!`)}`
-    : "";
+  const toggleSent = (id: string) => persist(sent.map((s) => s.id === id ? { ...s, sent: !s.sent } : s));
+  const remove = (id: string) => persist(sent.filter((s) => s.id !== id));
 
   return (
     <div className="space-y-4">
@@ -257,23 +262,38 @@ function GoogleReviewPanel() {
       </Card>
 
       <Card className="p-5 space-y-3">
-        <h3 className="font-semibold">Enviar convite ao cliente</h3>
-        <div className="grid gap-3 md:grid-cols-2">
+        <h3 className="font-semibold">Preparar convite ao cliente</h3>
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div><Label>Nome cliente</Label><Input value={clientName} onChange={(e) => setClientName(e.target.value)} /></div>
-          <div><Label>Email cliente</Label><Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} /></div>
+          <div className="flex items-end"><Button className="gradient-gold text-gold-foreground" onClick={copyAndTrack}><Copy className="h-4 w-4 mr-1" /> Copiar mensagem e registar</Button></div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={shareLink}><Copy className="h-4 w-4 mr-1" /> Copiar mensagem</Button>
-          <Button className="gradient-gold text-gold-foreground" asChild disabled={!clientEmail || !googleUrl}>
-            <a href={mailto || "#"} onClick={(e) => { if (!clientEmail || !googleUrl) { e.preventDefault(); toast.error("Preencha email e link Google."); } }}>
-              <Send className="h-4 w-4 mr-1" /> Enviar por email
-            </a>
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">Copie a mensagem e envie pelo canal que preferir (WhatsApp, SMS). Marque abaixo assim que enviar.</p>
+      </Card>
+
+      <Card>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead className="w-12">Enviado</TableHead>
+            <TableHead>Cliente</TableHead><TableHead>Data</TableHead>
+            <TableHead className="w-16 text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {sent.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Sem registos.</TableCell></TableRow>}
+            {sent.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell><input type="checkbox" checked={s.sent} onChange={() => toggleSent(s.id)} /></TableCell>
+                <TableCell>{s.name}</TableCell>
+                <TableCell>{s.date}</TableCell>
+                <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => remove(s.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Card>
     </div>
   );
 }
+
 
 type Referral = { id: string; date: string; referrer: string; contact: string; lead_name: string; lead_contact: string; status: string; notes: string };
 
