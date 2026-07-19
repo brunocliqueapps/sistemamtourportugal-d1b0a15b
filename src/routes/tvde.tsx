@@ -204,21 +204,185 @@ function TVDE() {
         <Card className="p-4"><div className="text-xs text-muted-foreground">Receita líquida</div><div className={`text-xl font-bold ${receitaLiquida >= 0 ? "text-emerald-600" : "text-destructive"}`}>€ {receitaLiquida.toFixed(2)}</div></Card>
       </div>
 
-      <Tabs defaultValue="platforms">
-        <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="platforms">Ganhos plataformas</TabsTrigger>
-          <TabsTrigger value="private">Serviços particulares</TabsTrigger>
-          <TabsTrigger value="expenses">Despesas</TabsTrigger>
-          <TabsTrigger value="close">Fechamento</TabsTrigger>
-        </TabsList>
+      {/* -------------------- PLATAFORMAS -------------------- */}
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Ganhos por plataforma</h3>
+        <div className="grid gap-3 md:grid-cols-7">
+          <div><Label>Plataforma</Label>
+            <Select value={earn.platform} onValueChange={(v) => setEarn({ ...earn, platform: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="uber">Uber</SelectItem>
+                <SelectItem value="bolt">Bolt</SelectItem>
+                <SelectItem value="outra">Outra</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Bruto (€)</Label><Input type="number" step="0.01" value={earn.gross} onChange={(e) => setEarn({ ...earn, gross: e.target.value })} /></div>
+          <div><Label>Gorjetas</Label><Input type="number" step="0.01" value={earn.tips} onChange={(e) => setEarn({ ...earn, tips: e.target.value })} /></div>
+          <div><Label>Bónus / ajustes</Label><Input type="number" step="0.01" value={earn.bonus} onChange={(e) => setEarn({ ...earn, bonus: e.target.value })} /></div>
+          <div><Label>Comissões</Label><Input type="number" step="0.01" value={earn.commissions} onChange={(e) => setEarn({ ...earn, commissions: e.target.value })} /></div>
+          <div><Label>Outras retenções</Label><Input type="number" step="0.01" value={earn.other_deductions} onChange={(e) => setEarn({ ...earn, other_deductions: e.target.value })} /></div>
+          <div className="flex items-end"><Button className="w-full" onClick={() => addEarn.mutate()}>+ Adicionar</Button></div>
+        </div>
 
-        {/* -------------------- PLATAFORMAS -------------------- */}
-        <TabsContent value="platforms" className="mt-4">
-          <Card className="p-5 space-y-3">
-            <h3 className="font-semibold">Ganhos por plataforma</h3>
-            <div className="grid gap-3 md:grid-cols-7">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Plataforma</TableHead><TableHead>Bruto</TableHead><TableHead>Gorjetas</TableHead>
+            <TableHead>Bónus</TableHead><TableHead>Comissões</TableHead><TableHead>Retenções</TableHead>
+            <TableHead className="text-right">Líquido</TableHead><TableHead className="w-24 text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {earnings.map((e: any) => (
+              <TableRow key={e.id}>
+                <TableCell><Badge>{e.platform}</Badge></TableCell>
+                <TableCell>€ {Number(e.gross).toFixed(2)}</TableCell>
+                <TableCell>€ {Number(e.tips).toFixed(2)}</TableCell>
+                <TableCell>€ {Number(e.bonus).toFixed(2)}</TableCell>
+                <TableCell>€ {Number(e.commissions).toFixed(2)}</TableCell>
+                <TableCell>€ {Number(e.other_deductions).toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold">€ {Number(e.net).toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditEarn({ ...e })}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => delEarn.mutate(e.id)}>×</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {earnings.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem ganhos registados.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+
+        <div className="grid gap-2 md:grid-cols-4 pt-2 border-t text-sm">
+          <div>Uber: <b>€ {uber.toFixed(2)}</b></div>
+          <div>Bolt: <b>€ {bolt.toFixed(2)}</b></div>
+          <div>Outras: <b>€ {outrasPlat.toFixed(2)}</b></div>
+          <div>Líquido plataformas: <b className="text-emerald-600">€ {netPlat.toFixed(2)}</b></div>
+        </div>
+      </Card>
+
+      {/* -------------------- DESPESAS -------------------- */}
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Despesas da operação TVDE</h3>
+        <div className="grid gap-3 md:grid-cols-6">
+          <div><Label>Categoria</Label>
+            <Select value={exp.category} onValueChange={(v) => setExp({ ...exp, category: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="abastecimento">Abastecimento / carregamento</SelectItem>
+                <SelectItem value="estacionamento">Estacionamento</SelectItem>
+                <SelectItem value="portagem">Portagens</SelectItem>
+                <SelectItem value="lavagem">Lavagem</SelectItem>
+                <SelectItem value="outra">Outras despesas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Label>Descrição {exp.category === "outra" && <span className="text-destructive">*</span>}</Label>
+            <Input value={exp.description} onChange={(e) => setExp({ ...exp, description: e.target.value })} />
+          </div>
+          <div><Label>Valor (€) *</Label><Input type="number" step="0.01" value={exp.amount} onChange={(e) => setExp({ ...exp, amount: e.target.value })} /></div>
+          <div><Label>Forma de pagamento</Label>
+            <Select value={exp.payment_method_id} onValueChange={(v) => setExp({ ...exp, payment_method_id: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>{pmethods.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Pago por</Label>
+            <Select value={exp.paid_by_driver ? "driver" : "company"} onValueChange={(v) => setExp({ ...exp, paid_by_driver: v === "driver" })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="company">Empresa</SelectItem>
+                <SelectItem value="driver">Motorista</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button variant="outline" onClick={() => addExp.mutate()} disabled={!exp.amount}>+ Registar despesa</Button>
+
+        <Table>
+          <TableHeader><TableRow><TableHead>Categoria</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="w-24 text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {expenses.map((e: any) => (
+              <TableRow key={e.id}>
+                <TableCell><Badge variant="outline">{e.category}</Badge></TableCell>
+                <TableCell>{e.description ?? "—"}</TableCell>
+                <TableCell className="text-right">€ {Number(e.amount).toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditExp({ ...e })}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => delExp.mutate(e.id)}>×</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {expenses.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sem despesas.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+
+        <div className="grid gap-2 md:grid-cols-5 pt-2 border-t text-sm">
+          <div>Combustível: <b>€ {fuel.toFixed(2)}</b></div>
+          <div>Estacionamento: <b>€ {parking.toFixed(2)}</b></div>
+          <div>Portagens: <b>€ {tolls.toFixed(2)}</b></div>
+          <div>Lavagem: <b>€ {wash.toFixed(2)}</b></div>
+          <div>Outras: <b>€ {others.toFixed(2)}</b></div>
+        </div>
+      </Card>
+
+      {/* -------------------- FECHAMENTO -------------------- */}
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Resumo do turno</h3>
+        <div className="grid md:grid-cols-2 gap-6 text-sm">
+          <div className="space-y-1">
+            <div className="font-semibold text-emerald-600">Receitas</div>
+            <Row label="Uber" v={uber} />
+            <Row label="Bolt" v={bolt} />
+            <Row label="Outras plataformas" v={outrasPlat} />
+            <Row label="Gorjetas" v={tips} />
+            <Row label="Bónus / ajustes" v={bonus} />
+            <Row label="Receita bruta" v={receitaBruta} bold />
+          </div>
+          <div className="space-y-1">
+            <div className="font-semibold text-destructive">Deduções</div>
+            <Row label="Comissões plataformas" v={-commissions} />
+            <Row label="Outras retenções" v={-otherDed} />
+            <Row label="Abastecimento / energia" v={-fuel} />
+            <Row label="Estacionamento" v={-parking} />
+            <Row label="Portagens" v={-tolls} />
+            <Row label="Lavagem" v={-wash} />
+            <Row label="Outras despesas" v={-others} />
+            <Row label="Receita líquida" v={receitaLiquida} bold />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Acerto motorista × empresa</h3>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div><Label>Km final</Label><Input type="number" value={close.km_final} onChange={(e) => setClose({ ...close, km_final: e.target.value })} /></div>
+          <div><Label>% Motorista</Label><Input type="number" value={close.driver_pct} onChange={(e) => setClose({ ...close, driver_pct: e.target.value })} /></div>
+          <div className="md:col-span-2"><Label>Observações do acerto</Label><Input value={close.notes} onChange={(e) => setClose({ ...close, notes: e.target.value })} /></div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 text-sm border-t pt-3">
+          <div className="space-y-1">
+            <Row label={`Devido ao motorista (${driverPct}%)`} v={devidoMotorista} bold />
+          </div>
+          <div className="space-y-1">
+            <Row label={`Devido à empresa (${empresaPct}%)`} v={devidoEmpresa} bold />
+          </div>
+        </div>
+
+        <div className="pt-3">
+          <Button variant="destructive" onClick={() => closeShift.mutate()}>Fechar turno TVDE</Button>
+        </div>
+      </Card>
+
+      {/* Edit dialogs */}
+      <Dialog open={!!editEarn} onOpenChange={(o) => !o && setEditEarn(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Editar ganho</DialogTitle></DialogHeader>
+          {editEarn && (
+            <div className="grid grid-cols-2 gap-3">
               <div><Label>Plataforma</Label>
-                <Select value={earn.platform} onValueChange={(v) => setEarn({ ...earn, platform: v })}>
+                <Select value={editEarn.platform} onValueChange={(v) => setEditEarn({ ...editEarn, platform: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="uber">Uber</SelectItem>
@@ -227,109 +391,31 @@ function TVDE() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Bruto (€)</Label><Input type="number" step="0.01" value={earn.gross} onChange={(e) => setEarn({ ...earn, gross: e.target.value })} /></div>
-              <div><Label>Gorjetas</Label><Input type="number" step="0.01" value={earn.tips} onChange={(e) => setEarn({ ...earn, tips: e.target.value })} /></div>
-              <div><Label>Bónus / ajustes</Label><Input type="number" step="0.01" value={earn.bonus} onChange={(e) => setEarn({ ...earn, bonus: e.target.value })} /></div>
-              <div><Label>Comissões</Label><Input type="number" step="0.01" value={earn.commissions} onChange={(e) => setEarn({ ...earn, commissions: e.target.value })} /></div>
-              <div><Label>Outras retenções</Label><Input type="number" step="0.01" value={earn.other_deductions} onChange={(e) => setEarn({ ...earn, other_deductions: e.target.value })} /></div>
-              <div className="flex items-end"><Button className="w-full" onClick={() => addEarn.mutate()}>+ Adicionar</Button></div>
+              <div><Label>Bruto (€)</Label><Input type="number" step="0.01" value={editEarn.gross ?? 0} onChange={(e) => setEditEarn({ ...editEarn, gross: e.target.value })} /></div>
+              <div><Label>Gorjetas</Label><Input type="number" step="0.01" value={editEarn.tips ?? 0} onChange={(e) => setEditEarn({ ...editEarn, tips: e.target.value })} /></div>
+              <div><Label>Bónus</Label><Input type="number" step="0.01" value={editEarn.bonus ?? 0} onChange={(e) => setEditEarn({ ...editEarn, bonus: e.target.value })} /></div>
+              <div><Label>Comissões</Label><Input type="number" step="0.01" value={editEarn.commissions ?? 0} onChange={(e) => setEditEarn({ ...editEarn, commissions: e.target.value })} /></div>
+              <div><Label>Outras retenções</Label><Input type="number" step="0.01" value={editEarn.other_deductions ?? 0} onChange={(e) => setEditEarn({ ...editEarn, other_deductions: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Notas</Label><Input value={editEarn.notes ?? ""} onChange={(e) => setEditEarn({ ...editEarn, notes: e.target.value })} /></div>
             </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditEarn(null)}>Cancelar</Button>
+            <Button onClick={() => saveEarn.mutate()} disabled={saveEarn.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>Plataforma</TableHead><TableHead>Bruto</TableHead><TableHead>Gorjetas</TableHead>
-                <TableHead>Bónus</TableHead><TableHead>Comissões</TableHead><TableHead>Retenções</TableHead>
-                <TableHead className="text-right">Líquido</TableHead><TableHead />
-              </TableRow></TableHeader>
-              <TableBody>
-                {earnings.map((e: any) => (
-                  <TableRow key={e.id}>
-                    <TableCell><Badge>{e.platform}</Badge></TableCell>
-                    <TableCell>€ {Number(e.gross).toFixed(2)}</TableCell>
-                    <TableCell>€ {Number(e.tips).toFixed(2)}</TableCell>
-                    <TableCell>€ {Number(e.bonus).toFixed(2)}</TableCell>
-                    <TableCell>€ {Number(e.commissions).toFixed(2)}</TableCell>
-                    <TableCell>€ {Number(e.other_deductions).toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-semibold">€ {Number(e.net).toFixed(2)}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => delEarn.mutate(e.id)}>×</Button></TableCell>
-                  </TableRow>
-                ))}
-                {earnings.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem ganhos registados.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-
-            <div className="grid gap-2 md:grid-cols-4 pt-2 border-t text-sm">
-              <div>Uber: <b>€ {uber.toFixed(2)}</b></div>
-              <div>Bolt: <b>€ {bolt.toFixed(2)}</b></div>
-              <div>Outras: <b>€ {outrasPlat.toFixed(2)}</b></div>
-              <div>Líquido plataformas: <b className="text-emerald-600">€ {netPlat.toFixed(2)}</b></div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* -------------------- SERVIÇOS PARTICULARES -------------------- */}
-        <TabsContent value="private" className="mt-4">
-          <Card className="p-5 space-y-3">
-            <h3 className="font-semibold">Serviços particulares no período</h3>
-            <div className="grid gap-3 md:grid-cols-4">
-              <div><Label>Cliente *</Label><Input value={job.client_name} onChange={(e) => setJob({ ...job, client_name: e.target.value })} /></div>
-              <div><Label>Telefone</Label><Input value={job.client_phone} onChange={(e) => setJob({ ...job, client_phone: e.target.value })} /></div>
-              <div><Label>Origem</Label><Input value={job.origin} onChange={(e) => setJob({ ...job, origin: e.target.value })} /></div>
-              <div><Label>Destino</Label><Input value={job.destination} onChange={(e) => setJob({ ...job, destination: e.target.value })} /></div>
-              <div><Label>Valor (€) *</Label><Input type="number" step="0.01" value={job.value} onChange={(e) => setJob({ ...job, value: e.target.value })} /></div>
-              <div><Label>Forma de pagamento</Label>
-                <Select value={job.payment_method_id} onValueChange={(v) => setJob({ ...job, payment_method_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{pmethods.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Estado do pagamento</Label>
-                <Select value={job.payment_status} onValueChange={(v) => setJob({ ...job, payment_status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recebido">Recebido</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="parcial">Parcial</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Nº OC (opcional)</Label><Input value={job.oc_code} onChange={(e) => setJob({ ...job, oc_code: e.target.value })} /></div>
-              <div className="md:col-span-3"><Label>Observações</Label><Input value={job.notes} onChange={(e) => setJob({ ...job, notes: e.target.value })} /></div>
-              <div className="flex items-end"><Button className="w-full" onClick={() => addJob.mutate()}>+ Registar</Button></div>
-            </div>
-
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead><TableHead>Valor</TableHead>
-                <TableHead>Estado</TableHead><TableHead>OC</TableHead><TableHead />
-              </TableRow></TableHeader>
-              <TableBody>
-                {jobs.map((j: any) => (
-                  <TableRow key={j.id}>
-                    <TableCell>{j.client_name}<div className="text-xs text-muted-foreground">{j.client_phone}</div></TableCell>
-                    <TableCell className="text-sm">{j.origin} → {j.destination}</TableCell>
-                    <TableCell>€ {Number(j.value).toFixed(2)}</TableCell>
-                    <TableCell><Badge variant={j.payment_status === "recebido" ? "default" : "secondary"}>{j.payment_status}</Badge></TableCell>
-                    <TableCell>{j.oc_code ?? "—"}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => delJob.mutate(j.id)}>×</Button></TableCell>
-                  </TableRow>
-                ))}
-                {jobs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sem serviços particulares.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-
-        {/* -------------------- DESPESAS -------------------- */}
-        <TabsContent value="expenses" className="mt-4">
-          <Card className="p-5 space-y-3">
-            <h3 className="font-semibold">Despesas da operação TVDE</h3>
-            <div className="grid gap-3 md:grid-cols-6">
+      <Dialog open={!!editExp} onOpenChange={(o) => !o && setEditExp(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Editar despesa</DialogTitle></DialogHeader>
+          {editExp && (
+            <div className="grid grid-cols-2 gap-3">
               <div><Label>Categoria</Label>
-                <Select value={exp.category} onValueChange={(v) => setExp({ ...exp, category: v })}>
+                <Select value={editExp.category} onValueChange={(v) => setEditExp({ ...editExp, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="abastecimento">Abastecimento / carregamento</SelectItem>
+                    <SelectItem value="abastecimento">Abastecimento</SelectItem>
                     <SelectItem value="estacionamento">Estacionamento</SelectItem>
                     <SelectItem value="portagem">Portagens</SelectItem>
                     <SelectItem value="lavagem">Lavagem</SelectItem>
@@ -337,115 +423,28 @@ function TVDE() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-2">
-                <Label>Descrição {exp.category === "outra" && <span className="text-destructive">*</span>}</Label>
-                <Input value={exp.description} onChange={(e) => setExp({ ...exp, description: e.target.value })} />
-              </div>
-              <div><Label>Valor (€) *</Label><Input type="number" step="0.01" value={exp.amount} onChange={(e) => setExp({ ...exp, amount: e.target.value })} /></div>
-              <div><Label>Forma de pagamento</Label>
-                <Select value={exp.payment_method_id} onValueChange={(v) => setExp({ ...exp, payment_method_id: v })}>
+              <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={editExp.amount ?? 0} onChange={(e) => setEditExp({ ...editExp, amount: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Descrição</Label><Input value={editExp.description ?? ""} onChange={(e) => setEditExp({ ...editExp, description: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Forma de pagamento</Label>
+                <Select value={editExp.payment_method_id ?? ""} onValueChange={(v) => setEditExp({ ...editExp, payment_method_id: v })}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{pmethods.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Pago por</Label>
-                <Select value={exp.paid_by_driver ? "driver" : "company"} onValueChange={(v) => setExp({ ...exp, paid_by_driver: v === "driver" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="company">Empresa</SelectItem>
-                    <SelectItem value="driver">Motorista</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-            <Button variant="outline" onClick={() => addExp.mutate()} disabled={!exp.amount}>+ Registar despesa</Button>
-
-            <Table>
-              <TableHeader><TableRow><TableHead>Categoria</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead><TableHead /></TableRow></TableHeader>
-              <TableBody>
-                {expenses.map((e: any) => (
-                  <TableRow key={e.id}>
-                    <TableCell><Badge variant="outline">{e.category}</Badge></TableCell>
-                    <TableCell>{e.description ?? "—"}</TableCell>
-                    <TableCell className="text-right">€ {Number(e.amount).toFixed(2)}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => delExp.mutate(e.id)}>×</Button></TableCell>
-                  </TableRow>
-                ))}
-                {expenses.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sem despesas.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-
-            <div className="grid gap-2 md:grid-cols-5 pt-2 border-t text-sm">
-              <div>Combustível: <b>€ {fuel.toFixed(2)}</b></div>
-              <div>Estacionamento: <b>€ {parking.toFixed(2)}</b></div>
-              <div>Portagens: <b>€ {tolls.toFixed(2)}</b></div>
-              <div>Lavagem: <b>€ {wash.toFixed(2)}</b></div>
-              <div>Outras: <b>€ {others.toFixed(2)}</b></div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* -------------------- FECHAMENTO -------------------- */}
-        <TabsContent value="close" className="mt-4 space-y-4">
-          <Card className="p-5 space-y-3">
-            <h3 className="font-semibold">Resumo do turno</h3>
-            <div className="grid md:grid-cols-2 gap-6 text-sm">
-              <div className="space-y-1">
-                <div className="font-semibold text-emerald-600">Receitas</div>
-                <Row label="Uber" v={uber} />
-                <Row label="Bolt" v={bolt} />
-                <Row label="Outras plataformas" v={outrasPlat} />
-                <Row label="Gorjetas" v={tips} />
-                <Row label="Bónus / ajustes" v={bonus} />
-                <Row label="Serviços particulares" v={privateTotal} />
-                <Row label="Receita bruta" v={receitaBruta} bold />
-              </div>
-              <div className="space-y-1">
-                <div className="font-semibold text-destructive">Deduções</div>
-                <Row label="Comissões plataformas" v={-commissions} />
-                <Row label="Outras retenções" v={-otherDed} />
-                <Row label="Abastecimento / energia" v={-fuel} />
-                <Row label="Estacionamento" v={-parking} />
-                <Row label="Portagens" v={-tolls} />
-                <Row label="Lavagem" v={-wash} />
-                <Row label="Outras despesas" v={-others} />
-                <Row label="Receita líquida" v={receitaLiquida} bold />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-5 space-y-3">
-            <h3 className="font-semibold">Acerto motorista × empresa</h3>
-            <div className="grid gap-3 md:grid-cols-4">
-              <div><Label>Km final</Label><Input type="number" value={close.km_final} onChange={(e) => setClose({ ...close, km_final: e.target.value })} /></div>
-              <div><Label>% Motorista</Label><Input type="number" value={close.driver_pct} onChange={(e) => setClose({ ...close, driver_pct: e.target.value })} /></div>
-              <div className="md:col-span-2"><Label>Observações do acerto</Label><Input value={close.notes} onChange={(e) => setClose({ ...close, notes: e.target.value })} /></div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 text-sm border-t pt-3">
-              <div className="space-y-1">
-                <Row label={`Devido ao motorista (${driverPct}%)`} v={devidoMotorista} />
-                <Row label="Recebido pelo motorista (particulares)" v={recebidoMotorista} />
-                <Row label={acerto >= 0 ? "Empresa paga ao motorista" : "Motorista devolve à empresa"} v={Math.abs(acerto)} bold />
-              </div>
-              <div className="space-y-1">
-                <Row label={`Devido à empresa (${empresaPct}%)`} v={devidoEmpresa} />
-                <Row label="Recebido pela empresa (plataformas líq.)" v={recebidoEmpresa} />
-                <Row label="Saldo do acerto" v={acerto} bold />
-              </div>
-            </div>
-
-            <div className="pt-3">
-              <Button variant="destructive" onClick={() => closeShift.mutate()}>Fechar turno TVDE</Button>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditExp(null)}>Cancelar</Button>
+            <Button onClick={() => saveExp.mutate()} disabled={saveExp.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <TvdeHistory />
     </div>
   );
 }
+
 
 function NewOperationButton() {
   const { user } = useAuth();
