@@ -120,6 +120,7 @@ function CRM() {
                       {l.phone && <div className="text-xs">{l.phone}</div>}
                     </div>
                     <div className="flex flex-col gap-1">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(l)}><Pencil className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { if (confirm("Remover este lead?")) del.mutate(l.id); }}><Trash2 className="h-3 w-3" /></Button>
                     </div>
