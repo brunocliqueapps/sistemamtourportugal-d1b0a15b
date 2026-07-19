@@ -12,12 +12,20 @@ export const Route = createFileRoute("/conta-corrente")({ component: ContaCorren
 
 function ContaCorrente() {
   const [accountId, setAccountId] = useState<string>("all");
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<string>("all");
 
   const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
   const { data: mv = [] } = useQuery({
-    queryKey: ["cm", accountId],
+    queryKey: ["cm", accountId, year, month],
     queryFn: async () => {
-      let q = supabase.from("cash_movements").select("*").order("movement_date", { ascending: false }).limit(500);
+      const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
+      const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
+      const end = endD.toISOString().slice(0,10);
+      let q = supabase.from("cash_movements").select("*")
+        .gte("movement_date", start).lt("movement_date", end)
+        .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
       return (await q).data ?? [];
     },
