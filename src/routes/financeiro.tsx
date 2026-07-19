@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, FileDown } from "lucide-react";
+import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -24,6 +25,9 @@ function Financeiro() {
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<string>("all"); // 'all' | '1'..'12'
   const [f, setF] = useState<any>({
     doc_type: "fatura", invoice_number: "", series: "", issue_date: new Date().toISOString().slice(0,10),
     due_date: "", entity_name: "", entity_nif: "", description: "",
@@ -33,8 +37,15 @@ function Financeiro() {
   });
 
   const { data: rows = [] } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: async () => (await supabase.from("invoices").select("*").order("issue_date", { ascending: false })).data ?? [],
+    queryKey: ["invoices", year, month],
+    queryFn: async () => {
+      const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
+      const endD = month === "all"
+        ? new Date(year + 1, 0, 1)
+        : new Date(year, Number(month), 1);
+      const end = endD.toISOString().slice(0,10);
+      return (await supabase.from("invoices").select("*").gte("issue_date", start).lt("issue_date", end).order("issue_date", { ascending: false })).data ?? [];
+    },
   });
   const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await supabase.from("vat_rates").select("*").eq("active", true)).data ?? [] });
   const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await supabase.from("cost_centers").select("*").eq("active", true)).data ?? [] });
@@ -87,11 +98,34 @@ function Financeiro() {
   const totalOut = rows.filter((r: any) => r.kind === "saida").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
   const filtered = rows.filter((r: any) => r.kind === kind);
 
+  const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i);
+  const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Financeiro" description="Faturas e movimentos com controlo fiscal (IVA dedutível / não dedutível)." actions={
         <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
       } />
+
+      <Card className="p-4 flex flex-wrap gap-3 items-end">
+        <div>
+          <Label className="text-xs">Ano</Label>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Mês</Label>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ano todo</SelectItem>
+              {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Entradas</div><div className="text-2xl font-bold text-emerald-600">€ {totalIn.toFixed(2)}</div></Card>
@@ -109,6 +143,7 @@ function Financeiro() {
                 <TableHead>Entidade</TableHead><TableHead>NIF</TableHead>
                 <TableHead className="text-right">Base</TableHead><TableHead className="text-right">IVA</TableHead>
                 <TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead>
+                <TableHead className="text-right">PDF</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {filtered.map((r: any) => (
@@ -122,14 +157,20 @@ function Financeiro() {
                     <TableCell className="text-right">€ {Number(r.vat_amount).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-semibold">€ {Number(r.total).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={r.status === "pago" ? "default" : r.status === "vencido" ? "destructive" : "outline"}>{r.status}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}>
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem faturas.</TableCell></TableRow>}
+                {filtered.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sem faturas.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </Card>
         </TabsContent>
       </Tabs>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">

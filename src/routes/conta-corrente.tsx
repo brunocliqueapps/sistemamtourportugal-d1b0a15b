@@ -12,12 +12,20 @@ export const Route = createFileRoute("/conta-corrente")({ component: ContaCorren
 
 function ContaCorrente() {
   const [accountId, setAccountId] = useState<string>("all");
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<string>("all");
 
   const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
   const { data: mv = [] } = useQuery({
-    queryKey: ["cm", accountId],
+    queryKey: ["cm", accountId, year, month],
     queryFn: async () => {
-      let q = supabase.from("cash_movements").select("*").order("movement_date", { ascending: false }).limit(500);
+      const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
+      const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
+      const end = endD.toISOString().slice(0,10);
+      let q = supabase.from("cash_movements").select("*")
+        .gte("movement_date", start).lt("movement_date", end)
+        .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
       return (await q).data ?? [];
     },
@@ -30,17 +38,34 @@ function ContaCorrente() {
     : Number(accounts.find((x: any) => x.id === accountId)?.opening_balance || 0);
   const balance = opening + inflow - outflow;
 
+  const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i);
+  const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Conta Corrente" description="Extrato de entradas e saídas." actions={
-        <Select value={accountId} onValueChange={setAccountId}>
-          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as contas</SelectItem>
-            {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ano todo</SelectItem>
+              {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={accountId} onValueChange={setAccountId}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as contas</SelectItem>
+              {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       } />
+
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Saldo inicial</div><div className="text-xl font-bold">€ {opening.toFixed(2)}</div></Card>

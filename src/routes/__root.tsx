@@ -117,13 +117,16 @@ function AuthGate({ children }: { children: ReactNode }) {
   const nav = useNavigate();
   const loc = useLocation();
   const isAuthRoute = loc.pathname === "/" || loc.pathname === "/registro";
+  const isPublicRoute = loc.pathname.startsWith("/pesquisa/");
 
   useEffect(() => {
+    if (isPublicRoute) return;
     if (loading) return;
     if (!user && !isAuthRoute) nav({ to: "/" });
     if (user && isAuthRoute) nav({ to: "/dashboard" });
   }, [user, loading, isAuthRoute, nav]);
 
+  if (isPublicRoute) return <>{children}</>;
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">A carregar…</div>;
   }

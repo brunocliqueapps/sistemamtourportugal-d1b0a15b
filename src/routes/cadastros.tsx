@@ -63,22 +63,6 @@ const produtos: CrudField[] = [
   { key: "name", label: "Nome", required: true }, { key: "kind", label: "Tipo" },
   { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
-const centros: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "description", label: "Descrição" }, { key: "active", label: "Ativo", type: "checkbox" },
-];
-const contas: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "bank", label: "Banco" }, { key: "iban", label: "IBAN" },
-  { key: "currency", label: "Moeda" }, { key: "opening_balance", label: "Saldo inicial (€)", type: "number", step: "0.01" },
-  { key: "active", label: "Ativo", type: "checkbox" },
-];
-const formasPag: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "active", label: "Ativo", type: "checkbox" },
-];
-const taxasIva: CrudField[] = [
-  { key: "name", label: "Nome", required: true },
-  { key: "rate", label: "Taxa (%)", type: "number", step: "0.01" },
-  { key: "is_exempt", label: "Isento", type: "checkbox" }, { key: "active", label: "Ativo", type: "checkbox" },
-];
 
 function Cadastros() {
   return (
@@ -96,10 +80,6 @@ function Cadastros() {
           <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
           <TabsTrigger value="agencies">Agências</TabsTrigger>
           <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
-          <TabsTrigger value="cost_centers">Centros custo</TabsTrigger>
-          <TabsTrigger value="bank_accounts">Contas bancárias</TabsTrigger>
-          <TabsTrigger value="payment_methods">Formas pagto</TabsTrigger>
-          <TabsTrigger value="vat_rates">Taxas IVA</TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
@@ -113,12 +93,9 @@ function Cadastros() {
           <TabsContent value="restaurants"><EntityCrud table="restaurants" title="Restaurantes" fields={restaurantes} columns={["name","city","cuisine","phone"]} /></TabsContent>
           <TabsContent value="agencies"><EntityCrud table="agencies" title="Agências" fields={agencias} columns={["name","nif","commission_pct","active"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
-          <TabsContent value="cost_centers"><EntityCrud table="cost_centers" title="Centros de Custo" fields={centros} columns={["name","description","active"]} orderBy="name" /></TabsContent>
-          <TabsContent value="bank_accounts"><EntityCrud table="bank_accounts" title="Contas Bancárias" fields={contas} columns={["name","bank","iban","opening_balance"]} orderBy="name" /></TabsContent>
-          <TabsContent value="payment_methods"><EntityCrud table="payment_methods" title="Formas de Pagamento" fields={formasPag} columns={["name","active"]} orderBy="name" /></TabsContent>
-          <TabsContent value="vat_rates"><EntityCrud table="vat_rates" title="Taxas de IVA" fields={taxasIva} columns={["name","rate","is_exempt","active"]} orderBy="rate" /></TabsContent>
         </div>
       </Tabs>
+      <p className="text-xs text-muted-foreground mt-4">Centros de custo, contas bancárias, formas de pagamento e taxas de IVA foram movidos para <b>Configurações</b>.</p>
     </div>
   );
 }
