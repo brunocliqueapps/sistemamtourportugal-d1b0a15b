@@ -771,3 +771,106 @@ function fromLocalInput(v: string): string {
   if (!v) return "";
   return new Date(v).toISOString();
 }
+
+function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-mini-priv"], enabled: open,
+    queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [],
+  });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-mini-priv"], enabled: open,
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles-mini-priv"], enabled: open,
+    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
+  });
+
+  const emptyForm = () => ({
+    oc_code: "", voucher_code: "",
+    client_id: "", driver_id: "", vehicle_id: "",
+    service_date: new Date().toISOString().slice(0, 10), start_time: "",
+    origin: "", destination: "", passengers: "", sale_value: 0, notes: "",
+  });
+  const [form, setForm] = useState<any>(emptyForm());
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!form.client_id) throw new Error("Cliente é obrigatório.");
+      if (!form.service_date) throw new Error("Data é obrigatória.");
+      const payload: any = {
+        oc_code: form.oc_code || null,
+        voucher_code: form.voucher_code || null,
+        client_id: form.client_id,
+        driver_id: form.driver_id || null,
+        vehicle_id: form.vehicle_id || null,
+        service_date: form.service_date,
+        start_time: form.start_time || null,
+        origin: form.origin || null,
+        destination: form.destination || null,
+        passengers: form.passengers ? Number(form.passengers) : null,
+        sale_value: Number(form.sale_value) || 0,
+        notes: form.notes || null,
+        operation_type: "privado",
+        status: "agendado",
+        financial_status: "nao_faturado",
+      };
+      const { error } = await supabase.from("service_orders").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Serviço privado criado");
+      setForm(emptyForm());
+      qc.invalidateQueries();
+      onClose();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Nº OC</Label><Input value={form.oc_code} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
+          <div><Label>Nº Voucher</Label><Input value={form.voucher_code} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
+          <div className="col-span-2"><Label>Cliente *</Label>
+            <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+              <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Data *</Label><Input type="date" value={form.service_date} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
+          <div><Label>Horário</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
+          <div><Label>Origem</Label><Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
+          <div><Label>Destino</Label><Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
+          <div><Label>Motorista</Label>
+            <Select value={form.driver_id || undefined} onValueChange={(v) => setForm({ ...form, driver_id: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Veículo</Label>
+            <Select value={form.vehicle_id || undefined} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Passageiros</Label><Input type="number" value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+          <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={form.sale_value} onChange={(e) => setForm({ ...form, sale_value: e.target.value })} /></div>
+          <div className="col-span-2"><Label>Notas</Label>
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <div className="col-span-2 text-xs text-muted-foreground">
+            Após criar, use o botão "Finalizar" na lista para registar horários, KM, valores, formas de pagamento, ocorrências e despesas do dia.
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button className="gradient-gold text-gold-foreground" onClick={() => create.mutate()} disabled={create.isPending}>Criar serviço</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
