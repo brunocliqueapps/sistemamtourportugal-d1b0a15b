@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export type FieldType = "text" | "number" | "date" | "email" | "phone" | "checkbox" | "textarea";
 export interface CrudField {
@@ -32,6 +33,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const cols = columns ?? fields.slice(0, 4).map((f) => f.key);
 
@@ -105,6 +107,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
                   </TableCell>
                 ))}
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(r)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover?")) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
@@ -147,6 +150,14 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={title}
+        record={viewing}
+        fields={fields.map((f) => ({ key: f.key, label: f.label }))}
+      />
     </div>
   );
 }

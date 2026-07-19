@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +33,8 @@ function CRM() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [showArchivedList, setShowArchivedList] = useState(false);
+  const [viewing, setViewing] = useState<any | null>(null);
+
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
@@ -131,6 +134,7 @@ function CRM() {
                       {l.phone && <div className="text-xs">{l.phone}</div>}
                     </div>
                     <div className="flex flex-col gap-1">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Visualizar" onClick={() => setViewing(l)}><Eye className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Retirar do pipeline (arquivar)" onClick={() => { if (confirm("Retirar este lead do pipeline? Continuará visível apenas na lista.")) archive.mutate({ id: l.id, archived: true }); }}><Archive className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(l)}><Pencil className="h-3 w-3" /></Button>
@@ -194,6 +198,7 @@ function CRM() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Visualizar" onClick={() => setViewing(l)}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-4 w-4" /></Button>
                       {l.archived ? (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Restaurar ao pipeline" onClick={() => archive.mutate({ id: l.id, archived: false })}><ArchiveRestore className="h-4 w-4" /></Button>
@@ -249,6 +254,22 @@ function CRM() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Lead"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "name", label: "Nome" },
+          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "origin", label: "Origem" },
+          { key: "status", label: "Estado", format: (v) => cols.find((c) => c.key === v)?.label ?? v },
+          { key: "lost_reason", label: "Motivo da perda" },
+          { key: "archived", label: "Arquivado", format: (v) => v ? "Sim" : "Não" },
+          { key: "notes", label: "Notas" },
+        ]}
+      />
     </div>
   );
 }

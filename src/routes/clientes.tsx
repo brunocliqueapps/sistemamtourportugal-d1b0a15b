@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, History, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
@@ -25,6 +26,7 @@ function Clientes() {
   const [form, setForm] = useState<any>(emptyClient);
   const [search, setSearch] = useState("");
   const [historyClient, setHistoryClient] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients", "list"],
@@ -102,6 +104,9 @@ function Clientes() {
                 <TableCell>{c.phone ?? "—"}</TableCell>
                 <TableCell>{c.city ?? "—"}</TableCell>
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(c)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" title="Histórico" onClick={() => setHistoryClient(c)}>
                     <History className="h-4 w-4" />
                   </Button>
@@ -147,6 +152,19 @@ function Clientes() {
       </Dialog>
 
       <ClientHistoryDialog client={historyClient} onClose={() => setHistoryClient(null)} />
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Cliente"
+        record={viewing}
+        fields={[
+          { key: "name", label: "Nome" }, { key: "nif", label: "NIF" },
+          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
+          { key: "address", label: "Morada" }, { key: "notes", label: "Notas" },
+        ]}
+      />
     </div>
   );
 }

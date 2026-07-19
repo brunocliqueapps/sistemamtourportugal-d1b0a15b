@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Check, Pencil, Trash2 } from "lucide-react";
+import { Plus, Check, Pencil, Trash2, Eye } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -25,6 +26,7 @@ function Propostas() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [approveOpen, setApproveOpen] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
 
@@ -121,6 +123,7 @@ function Propostas() {
                   {p.status !== "convertida" && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
                   )}
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
@@ -212,6 +215,24 @@ function Propostas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Proposta"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "title", label: "Título" },
+          { key: "clients", label: "Cliente", format: (v, r) => v?.name ?? r?.leads?.name ?? "—" },
+          { key: "proposal_type", label: "Tipo" },
+          { key: "tour_route_custom", label: "Roteiro personalizado" },
+          { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "status", label: "Estado" },
+          { key: "created_at", label: "Criada em" },
+          { key: "approved_at", label: "Aprovada em" },
+          { key: "description", label: "Descrição" },
+        ]}
+      />
     </div>
   );
 }

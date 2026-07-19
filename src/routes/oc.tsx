@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ const STATUS = ["agendado","em_execucao","concluido","faturado","pago","cancelad
 function OCList() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
 
   const { data = [] } = useQuery({
@@ -89,6 +91,7 @@ function OCList() {
                 <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
                 <TableCell className="text-right">€ {Number(s.sale_value||0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OC?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
@@ -136,6 +139,25 @@ function OCList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Ordem de Serviço"
+        record={viewing}
+        fields={[
+          { key: "oc_code", label: "OC" }, { key: "voucher_code", label: "Voucher" },
+          { key: "service_date", label: "Data" }, { key: "start_time", label: "Horário" },
+          { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
+          { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
+          { key: "passengers", label: "Passageiros" },
+          { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
+          { key: "vehicles", label: "Veículo", format: (v) => v?.plate ?? "—" },
+          { key: "operation_type", label: "Operação" },
+          { key: "status", label: "Estado" },
+          { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+        ]}
+      />
     </div>
   );
 }

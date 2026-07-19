@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileDown, Pencil, Trash2 } from "lucide-react";
+import { Plus, FileDown, Pencil, Trash2, Eye } from "lucide-react";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -25,6 +26,7 @@ function Financeiro() {
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -203,6 +205,7 @@ function Financeiro() {
                     <TableCell className="text-right font-semibold">€ {Number(r.total).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={r.status === "pago" ? "default" : r.status === "vencido" ? "destructive" : "outline"}>{r.status}</Badge></TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setViewing(r)}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover esta fatura e movimentos associados?")) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
@@ -305,6 +308,29 @@ function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Fatura"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "kind", label: "Tipo (E/S)" },
+          { key: "doc_type", label: "Tipo doc" },
+          { key: "series", label: "Série" }, { key: "invoice_number", label: "Nº Fatura" },
+          { key: "issue_date", label: "Emissão" }, { key: "due_date", label: "Vencimento" },
+          { key: "entity_name", label: "Entidade" }, { key: "entity_nif", label: "NIF" },
+          { key: "description", label: "Descrição" },
+          { key: "value_ex_vat", label: "Base s/IVA", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_amount", label: "IVA", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_deductible", label: "IVA dedutível", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "vat_non_deductible", label: "IVA não dedut.", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "total", label: "Total", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "status", label: "Estado" },
+          { key: "paid_amount", label: "Pago", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "observations", label: "Observações" },
+        ]}
+      />
     </div>
   );
 }
