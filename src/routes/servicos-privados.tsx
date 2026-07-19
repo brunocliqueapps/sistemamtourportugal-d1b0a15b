@@ -61,6 +61,50 @@ function ServicosPrivados() {
   const total = services.length;
   const finalizados = services.filter((s: any) => closingBy(s.id)?.closed_at).length;
 
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const selectableIds = services.filter((s: any) => !closingBy(s.id)?.closed_at).map((s: any) => s.id);
+  const selectedIds = selectableIds.filter((id: string) => selected[id]);
+  const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
+  const toggleAll = (v: boolean) => {
+    const next: Record<string, boolean> = {};
+    if (v) selectableIds.forEach((id: string) => (next[id] = true));
+    setSelected(next);
+  };
+  const { user } = useAuth();
+  const bulkClose = useMutation({
+    mutationFn: async () => {
+      if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
+      const nowIso = new Date().toISOString();
+      for (const id of selectedIds) {
+        const svc: any = services.find((s: any) => s.id === id);
+        const sale = Number(svc?.sale_value || 0);
+        await supabase.from("service_closings").upsert({
+          service_order_id: id,
+          end_time: nowIso,
+          sale_value: sale,
+          amount_received: sale,
+          balance_pending: 0,
+          closed_at: nowIso,
+          closed_by: user?.id ?? null,
+          notes: "Fechamento em lote",
+        }, { onConflict: "service_order_id" });
+        await supabase.from("service_orders").update({
+          status: "finalizado",
+          amount_received: sale,
+          amount_pending: 0,
+        }).eq("id", id);
+      }
+    },
+    onSuccess: () => {
+      toast.success(`${selectedIds.length} serviço(s) fechado(s)`);
+      setSelected({});
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader
