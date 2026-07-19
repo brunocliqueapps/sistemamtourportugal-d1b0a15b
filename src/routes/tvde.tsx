@@ -174,23 +174,19 @@ function TVDE() {
   const grossPlat = uber + bolt + outrasPlat + tips + bonus;
   const netPlat = grossPlat - commissions - otherDed;
 
-  const privateTotal = jobs.reduce((a: number, j: any) => a + Number(j.value || 0), 0);
-  const privatePaidToDriver = jobs.filter((j: any) => j.payment_status === "recebido").reduce((a: number, j: any) => a + Number(j.value || 0), 0);
-
   const expByCat = (c: string) => expenses.filter((e: any) => e.category === c).reduce((a: number, e: any) => a + Number(e.amount || 0), 0);
   const fuel = expByCat("abastecimento"), parking = expByCat("estacionamento"), tolls = expByCat("portagem"), wash = expByCat("lavagem"), others = expByCat("outra");
   const totalExp = fuel + parking + tolls + wash + others;
 
-  const receitaBruta = grossPlat + privateTotal;
-  const receitaLiquida = netPlat + privateTotal - totalExp;
+  const receitaBruta = grossPlat;
+  const receitaLiquida = netPlat - totalExp;
 
   const driverPct = Number(close.driver_pct) || 0;
   const empresaPct = 100 - driverPct;
   const devidoMotorista = (receitaLiquida * driverPct) / 100;
   const devidoEmpresa = (receitaLiquida * empresaPct) / 100;
-  const recebidoMotorista = privatePaidToDriver; // dinheiro já em mão
-  const recebidoEmpresa = netPlat - privatePaidToDriver; // plataformas caem à empresa
-  const acerto = devidoMotorista - recebidoMotorista; // >0 empresa paga ao motorista, <0 motorista devolve
+  const acerto = devidoMotorista; // empresa recebe plataformas e paga % ao motorista
+
 
   return (
     <div className="p-6 md:p-8 space-y-6">
