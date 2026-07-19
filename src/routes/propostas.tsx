@@ -10,19 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/propostas")({ component: Propostas });
 
+const empty = { title: "", description: "", total_value: 0, client_id: "", lead_id: "", status: "rascunho" };
+
 function Propostas() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [approveOpen, setApproveOpen] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({ title: "", description: "", total_value: 0, client_id: "", lead_id: "" });
+  const [form, setForm] = useState<any>(empty);
   const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
 
   const { data: props = [] } = useQuery({
@@ -32,15 +35,34 @@ function Propostas() {
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at",{ascending:false})).data ?? [] });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, created_by: user!.id, total_value: Number(form.total_value || 0) };
-      if (!payload.client_id) delete payload.client_id;
-      if (!payload.lead_id) delete payload.lead_id;
-      const { error } = await supabase.from("proposals").insert(payload);
+      const payload: any = { ...form, total_value: Number(form.total_value || 0) };
+      if (!payload.client_id) payload.client_id = null;
+      if (!payload.lead_id) payload.lead_id = null;
+      if (editing?.id) {
+        const { error } = await supabase.from("proposals").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        payload.created_by = user!.id;
+        const { error } = await supabase.from("proposals").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Proposta atualizada" : "Proposta criada");
+      qc.invalidateQueries({ queryKey: ["proposals"] });
+      setOpen(false); setEditing(null); setForm(empty);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("proposals").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Proposta criada"); qc.invalidateQueries({ queryKey: ["proposals"] }); setOpen(false); },
+    onSuccess: () => { toast.success("Proposta removida"); qc.invalidateQueries({ queryKey: ["proposals"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -61,10 +83,20 @@ function Propostas() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  function openNew() { setEditing(null); setForm(empty); setOpen(true); }
+  function openEdit(p: any) {
+    setEditing(p);
+    setForm({
+      title: p.title ?? "", description: p.description ?? "", total_value: p.total_value ?? 0,
+      client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
+    });
+    setOpen(true);
+  }
+
   return (
     <div className="p-6 md:p-8">
       <PageHeader title="Propostas" description="Cria, aprova e converte automaticamente em OC + Voucher + Serviço." actions={
-        <Button onClick={() => setOpen(true)} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova proposta</Button>
+        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova proposta</Button>
       } />
 
       <Card>
@@ -81,10 +113,12 @@ function Propostas() {
                 <TableCell>{p.clients?.name ?? p.leads?.name ?? "—"}</TableCell>
                 <TableCell className="text-right">€ {Number(p.total_value).toFixed(2)}</TableCell>
                 <TableCell><Badge variant={p.status === "convertida" ? "default" : "outline"}>{p.status}</Badge></TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-1">
                   {p.status !== "convertida" && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
                   )}
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -94,7 +128,7 @@ function Propostas() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Nova Proposta</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Editar Proposta" : "Nova Proposta"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -111,12 +145,20 @@ function Propostas() {
                 </Select>
               </div>
             </div>
-            <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} /></div>
+              <div><Label>Estado</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{["rascunho","enviada","aprovada","convertida","rejeitada"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
             <div><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => create.mutate()} disabled={!form.title}>Criar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!form.title}>{editing ? "Atualizar" : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

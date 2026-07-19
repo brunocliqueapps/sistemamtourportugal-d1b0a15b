@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileDown } from "lucide-react";
+import { Plus, FileDown, Pencil, Trash2 } from "lucide-react";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,17 +24,19 @@ function Financeiro() {
   const qc = useQueryClient();
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<string>("all"); // 'all' | '1'..'12'
-  const [f, setF] = useState<any>({
+  const emptyForm = {
     doc_type: "fatura", invoice_number: "", series: "", issue_date: new Date().toISOString().slice(0,10),
     due_date: "", entity_name: "", entity_nif: "", description: "",
     value_ex_vat: 0, vat_rate_id: "", vat_amount: 0, vat_deductible: 0, vat_non_deductible: 0,
     deduction_pct: 100, total: 0, cost_center_id: "", payment_method_id: "", bank_account_id: "",
     status: "pendente", paid_amount: 0, observations: "",
-  });
+  };
+  const [f, setF] = useState<any>(emptyForm);
 
   const { data: rows = [] } = useQuery({
     queryKey: ["invoices", year, month],
@@ -67,7 +69,7 @@ function Financeiro() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (kind === "saida" && !file && !f.photo_url) toast.warning("Recomenda-se anexar a fatura em saídas.");
+      if (!editing && kind === "saida" && !file && !f.photo_url) toast.warning("Recomenda-se anexar a fatura em saídas.");
       let photo_url = f.photo_url ?? null;
       if (file) {
         const path = `${user!.id}/${Date.now()}-${file.name}`;
@@ -75,24 +77,46 @@ function Financeiro() {
         if (up.error) throw up.error;
         photo_url = supabase.storage.from("invoices").getPublicUrl(path).data.publicUrl;
       }
-      const payload: any = { ...f, kind, photo_url, created_by: user!.id };
+      const payload: any = { ...f, kind, photo_url };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
-      const { data, error } = await supabase.from("invoices").insert(payload).select().single();
-      if (error) throw error;
-      // Se pago, criar movimento
-      if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
-        await supabase.from("cash_movements").insert({
-          kind, amount: Number(payload.paid_amount || payload.total),
-          invoice_id: data.id, payment_method_id: payload.payment_method_id,
-          bank_account_id: payload.bank_account_id,
-          description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
-          created_by: user!.id,
-        });
+      if (editing?.id) {
+        const { error } = await supabase.from("invoices").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        payload.created_by = user!.id;
+        const { data, error } = await supabase.from("invoices").insert(payload).select().single();
+        if (error) throw error;
+        if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
+          await supabase.from("cash_movements").insert({
+            kind, amount: Number(payload.paid_amount || payload.total),
+            invoice_id: data.id, payment_method_id: payload.payment_method_id,
+            bank_account_id: payload.bank_account_id,
+            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
+            created_by: user!.id,
+          });
+        }
       }
     },
-    onSuccess: () => { toast.success("Fatura registada"); qc.invalidateQueries({ queryKey: ["invoices"] }); setOpen(false); setFile(null); },
+    onSuccess: () => {
+      toast.success(editing ? "Fatura atualizada" : "Fatura registada");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      setOpen(false); setEditing(null); setFile(null); setF(emptyForm);
+    },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("cash_movements").delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Fatura removida"); qc.invalidateQueries({ queryKey: ["invoices"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  function openNew() { setEditing(null); setF(emptyForm); setFile(null); setOpen(true); }
+  function openEdit(r: any) { setEditing(r); setKind(r.kind); setF({ ...emptyForm, ...r }); setFile(null); setOpen(true); }
 
   const totalIn = rows.filter((r: any) => r.kind === "entrada").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
   const totalOut = rows.filter((r: any) => r.kind === "saida").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
@@ -104,8 +128,9 @@ function Financeiro() {
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Financeiro" description="Faturas e movimentos com controlo fiscal (IVA dedutível / não dedutível)." actions={
-        <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
+        <Button className="gradient-gold text-gold-foreground" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
       } />
+
 
       <Card className="p-4 flex flex-wrap gap-3 items-end">
         <div>
@@ -143,7 +168,7 @@ function Financeiro() {
                 <TableHead>Entidade</TableHead><TableHead>NIF</TableHead>
                 <TableHead className="text-right">Base</TableHead><TableHead className="text-right">IVA</TableHead>
                 <TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead>
-                <TableHead className="text-right">PDF</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {filtered.map((r: any) => (
@@ -157,10 +182,10 @@ function Financeiro() {
                     <TableCell className="text-right">€ {Number(r.vat_amount).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-semibold">€ {Number(r.total).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={r.status === "pago" ? "default" : r.status === "vencido" ? "destructive" : "outline"}>{r.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}>
-                        <FileDown className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <Button variant="ghost" size="icon" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover esta fatura e movimentos associados?")) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -174,7 +199,7 @@ function Financeiro() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova fatura · {kind === "entrada" ? "Entrada" : "Saída"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? `Editar fatura ${editing.code}` : "Nova fatura"} · {kind === "entrada" ? "Entrada" : "Saída"}</DialogTitle></DialogHeader>
           <Tabs value={kind} onValueChange={(v) => setKind(v as any)} className="mb-2">
             <TabsList><TabsTrigger value="entrada">Entrada</TabsTrigger><TabsTrigger value="saida">Saída</TabsTrigger></TabsList>
           </Tabs>
@@ -236,7 +261,7 @@ function Financeiro() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat}>Registar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat}>{editing ? "Atualizar" : "Registar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
