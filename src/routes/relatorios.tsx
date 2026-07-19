@@ -131,8 +131,8 @@ function Relatorios() {
   const groupSO = (valueOf: (s: any) => number) => {
     const acc: Record<string, number> = {};
     for (const s of so) {
-      const key = group === "vehicle" ? (s.vehicles?.plate || "—")
-        : group === "driver" ? (s.drivers?.full_name || "—")
+      const key = group === "vehicle" ? ((s.vehicles as any)?.plate || "—")
+        : group === "driver" ? ((s.drivers as any)?.full_name || "—")
         : group === "operation_type" ? (s.operation_type || "—")
         : groupKey(s.service_date, group);
       acc[key] = (acc[key] || 0) + valueOf(s);
@@ -159,7 +159,7 @@ function Relatorios() {
   }));
 
   const clientesRank = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
-    const k = s.clients?.name || "—"; a[k] = (a[k] || 0) + Number(s.sale_value || 0); return a;
+    const k = (s.clients as any)?.name || "—"; a[k] = (a[k] || 0) + Number(s.sale_value || 0); return a;
   }, {})).map(([name, valor]) => ({ name, valor })).sort((a, b) => b.valor - a.valor).slice(0, 15);
 
   const motoristas = groupSO((s) => Number(s.sale_value || 0));
@@ -200,7 +200,7 @@ function Relatorios() {
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
   };
 
-  const reports: Record<string, { title: string; render: () => JSX.Element }> = {
+  const reports: Record<string, { title: string; render: () => React.ReactNode }> = {
     leads: {
       title: "Leads",
       render: () => (
@@ -287,8 +287,8 @@ function Relatorios() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Ordens de serviço</h3>
               <Button variant="outline" size="sm" onClick={() => exportCsv(so.map((s: any) => ({
-                oc: s.oc_code, data: s.service_date, cliente: s.clients?.name, motorista: s.drivers?.full_name,
-                veiculo: s.vehicles?.plate, tipo: s.operation_type, status: s.status, valor: s.sale_value,
+                oc: s.oc_code, data: s.service_date, cliente: (s.clients as any)?.name, motorista: (s.drivers as any)?.full_name,
+                veiculo: (s.vehicles as any)?.plate, tipo: s.operation_type, status: s.status, valor: s.sale_value,
               })), "servicos.csv")}>Exportar CSV</Button>
             </div>
             <Table><TableHeader><TableRow>
@@ -300,9 +300,9 @@ function Relatorios() {
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-xs">{s.oc_code}</TableCell>
                   <TableCell>{s.service_date}</TableCell>
-                  <TableCell>{s.clients?.name || "—"}</TableCell>
-                  <TableCell>{s.drivers?.full_name || "—"}</TableCell>
-                  <TableCell>{s.vehicles?.plate || "—"}</TableCell>
+                  <TableCell>{(s.clients as any)?.name || "—"}</TableCell>
+                  <TableCell>{(s.drivers as any)?.full_name || "—"}</TableCell>
+                  <TableCell>{(s.vehicles as any)?.plate || "—"}</TableCell>
                   <TableCell>{s.operation_type || "—"}</TableCell>
                   <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
                   <TableCell className="text-right">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
@@ -508,8 +508,8 @@ function Relatorios() {
   const resultData = useMemo(() => {
     const acc: Record<string, { servicos: number; receita: number }> = {};
     for (const s of so) {
-      const key = group === "vehicle" ? (s.vehicles?.plate || "—")
-        : group === "driver" ? (s.drivers?.full_name || "—")
+      const key = group === "vehicle" ? ((s.vehicles as any)?.plate || "—")
+        : group === "driver" ? ((s.drivers as any)?.full_name || "—")
         : group === "operation_type" ? (s.operation_type || "—")
         : groupKey(s.service_date, group);
       if (!acc[key]) acc[key] = { servicos: 0, receita: 0 };
