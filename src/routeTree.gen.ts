@@ -9,13 +9,31 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TvdeRouteImport } from './routes/tvde'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as OperacaoRouteImport } from './routes/operacao'
+import { Route as OcRouteImport } from './routes/oc'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
+import { Route as FechamentoRouteImport } from './routes/fechamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CrmRouteImport } from './routes/crm'
+import { Route as ContaCorrenteRouteImport } from './routes/conta-corrente'
+import { Route as CadastrosRouteImport } from './routes/cadastros'
+import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OcIdRouteImport } from './routes/oc.$id'
 
+const TvdeRoute = TvdeRouteImport.update({
+  id: '/tvde',
+  path: '/tvde',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropostasRoute = PropostasRouteImport.update({
   id: '/propostas',
   path: '/propostas',
@@ -26,9 +44,19 @@ const OperacaoRoute = OperacaoRouteImport.update({
   path: '/operacao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OcRoute = OcRouteImport.update({
+  id: '/oc',
+  path: '/oc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroRoute = FinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FechamentoRoute = FechamentoRouteImport.update({
+  id: '/fechamento',
+  path: '/fechamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -41,69 +69,164 @@ const CrmRoute = CrmRouteImport.update({
   path: '/crm',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContaCorrenteRoute = ContaCorrenteRouteImport.update({
+  id: '/conta-corrente',
+  path: '/conta-corrente',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastrosRoute = CadastrosRouteImport.update({
+  id: '/cadastros',
+  path: '/cadastros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OcIdRoute = OcIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => OcRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/cadastros': typeof CadastrosRoute
+  '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
   '/dashboard': typeof DashboardRoute
+  '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
+  '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
   '/propostas': typeof PropostasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/tvde': typeof TvdeRoute
+  '/oc/$id': typeof OcIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/cadastros': typeof CadastrosRoute
+  '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
   '/dashboard': typeof DashboardRoute
+  '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
+  '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
   '/propostas': typeof PropostasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/tvde': typeof TvdeRoute
+  '/oc/$id': typeof OcIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/cadastros': typeof CadastrosRoute
+  '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
   '/dashboard': typeof DashboardRoute
+  '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
+  '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
   '/propostas': typeof PropostasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/tvde': typeof TvdeRoute
+  '/oc/$id': typeof OcIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agenda'
+    | '/cadastros'
+    | '/conta-corrente'
     | '/crm'
     | '/dashboard'
+    | '/fechamento'
     | '/financeiro'
+    | '/oc'
     | '/operacao'
     | '/propostas'
+    | '/relatorios'
+    | '/tvde'
+    | '/oc/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/crm' | '/dashboard' | '/financeiro' | '/operacao' | '/propostas'
+  to:
+    | '/'
+    | '/agenda'
+    | '/cadastros'
+    | '/conta-corrente'
+    | '/crm'
+    | '/dashboard'
+    | '/fechamento'
+    | '/financeiro'
+    | '/oc'
+    | '/operacao'
+    | '/propostas'
+    | '/relatorios'
+    | '/tvde'
+    | '/oc/$id'
   id:
     | '__root__'
     | '/'
+    | '/agenda'
+    | '/cadastros'
+    | '/conta-corrente'
     | '/crm'
     | '/dashboard'
+    | '/fechamento'
     | '/financeiro'
+    | '/oc'
     | '/operacao'
     | '/propostas'
+    | '/relatorios'
+    | '/tvde'
+    | '/oc/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendaRoute: typeof AgendaRoute
+  CadastrosRoute: typeof CadastrosRoute
+  ContaCorrenteRoute: typeof ContaCorrenteRoute
   CrmRoute: typeof CrmRoute
   DashboardRoute: typeof DashboardRoute
+  FechamentoRoute: typeof FechamentoRoute
   FinanceiroRoute: typeof FinanceiroRoute
+  OcRoute: typeof OcRouteWithChildren
   OperacaoRoute: typeof OperacaoRoute
   PropostasRoute: typeof PropostasRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  TvdeRoute: typeof TvdeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tvde': {
+      id: '/tvde'
+      path: '/tvde'
+      fullPath: '/tvde'
+      preLoaderRoute: typeof TvdeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/propostas': {
       id: '/propostas'
       path: '/propostas'
@@ -118,11 +241,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OperacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oc': {
+      id: '/oc'
+      path: '/oc'
+      fullPath: '/oc'
+      preLoaderRoute: typeof OcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro': {
       id: '/financeiro'
       path: '/financeiro'
       fullPath: '/financeiro'
       preLoaderRoute: typeof FinanceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fechamento': {
+      id: '/fechamento'
+      path: '/fechamento'
+      fullPath: '/fechamento'
+      preLoaderRoute: typeof FechamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -139,6 +276,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conta-corrente': {
+      id: '/conta-corrente'
+      path: '/conta-corrente'
+      fullPath: '/conta-corrente'
+      preLoaderRoute: typeof ContaCorrenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastros': {
+      id: '/cadastros'
+      path: '/cadastros'
+      fullPath: '/cadastros'
+      preLoaderRoute: typeof CadastrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -146,16 +304,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oc/$id': {
+      id: '/oc/$id'
+      path: '/$id'
+      fullPath: '/oc/$id'
+      preLoaderRoute: typeof OcIdRouteImport
+      parentRoute: typeof OcRoute
+    }
   }
 }
 
+interface OcRouteChildren {
+  OcIdRoute: typeof OcIdRoute
+}
+
+const OcRouteChildren: OcRouteChildren = {
+  OcIdRoute: OcIdRoute,
+}
+
+const OcRouteWithChildren = OcRoute._addFileChildren(OcRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendaRoute: AgendaRoute,
+  CadastrosRoute: CadastrosRoute,
+  ContaCorrenteRoute: ContaCorrenteRoute,
   CrmRoute: CrmRoute,
   DashboardRoute: DashboardRoute,
+  FechamentoRoute: FechamentoRoute,
   FinanceiroRoute: FinanceiroRoute,
+  OcRoute: OcRouteWithChildren,
   OperacaoRoute: OperacaoRoute,
   PropostasRoute: PropostasRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  TvdeRoute: TvdeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
