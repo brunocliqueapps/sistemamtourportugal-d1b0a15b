@@ -240,8 +240,28 @@ function Financeiro() {
                 <SelectContent>{["pendente","pago","parcialmente_pago","vencido","cancelado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="col-span-2"><Label>{kind === "entrada" ? "Cliente" : "Fornecedor"}</Label><Input value={f.entity_name} onChange={(e) => setF({ ...f, entity_name: e.target.value })} /></div>
+            <div className="col-span-2">
+              <Label>{kind === "entrada" ? "Cliente" : "Fornecedor"} *</Label>
+              <Select
+                value={f.entity_id || ""}
+                onValueChange={(v) => {
+                  const ent = entities.find((e: any) => e.id === v);
+                  setF({ ...f, entity_id: v, entity_name: ent?.name ?? "", entity_nif: ent?.nif ?? f.entity_nif });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Selecionar ${kind === "entrada" ? "cliente" : "fornecedor"} cadastrado`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {entities.length === 0 && <div className="p-2 text-xs text-muted-foreground">Sem registos — cadastre em Cadastros.</div>}
+                  {entities.map((e: any) => (
+                    <SelectItem key={e.id} value={e.id}>{e.name}{e.nif ? ` · ${e.nif}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>NIF</Label><Input value={f.entity_nif} onChange={(e) => setF({ ...f, entity_nif: e.target.value })} /></div>
+
             <div className="col-span-3"><Label>Descrição</Label><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
 
             <div><Label>Valor s/IVA (€)</Label><Input type="number" step="0.01" value={f.value_ex_vat} onChange={(e) => recalc({ value_ex_vat: e.target.value })} /></div>
