@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/propostas")({ component: Propostas });
 
-const empty = { title: "", description: "", total_value: 0, client_id: "", lead_id: "", status: "rascunho" };
+const empty = { title: "", description: "", total_value: 0, client_id: "", lead_id: "", status: "rascunho", proposal_type: "servico", tour_route_id: "", tour_route_custom: "" };
 
 function Propostas() {
   const { user } = useAuth();
@@ -34,12 +34,15 @@ function Propostas() {
   });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at",{ascending:false})).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour-routes-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name,region,default_price").eq("active", true).order("region").order("name")).data ?? [] });
 
   const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form, total_value: Number(form.total_value || 0) };
       if (!payload.client_id) payload.client_id = null;
       if (!payload.lead_id) payload.lead_id = null;
+      if (!payload.tour_route_id) payload.tour_route_id = null;
+      if (payload.proposal_type !== "roteiro") { payload.tour_route_id = null; payload.tour_route_custom = null; }
       if (editing?.id) {
         const { error } = await supabase.from("proposals").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -89,6 +92,7 @@ function Propostas() {
     setForm({
       title: p.title ?? "", description: p.description ?? "", total_value: p.total_value ?? 0,
       client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
+      proposal_type: p.proposal_type ?? "servico", tour_route_id: p.tour_route_id ?? "", tour_route_custom: p.tour_route_custom ?? "",
     });
     setOpen(true);
   }
@@ -154,6 +158,35 @@ function Propostas() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Tipo de proposta</Label>
+                <Select value={form.proposal_type} onValueChange={(v) => setForm({ ...form, proposal_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="servico">Serviço</SelectItem>
+                    <SelectItem value="roteiro">Roteiro</SelectItem>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.proposal_type === "roteiro" && (
+                <div><Label>Roteiro</Label>
+                  <Select value={form.tour_route_id || "__custom"} onValueChange={(v) => setForm({ ...form, tour_route_id: v === "__custom" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar roteiro" /></SelectTrigger>
+                    <SelectContent>
+                      {routes.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>{r.region ? `[${r.region}] ` : ""}{r.name}</SelectItem>
+                      ))}
+                      <SelectItem value="__custom">➕ Outro (personalizado)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            {form.proposal_type === "roteiro" && !form.tour_route_id && (
+              <div><Label>Roteiro personalizado</Label><Input value={form.tour_route_custom} onChange={(e) => setForm({ ...form, tour_route_custom: e.target.value })} placeholder="Descrever roteiro personalizado" /></div>
+            )}
             <div><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           </div>
           <DialogFooter>

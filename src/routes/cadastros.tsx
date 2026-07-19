@@ -63,6 +63,14 @@ const produtos: CrudField[] = [
   { key: "name", label: "Nome", required: true }, { key: "kind", label: "Tipo" },
   { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
+const roteiros: CrudField[] = [
+  { key: "name", label: "Nome do roteiro", required: true },
+  { key: "region", label: "Região" },
+  { key: "duration_hours", label: "Duração (h)", type: "number", step: "0.5" },
+  { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" },
+  { key: "description", label: "Descrição", type: "textarea" },
+  { key: "active", label: "Ativo", type: "checkbox" },
+];
 
 function Cadastros() {
   return (
@@ -80,6 +88,7 @@ function Cadastros() {
           <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
           <TabsTrigger value="agencies">Agências</TabsTrigger>
           <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
+          <TabsTrigger value="routes">Roteiros</TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
@@ -93,6 +102,7 @@ function Cadastros() {
           <TabsContent value="restaurants"><EntityCrud table="restaurants" title="Restaurantes" fields={restaurantes} columns={["name","city","cuisine","phone"]} /></TabsContent>
           <TabsContent value="agencies"><EntityCrud table="agencies" title="Agências" fields={agencias} columns={["name","nif","commission_pct","active"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
+          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["name","region","duration_hours","default_price"]} /></TabsContent>
         </div>
       </Tabs>
       <p className="text-xs text-muted-foreground mt-4">Centros de custo, contas bancárias, formas de pagamento e taxas de IVA foram movidos para <b>Configurações</b>.</p>
