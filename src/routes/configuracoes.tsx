@@ -77,6 +77,15 @@ function Configuracoes() {
               { key: "is_exempt", label: "Isento", type: "checkbox" }, { key: "active", label: "Ativo", type: "checkbox" },
             ] as CrudField[]} columns={["name","rate","is_exempt","active"]} orderBy="rate" />
           </TabsContent>
+          <TabsContent value="status_options">
+            <EntityCrud table="status_options" title="Estados (OC e Propostas)" fields={[
+              { key: "domain", label: "Domínio (oc_operational_status | oc_financial_status | proposal_status)", required: true },
+              { key: "code", label: "Código", required: true },
+              { key: "label", label: "Rótulo", required: true },
+              { key: "sort", label: "Ordem", type: "number" },
+              { key: "active", label: "Ativo", type: "checkbox" },
+            ] as CrudField[]} columns={["domain","code","label","sort","active"]} orderBy="domain" />
+          </TabsContent>
           <TabsContent value="users"><UsersPanel /></TabsContent>
           <TabsContent value="permissions"><PermissionsMatrix /></TabsContent>
         </div>
