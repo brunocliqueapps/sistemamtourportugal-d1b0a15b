@@ -156,9 +156,16 @@ function CRM() {
       </div>
 
       <Card className="mt-6 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold">Lista de leads</h3>
-          <Badge variant="secondary">{leads.length}</Badge>
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">Lista de leads</h3>
+            <Badge variant="secondary">{leads.length}</Badge>
+            <Badge variant="outline">Arquivados: {leads.filter((l: any) => l.archived).length}</Badge>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
+            Mostrar apenas arquivados
+          </label>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -174,17 +181,25 @@ function CRM() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.map((l: any) => (
-                <TableRow key={l.id}>
+              {leads.filter((l: any) => showArchivedList ? l.archived : true).map((l: any) => (
+                <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
                   <TableCell className="font-mono text-xs">{l.code}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
                   <TableCell className="text-sm">{l.email}</TableCell>
                   <TableCell className="text-sm">{l.phone}</TableCell>
                   <TableCell className="text-sm">{l.origin}</TableCell>
-                  <TableCell><Badge variant="outline">{cols.find((c) => c.key === l.status)?.label ?? l.status}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{cols.find((c) => c.key === l.status)?.label ?? l.status}</Badge>
+                    {l.archived && <Badge variant="secondary" className="ml-1">Arquivado</Badge>}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-4 w-4" /></Button>
+                      {l.archived ? (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Restaurar ao pipeline" onClick={() => archive.mutate({ id: l.id, archived: false })}><ArchiveRestore className="h-4 w-4" /></Button>
+                      ) : (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Retirar do pipeline" onClick={() => { if (confirm("Retirar este lead do pipeline? Continuará visível apenas na lista.")) archive.mutate({ id: l.id, archived: true }); }}><Archive className="h-4 w-4" /></Button>
+                      )}
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(l)}><Pencil className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { if (confirm("Remover este lead?")) del.mutate(l.id); }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
