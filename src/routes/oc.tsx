@@ -17,7 +17,8 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/oc")({ component: OCList });
 
-const STATUS = ["agendado","em_execucao","concluido","faturado","pago","cancelado","reagendado","no_show","reclamacao"];
+const OP_FALLBACK = ["agendado","em_execucao","finalizado","no_show","cancelado","reagendado"];
+const FIN_FALLBACK = ["nao_faturado","faturado","pago"];
 
 function OCList() {
   const qc = useQueryClient();
