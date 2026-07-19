@@ -38,17 +38,34 @@ function ContaCorrente() {
     : Number(accounts.find((x: any) => x.id === accountId)?.opening_balance || 0);
   const balance = opening + inflow - outflow;
 
+  const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i);
+  const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Conta Corrente" description="Extrato de entradas e saídas." actions={
-        <Select value={accountId} onValueChange={setAccountId}>
-          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as contas</SelectItem>
-            {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ano todo</SelectItem>
+              {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={accountId} onValueChange={setAccountId}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as contas</SelectItem>
+              {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       } />
+
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Saldo inicial</div><div className="text-xl font-bold">€ {opening.toFixed(2)}</div></Card>
