@@ -158,6 +158,35 @@ function Propostas() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Tipo de proposta</Label>
+                <Select value={form.proposal_type} onValueChange={(v) => setForm({ ...form, proposal_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="servico">Serviço</SelectItem>
+                    <SelectItem value="roteiro">Roteiro</SelectItem>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.proposal_type === "roteiro" && (
+                <div><Label>Roteiro</Label>
+                  <Select value={form.tour_route_id || "__custom"} onValueChange={(v) => setForm({ ...form, tour_route_id: v === "__custom" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar roteiro" /></SelectTrigger>
+                    <SelectContent>
+                      {routes.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>{r.region ? `[${r.region}] ` : ""}{r.name}</SelectItem>
+                      ))}
+                      <SelectItem value="__custom">➕ Outro (personalizado)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            {form.proposal_type === "roteiro" && !form.tour_route_id && (
+              <div><Label>Roteiro personalizado</Label><Input value={form.tour_route_custom} onChange={(e) => setForm({ ...form, tour_route_custom: e.target.value })} placeholder="Descrever roteiro personalizado" /></div>
+            )}
             <div><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           </div>
           <DialogFooter>
