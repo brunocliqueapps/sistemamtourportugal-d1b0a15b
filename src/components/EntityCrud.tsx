@@ -55,13 +55,16 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         const { error } = await supabase.from(table).update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(table).insert(payload);
+        const { data: inserted, error } = await supabase.from(table).insert(payload).select().single();
         if (error) throw error;
+        // Auto-gerar alertas de vencimento para veículos / motoristas / funcionários
+        await autoCreateExpiryAlerts(table, inserted, fields);
       }
     },
     onSuccess: () => {
       toast.success("Guardado");
       qc.invalidateQueries({ queryKey: [table] });
+      qc.invalidateQueries({ queryKey: ["company_documents"] });
       setOpen(false); setEditing(null); setForm({});
     },
     onError: (e: any) => toast.error(e.message),
