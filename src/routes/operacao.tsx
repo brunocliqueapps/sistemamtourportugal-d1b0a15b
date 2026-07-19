@@ -79,7 +79,10 @@ function Operacao() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <PageHeader title="Turnos Motorista" description="Abre o turno indicando o tipo de operação (Privado, TVDE, Interno)." />
+      <PageHeader title="Turnos Motorista" description="Painel de controlo: todos os turnos (Privado, TVDE, Interno) de todos os motoristas no período." />
+
+      <AllShiftsPanel />
+
 
       {!shift ? (
         <Card className="p-6 space-y-4">
