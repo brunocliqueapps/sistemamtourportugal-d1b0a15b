@@ -208,3 +208,71 @@ function PermissionsMatrix() {
     </Card>
   );
 }
+
+function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<AppRole>("comercial");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!email || !password) { toast.error("Email e senha obrigatórios"); return; }
+    setBusy(true);
+    try {
+      // Isolated client so it doesn't overwrite the admin session
+      const tmp = createClient(
+        import.meta.env.VITE_SUPABASE_URL as string,
+        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+      );
+      const { data, error } = await tmp.auth.signUp({
+        email, password,
+        options: { data: { name }, emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      const uid = data.user?.id;
+      if (uid) {
+        await supabase.from("user_roles").delete().eq("user_id", uid);
+        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: uid, role });
+        if (rerr) throw rerr;
+      }
+      toast.success("Utilizador criado. Peça-lhe para confirmar o email se aplicável.");
+      setOpen(false);
+      setEmail(""); setPassword(""); setName(""); setRole("comercial");
+      onCreated();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gradient-gold text-gold-foreground"><UserPlus className="h-4 w-4 mr-1" /> Novo utilizador</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Cadastrar utilizador</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div><Label>Senha</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+          <div>
+            <Label>Papel</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
+          <Button className="gradient-gold text-gold-foreground" onClick={submit} disabled={busy}>{busy ? "A criar..." : "Criar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
