@@ -15,6 +15,12 @@ do $$ declare r record; begin
   loop execute format('drop table if exists public.%I cascade', r.tablename); end loop;
 end $$;
 
+-- Dropar TODAS as sequências do schema public (ex.: seq_lead, seq_oc, etc.)
+do $$ declare r record; begin
+  for r in (select sequencename from pg_sequences where schemaname='public')
+  loop execute format('drop sequence if exists public.%I cascade', r.sequencename); end loop;
+end $$;
+
 -- Dropar funções e triggers customizados que possam existir
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.is_admin(uuid) cascade;
