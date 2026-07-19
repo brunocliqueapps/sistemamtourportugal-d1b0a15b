@@ -200,7 +200,7 @@ function Relatorios() {
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
   };
 
-  const reports: Record<string, { title: string; render: () => React.ReactNode }> = {
+  const reports: Record<string, { title: string; render: () => ReactNode }> = {
     leads: {
       title: "Leads",
       render: () => (
