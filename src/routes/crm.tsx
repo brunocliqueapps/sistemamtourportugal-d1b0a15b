@@ -71,6 +71,24 @@ function CRM() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const convert = useMutation({
+    mutationFn: async (l: any) => {
+      const { data: existing } = await supabase.from("clients").select("id").eq("name", l.name).maybeSingle();
+      if (existing?.id) throw new Error("Já existe cliente com este nome");
+      const { error } = await supabase.from("clients").insert({
+        name: l.name, email: l.email || null, phone: l.phone || null, notes: l.notes || null,
+      });
+      if (error) throw error;
+      await supabase.from("leads").update({ status: "fechado" }).eq("id", l.id);
+    },
+    onSuccess: () => {
+      toast.success("Lead convertido em cliente");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["entity", "clients"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(l: any) {
     setEditing(l);
