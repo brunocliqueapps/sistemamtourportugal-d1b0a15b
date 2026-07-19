@@ -168,7 +168,7 @@ function Financeiro() {
                 <TableHead>Entidade</TableHead><TableHead>NIF</TableHead>
                 <TableHead className="text-right">Base</TableHead><TableHead className="text-right">IVA</TableHead>
                 <TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead>
-                <TableHead className="text-right">PDF</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {filtered.map((r: any) => (
@@ -182,10 +182,10 @@ function Financeiro() {
                     <TableCell className="text-right">€ {Number(r.vat_amount).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-semibold">€ {Number(r.total).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={r.status === "pago" ? "default" : r.status === "vencido" ? "destructive" : "outline"}>{r.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}>
-                        <FileDown className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <Button variant="ghost" size="icon" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover esta fatura e movimentos associados?")) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
