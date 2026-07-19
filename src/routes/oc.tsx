@@ -22,6 +22,7 @@ const STATUS = ["agendado","em_execucao","concluido","faturado","pago","cancelad
 function OCList() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
 
   const { data = [] } = useQuery({
