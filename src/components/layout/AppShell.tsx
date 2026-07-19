@@ -17,19 +17,27 @@ type Group = { label: string; items: Item[] };
 const groups: Group[] = [
   { label: "Início", items: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
-    { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
   ]},
   { label: "Comercial", items: [
     { to: "/crm", label: "CRM · Leads", icon: Users, module: "crm" },
+    { to: "/clientes", label: "Clientes", icon: Users, module: "cadastros" },
     { to: "/propostas", label: "Propostas", icon: FileText, module: "propostas" },
   ]},
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
+    { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
+    { to: "/operacao", label: "Turnos Motorista", icon: ClipboardList, module: "operacao" },
+  ]},
+  { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
     { to: "/servicos-privados", label: "Serviços Privados", icon: ClipboardCheck, module: "operacao" },
-
-    { to: "/operacao", label: "Turnos Motorista", icon: ClipboardList, module: "operacao" },
     { to: "/tvde", label: "TVDE (Uber/Bolt)", icon: Car, module: "tvde" },
+  ]},
+  { label: "Financeiro", items: [
+    { to: "/financeiro", label: "Faturas & Movimentos", icon: Wallet, module: "financeiro" },
+    { to: "/conta-corrente", label: "Conta Corrente", icon: Landmark, module: "conta_corrente" },
+    { to: "/fechamento", label: "Fechamento Mensal", icon: Calculator, module: "fechamento" },
+    { to: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
   ]},
   { label: "Financeiro", items: [
     { to: "/financeiro", label: "Faturas & Movimentos", icon: Wallet, module: "financeiro" },
