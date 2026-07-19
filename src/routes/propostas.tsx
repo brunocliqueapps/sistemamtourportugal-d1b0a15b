@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/propostas")({ component: Propostas });
 
-const empty = { title: "", description: "", total_value: 0, client_id: "", lead_id: "", status: "rascunho" };
+const empty = { title: "", description: "", total_value: 0, client_id: "", lead_id: "", status: "rascunho", proposal_type: "servico", tour_route_id: "", tour_route_custom: "" };
 
 function Propostas() {
   const { user } = useAuth();
