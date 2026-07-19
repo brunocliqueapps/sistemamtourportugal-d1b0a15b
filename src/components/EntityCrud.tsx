@@ -21,6 +21,32 @@ export interface CrudField {
   step?: string;
 }
 
+const EXPIRY_META: Record<string, { primaryKey: string; entityLabel: string; category: string }> = {
+  drivers:   { primaryKey: "full_name", entityLabel: "Motorista",   category: "licenca" },
+  vehicles:  { primaryKey: "plate",     entityLabel: "Veículo",     category: "veiculo" },
+  employees: { primaryKey: "full_name", entityLabel: "Funcionário", category: "documento" },
+};
+
+async function autoCreateExpiryAlerts(table: string, row: any, fields: CrudField[]) {
+  const meta = EXPIRY_META[table];
+  if (!meta || !row) return;
+  const primary = row[meta.primaryKey] ?? "";
+  const docs = fields
+    .filter((f) => f.type === "date" && /_expiry$/.test(f.key) && row[f.key])
+    .map((f) => ({
+      title: `${f.label} · ${primary}`.trim(),
+      category: meta.category,
+      entity: `${meta.entityLabel}: ${primary}`,
+      due_date: row[f.key],
+      reminder_days: 30,
+      status: "ativo",
+      currency: "EUR",
+      notes: `Auto-gerado ao cadastrar ${meta.entityLabel.toLowerCase()}.`,
+    }));
+  if (docs.length === 0) return;
+  await supabase.from("company_documents").insert(docs);
+}
+
 interface Props {
   table: string;
   title: string;
