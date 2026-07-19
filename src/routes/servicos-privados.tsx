@@ -66,6 +66,7 @@ function ServicosPrivados() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [viewing, setViewing] = useState<any | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
+  const [creating, setCreating] = useState(false);
   const selectableIds = services.filter((s: any) => !closingBy(s.id)?.closed_at).map((s: any) => s.id);
   const selectedIds = selectableIds.filter((id: string) => selected[id]);
   const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
