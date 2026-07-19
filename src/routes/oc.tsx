@@ -46,10 +46,18 @@ function OCList() {
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (payload.sale_value != null) payload.sale_value = Number(payload.sale_value);
       if (payload.passengers != null) payload.passengers = Number(payload.passengers) || null;
-      const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
-      if (error) throw error;
+      if (editing?.id) {
+        const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        if (!payload.operation_type) payload.operation_type = "privado";
+        if (!payload.status) payload.status = "agendado";
+        if (!payload.financial_status) payload.financial_status = "nao_faturado";
+        const { error } = await supabase.from("service_orders").insert(payload);
+        if (error) throw error;
+      }
     },
-    onSuccess: () => { toast.success("OC atualizada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
+    onSuccess: () => { toast.success(editing?.id ? "OC atualizada" : "OC criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
     onError: (e: any) => toast.error(e.message),
   });
 
