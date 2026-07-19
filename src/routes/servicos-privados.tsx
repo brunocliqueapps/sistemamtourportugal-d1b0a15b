@@ -41,13 +41,14 @@ function ServicosPrivados() {
     queryFn: async () => {
       let q = supabase.from("service_orders")
         .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)")
-        .eq("operation_type", "privado")
+        .or("operation_type.eq.privado,operation_type.is.null")
         .gte("service_date", from).lte("service_date", to)
         .order("service_date", { ascending: false }).order("start_time");
       if (status !== "all") q = q.eq("status", status);
       return (await q).data ?? [];
     },
   });
+
 
   const ids = services.map((s: any) => s.id);
   const { data: closings = [] } = useQuery({
@@ -59,6 +60,50 @@ function ServicosPrivados() {
   const closingBy = (id: string) => closings.find((c: any) => c.service_order_id === id);
   const total = services.length;
   const finalizados = services.filter((s: any) => closingBy(s.id)?.closed_at).length;
+
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const selectableIds = services.filter((s: any) => !closingBy(s.id)?.closed_at).map((s: any) => s.id);
+  const selectedIds = selectableIds.filter((id: string) => selected[id]);
+  const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
+  const toggleAll = (v: boolean) => {
+    const next: Record<string, boolean> = {};
+    if (v) selectableIds.forEach((id: string) => (next[id] = true));
+    setSelected(next);
+  };
+  const { user } = useAuth();
+  const bulkClose = useMutation({
+    mutationFn: async () => {
+      if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
+      const nowIso = new Date().toISOString();
+      for (const id of selectedIds) {
+        const svc: any = services.find((s: any) => s.id === id);
+        const sale = Number(svc?.sale_value || 0);
+        await supabase.from("service_closings").upsert({
+          service_order_id: id,
+          end_time: nowIso,
+          sale_value: sale,
+          amount_received: sale,
+          balance_pending: 0,
+          closed_at: nowIso,
+          closed_by: user?.id ?? null,
+          notes: "Fechamento em lote",
+        }, { onConflict: "service_order_id" });
+        await supabase.from("service_orders").update({
+          status: "finalizado",
+          amount_received: sale,
+          amount_pending: 0,
+        }).eq("id", id);
+      }
+    },
+    onSuccess: () => {
+      toast.success(`${selectedIds.length} serviço(s) fechado(s)`);
+      setSelected({});
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -90,10 +135,26 @@ function ServicosPrivados() {
         <Card className="p-4"><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-2xl font-semibold">{total - finalizados}</div></Card>
       </div>
 
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {selectedIds.length > 0 ? `${selectedIds.length} selecionado(s)` : "Selecione serviços para fechar em lote"}
+        </div>
+        <Button
+          size="sm"
+          disabled={selectedIds.length === 0 || bulkClose.isPending}
+          onClick={() => { if (confirm(`Fechar ${selectedIds.length} serviço(s) selecionado(s)?`)) bulkClose.mutate(); }}
+        >
+          <CheckCircle2 className="w-4 h-4 mr-1" /> Fechar selecionados
+        </Button>
+      </div>
+
       <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox checked={allSelected} onCheckedChange={(v) => toggleAll(!!v)} />
+              </TableHead>
               <TableHead>Data</TableHead>
               <TableHead>OC / Voucher</TableHead>
               <TableHead>Cliente</TableHead>
@@ -107,8 +168,16 @@ function ServicosPrivados() {
           <TableBody>
             {services.map((s: any) => {
               const c = closingBy(s.id);
+              const isClosed = !!c?.closed_at;
               return (
                 <TableRow key={s.id}>
+                  <TableCell>
+                    <Checkbox
+                      disabled={isClosed}
+                      checked={!!selected[s.id]}
+                      onCheckedChange={(v) => setSelected({ ...selected, [s.id]: !!v })}
+                    />
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">{s.service_date} {s.start_time?.slice(0, 5)}</TableCell>
                   <TableCell>
                     <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
@@ -119,7 +188,7 @@ function ServicosPrivados() {
                   <TableCell className="text-xs">{s.origin ?? "—"} → {s.destination ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
                   <TableCell>
-                    {c?.closed_at
+                    {isClosed
                       ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Finalizado</Badge>
                       : <Badge variant="outline">{s.status}</Badge>}
                   </TableCell>
@@ -130,7 +199,7 @@ function ServicosPrivados() {
               );
             })}
             {services.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem serviços privados no período.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem serviços privados no período.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -138,6 +207,7 @@ function ServicosPrivados() {
     </div>
   );
 }
+
 
 type ExpenseRow = {
   id?: string; // present if already persisted
