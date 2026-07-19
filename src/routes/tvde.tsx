@@ -587,11 +587,22 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
   const [viewing, setViewing] = useState<any | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
 
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-hist"], enabled: !!editing,
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["veh-hist"], enabled: !!editing,
+    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
+  });
+
   const save = useMutation({
     mutationFn: async () => {
       if (!editing) return;
       const payload: any = {
         shift_date: editing.shift_date,
+        driver_id: editing.driver_id || null,
+        vehicle_id: editing.vehicle_id || null,
         km_initial: editing.km_initial === "" || editing.km_initial == null ? null : Number(editing.km_initial),
         km_final: editing.km_final === "" || editing.km_final == null ? null : Number(editing.km_final),
         notes: editing.notes || null,
@@ -607,6 +618,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <>
