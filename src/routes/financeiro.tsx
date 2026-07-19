@@ -24,17 +24,19 @@ function Financeiro() {
   const qc = useQueryClient();
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<string>("all"); // 'all' | '1'..'12'
-  const [f, setF] = useState<any>({
+  const emptyForm = {
     doc_type: "fatura", invoice_number: "", series: "", issue_date: new Date().toISOString().slice(0,10),
     due_date: "", entity_name: "", entity_nif: "", description: "",
     value_ex_vat: 0, vat_rate_id: "", vat_amount: 0, vat_deductible: 0, vat_non_deductible: 0,
     deduction_pct: 100, total: 0, cost_center_id: "", payment_method_id: "", bank_account_id: "",
     status: "pendente", paid_amount: 0, observations: "",
-  });
+  };
+  const [f, setF] = useState<any>(emptyForm);
 
   const { data: rows = [] } = useQuery({
     queryKey: ["invoices", year, month],
