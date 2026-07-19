@@ -106,7 +106,9 @@ function OCList() {
 
   return (
     <div className="p-6 md:p-8 space-y-4">
-      <PageHeader title="Ordens de Serviço (OC)" description="Todas as OCs geradas pelas propostas aprovadas." />
+      <PageHeader title="Ordens de Serviço (OC)" description="OCs geradas pelas propostas aprovadas ou criadas manualmente." actions={
+        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OC</Button>
+      } />
       <Card>
         <Table>
           <TableHeader><TableRow>
