@@ -143,6 +143,51 @@ function CRM() {
         ))}
       </div>
 
+      <Card className="mt-6 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Lista de leads</h3>
+          <Badge variant="secondary">{leads.length}</Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leads.map((l: any) => (
+                <TableRow key={l.id}>
+                  <TableCell className="font-mono text-xs">{l.code}</TableCell>
+                  <TableCell className="font-medium">{l.name}</TableCell>
+                  <TableCell className="text-sm">{l.email}</TableCell>
+                  <TableCell className="text-sm">{l.phone}</TableCell>
+                  <TableCell className="text-sm">{l.origin}</TableCell>
+                  <TableCell><Badge variant="outline">{cols.find((c) => c.key === l.status)?.label ?? l.status}</Badge></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Converter em cliente" onClick={() => { if (confirm(`Converter "${l.name}" em cliente?`)) convert.mutate(l); }}><UserPlus className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(l)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { if (confirm("Remover este lead?")) del.mutate(l.id); }}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {leads.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhum lead cadastrado</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar Lead" : "Novo Lead"}</DialogTitle></DialogHeader>
