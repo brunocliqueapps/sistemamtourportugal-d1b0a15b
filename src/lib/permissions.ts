@@ -6,7 +6,7 @@ export type AppRole = "admin" | "comercial" | "administrativo" | "motorista";
 export type ModuleKey =
   | "dashboard" | "agenda" | "crm" | "propostas" | "oc" | "operacao" | "tvde"
   | "financeiro" | "conta_corrente" | "fechamento" | "relatorios"
-  | "cadastros" | "pos_venda" | "importar" | "configuracoes";
+  | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas";
 
 export function usePermissions() {
   const { user } = useAuth();
