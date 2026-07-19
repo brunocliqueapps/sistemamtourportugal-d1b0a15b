@@ -41,13 +41,14 @@ function ServicosPrivados() {
     queryFn: async () => {
       let q = supabase.from("service_orders")
         .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)")
-        .eq("operation_type", "privado")
+        .or("operation_type.eq.privado,operation_type.is.null")
         .gte("service_date", from).lte("service_date", to)
         .order("service_date", { ascending: false }).order("start_time");
       if (status !== "all") q = q.eq("status", status);
       return (await q).data ?? [];
     },
   });
+
 
   const ids = services.map((s: any) => s.id);
   const { data: closings = [] } = useQuery({
