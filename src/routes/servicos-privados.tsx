@@ -16,7 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { CheckCircle2, Plus, Trash2, CheckCircle } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, CheckCircle, Eye, Pencil } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/servicos-privados")({ component: ServicosPrivados });
 
