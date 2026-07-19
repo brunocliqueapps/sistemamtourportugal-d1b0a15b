@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,11 +20,6 @@ export const Route = createFileRoute("/tvde")({ component: TVDE });
 
 const EMPTY_EARN = { platform: "uber", gross: 0, tips: 0, bonus: 0, commissions: 0, other_deductions: 0, notes: "" };
 const EMPTY_EXP = { category: "abastecimento", description: "", amount: 0, payment_method_id: "", paid_by_driver: false };
-const EMPTY_JOB = {
-  client_name: "", client_phone: "", origin: "", destination: "",
-  value: 0, payment_method_id: "", payment_status: "recebido",
-  received_by_driver: true, approved_by: "", oc_code: "", notes: "",
-};
 
 function TVDE() {
   const { user } = useAuth();
