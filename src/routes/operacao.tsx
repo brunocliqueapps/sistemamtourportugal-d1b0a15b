@@ -195,3 +195,103 @@ function Operacao() {
     </div>
   );
 }
+
+function AllShiftsPanel() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(first);
+  const [to, setTo] = useState(last);
+  const [driverId, setDriverId] = useState<string>("all");
+  const [type, setType] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-panel"],
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ["all-shifts", from, to, driverId, type, statusFilter],
+    queryFn: async () => {
+      let q = supabase.from("tvde_shifts")
+        .select("*, drivers(full_name), vehicles(plate)")
+        .gte("shift_date", from).lte("shift_date", to)
+        .order("shift_date", { ascending: false });
+      if (driverId !== "all") q = q.eq("driver_id", driverId);
+      if (type !== "all") q = q.eq("operation_type", type);
+      if (statusFilter === "open") q = q.is("closed_at", null);
+      if (statusFilter === "closed") q = q.not("closed_at", "is", null);
+      return (await q).data ?? [];
+    },
+  });
+
+  const total = shifts.length;
+  const abertos = shifts.filter((s: any) => !s.closed_at).length;
+  const fechados = total - abertos;
+
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Todos os turnos</h3>
+          <div className="text-sm text-muted-foreground">Total: <b>{total}</b> · Em aberto: <b>{abertos}</b> · Fechados: <b>{fechados}</b></div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="privado">Privado</SelectItem>
+              <SelectItem value="tvde">TVDE</SelectItem>
+              <SelectItem value="interno">Interno</SelectItem>
+              <SelectItem value="outro">Outro</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={driverId} onValueChange={setDriverId}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Motorista" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os motoristas</SelectItem>
+              {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="open">Em aberto</SelectItem>
+              <SelectItem value="closed">Fechados</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Motorista</TableHead>
+          <TableHead>Veículo</TableHead><TableHead>Km inicial</TableHead><TableHead>Km final</TableHead>
+          <TableHead>Início</TableHead><TableHead>Fim</TableHead><TableHead>Estado</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {shifts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sem turnos no período.</TableCell></TableRow>}
+          {shifts.map((s: any) => (
+            <TableRow key={s.id}>
+              <TableCell>{s.shift_date}</TableCell>
+              <TableCell><Badge variant="outline">{s.operation_type}</Badge></TableCell>
+              <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
+              <TableCell>{s.vehicles?.plate ?? "—"}</TableCell>
+              <TableCell>{s.km_initial ?? "—"}</TableCell>
+              <TableCell>{s.km_final ?? "—"}</TableCell>
+              <TableCell className="text-xs">{s.start_time ? new Date(s.start_time).toLocaleString("pt-PT") : "—"}</TableCell>
+              <TableCell className="text-xs">{s.end_time ? new Date(s.end_time).toLocaleString("pt-PT") : "—"}</TableCell>
+              <TableCell>{s.closed_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Fechado</Badge> : <Badge>Em aberto</Badge>}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}
+
