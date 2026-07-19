@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/permissions";
-import { Copy, Send } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
+import { Copy, Send, Eye, Pencil, Trash2, Star, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/pos-venda")({ component: PosVenda });
 
@@ -22,23 +23,31 @@ function PosVenda() {
   const { isAdmin } = usePermissions();
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <PageHeader title="Pós-Venda" description="Envio de pesquisas de satisfação e análise dos resultados." />
-      <Tabs defaultValue="dashboard">
-        <TabsList>
-          <TabsTrigger value="dashboard">Resultados</TabsTrigger>
-          <TabsTrigger value="send">Enviar Pesquisa</TabsTrigger>
+      <PageHeader title="Pós-Venda" description="Pesquisas de satisfação, avaliações Google, indicações e histórico de feedback." />
+      <Tabs defaultValue="pesquisa">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="pesquisa">Pesquisa de satisfação</TabsTrigger>
+          <TabsTrigger value="google">Indicar Avaliação Google</TabsTrigger>
+          <TabsTrigger value="indicacao">Indicação de novos clientes</TabsTrigger>
+          <TabsTrigger value="historico">Histórico de feedback</TabsTrigger>
           {isAdmin && <TabsTrigger value="templates">Modelos</TabsTrigger>}
         </TabsList>
-        <TabsContent value="dashboard" className="mt-6"><ResultsPanel /></TabsContent>
-        <TabsContent value="send" className="mt-6"><SendPanel /></TabsContent>
+        <TabsContent value="pesquisa" className="mt-6 space-y-6"><ResultsPanel /><SendPanel /></TabsContent>
+        <TabsContent value="google" className="mt-6"><GoogleReviewPanel /></TabsContent>
+        <TabsContent value="indicacao" className="mt-6"><ReferralPanel /></TabsContent>
+        <TabsContent value="historico" className="mt-6"><FeedbackHistoryPanel /></TabsContent>
         {isAdmin && <TabsContent value="templates" className="mt-6"><TemplatesPanel /></TabsContent>}
       </Tabs>
     </div>
   );
 }
 
+function useSurveys() {
+  return useQuery({ queryKey: ["surveys"], queryFn: async () => (await supabase.from("surveys").select("*").order("created_at",{ascending:false})).data ?? [] });
+}
+
 function ResultsPanel() {
-  const { data: surveys = [] } = useQuery({ queryKey: ["surveys"], queryFn: async () => (await supabase.from("surveys").select("*").order("created_at",{ascending:false})).data ?? [] });
+  const { data: surveys = [] } = useSurveys();
   const total = surveys.length;
   const answered = surveys.filter((s: any) => s.status === "respondido");
   const respRate = total ? Math.round((answered.length / total) * 100) : 0;
@@ -49,16 +58,46 @@ function ResultsPanel() {
   const nps = npsVals.length ? Math.round(((promoters - detractors) / npsVals.length) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-5"><div className="text-sm text-muted-foreground">Pesquisas enviadas</div><div className="text-2xl font-bold">{total}</div></Card>
-        <Card className="p-5"><div className="text-sm text-muted-foreground">Taxa de resposta</div><div className="text-2xl font-bold">{respRate}%</div></Card>
-        <Card className="p-5"><div className="text-sm text-muted-foreground">Média (1-5)</div><div className="text-2xl font-bold text-emerald-600">{avg}</div></Card>
-        <Card className="p-5"><div className="text-sm text-muted-foreground">NPS</div><div className={`text-2xl font-bold ${nps >= 0 ? "text-emerald-600" : "text-destructive"}`}>{nps}</div></Card>
-      </div>
+    <div className="grid gap-4 md:grid-cols-4">
+      <Card className="p-5"><div className="text-sm text-muted-foreground">Pesquisas enviadas</div><div className="text-2xl font-bold">{total}</div></Card>
+      <Card className="p-5"><div className="text-sm text-muted-foreground">Taxa de resposta</div><div className="text-2xl font-bold">{respRate}%</div></Card>
+      <Card className="p-5"><div className="text-sm text-muted-foreground">Média (1-5)</div><div className="text-2xl font-bold text-emerald-600">{avg}</div></Card>
+      <Card className="p-5"><div className="text-sm text-muted-foreground">NPS</div><div className={`text-2xl font-bold ${nps >= 0 ? "text-emerald-600" : "text-destructive"}`}>{nps}</div></Card>
+    </div>
+  );
+}
+
+function SurveyTable({ surveys }: { surveys: any[] }) {
+  const qc = useQueryClient();
+  const [viewing, setViewing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("surveys").update({
+        client_name: editing.client_name,
+        client_email: editing.client_email,
+        status: editing.status,
+        average_score: editing.average_score ? Number(editing.average_score) : null,
+        nps_score: editing.nps_score !== "" && editing.nps_score != null ? Number(editing.nps_score) : null,
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pesquisa atualizada"); setEditing(null); qc.invalidateQueries({ queryKey: ["surveys"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["surveys"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
       <Card>
         <Table>
-          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>OC</TableHead><TableHead>Enviado</TableHead><TableHead>Respondido</TableHead><TableHead>Média</TableHead><TableHead>NPS</TableHead><TableHead>Estado</TableHead><TableHead>Link</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>OC</TableHead><TableHead>Enviado</TableHead><TableHead>Respondido</TableHead><TableHead>Média</TableHead><TableHead>NPS</TableHead><TableHead>Estado</TableHead><TableHead className="text-right w-40">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {surveys.map((s: any) => (
               <TableRow key={s.id}>
@@ -69,10 +108,13 @@ function ResultsPanel() {
                 <TableCell>{s.average_score ?? "—"}</TableCell>
                 <TableCell>{s.nps_score ?? "—"}</TableCell>
                 <TableCell><Badge variant={s.status === "respondido" ? "default" : "outline"}>{s.status}</Badge></TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/pesquisa/${s.token}`); toast.success("Link copiado"); }}>
-                    <Copy className="h-3 w-3" />
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" title="Copiar link" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/pesquisa/${s.token}`); toast.success("Link copiado"); }}>
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
+                  <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditing({ ...s })}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir pesquisa de ${s.client_name ?? "—"}?`)) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -80,7 +122,37 @@ function ResultsPanel() {
           </TableBody>
         </Table>
       </Card>
-    </div>
+
+      <QuickViewDialog open={!!viewing} onClose={() => setViewing(null)} title="Pesquisa" record={viewing} />
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar pesquisa</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><Label>Cliente</Label><Input value={editing.client_name ?? ""} onChange={(e) => setEditing({ ...editing, client_name: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Email</Label><Input value={editing.client_email ?? ""} onChange={(e) => setEditing({ ...editing, client_email: e.target.value })} /></div>
+              <div><Label>Média (1-5)</Label><Input type="number" step="0.1" value={editing.average_score ?? ""} onChange={(e) => setEditing({ ...editing, average_score: e.target.value })} /></div>
+              <div><Label>NPS (0-10)</Label><Input type="number" value={editing.nps_score ?? ""} onChange={(e) => setEditing({ ...editing, nps_score: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Estado</Label>
+                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="enviado">Enviado</SelectItem>
+                    <SelectItem value="respondido">Respondido</SelectItem>
+                    <SelectItem value="expirado">Expirado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -88,6 +160,7 @@ function SendPanel() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ template_id: "", service_order_id: "", client_email: "", client_name: "" });
+  const { data: surveys = [] } = useSurveys();
 
   const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await supabase.from("survey_templates").select("*").eq("active", true)).data ?? [] });
   const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await supabase.from("service_orders").select("id,code,client_name,status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
@@ -119,9 +192,9 @@ function SendPanel() {
       <div className="flex justify-end">
         <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><Send className="h-4 w-4 mr-1" /> Nova pesquisa</Button>
       </div>
-      <Card className="p-4 text-sm text-muted-foreground">
-        Escolha o modelo e a OC. Ao criar, o link público de resposta é copiado. Envie-o ao cliente por email/WhatsApp.
-      </Card>
+
+      <SurveyTable surveys={surveys} />
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nova pesquisa de satisfação</DialogTitle></DialogHeader>
@@ -151,6 +224,174 @@ function SendPanel() {
   );
 }
 
+function GoogleReviewPanel() {
+  const [googleUrl, setGoogleUrl] = useState<string>(() => localStorage.getItem("google_review_url") ?? "");
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+
+  const saveUrl = () => {
+    localStorage.setItem("google_review_url", googleUrl);
+    toast.success("Link Google guardado");
+  };
+
+  const shareLink = () => {
+    if (!googleUrl) { toast.error("Configura primeiro o link Google."); return; }
+    const msg = `Olá ${clientName || ""}! Obrigado por escolher a MTOUR Portugal. Se gostou do serviço, ajude-nos com uma avaliação Google: ${googleUrl}`;
+    navigator.clipboard.writeText(msg);
+    toast.success("Mensagem copiada — pode enviar por email/WhatsApp.");
+  };
+
+  const mailto = clientEmail
+    ? `mailto:${clientEmail}?subject=${encodeURIComponent("Avalie a MTOUR Portugal no Google")}&body=${encodeURIComponent(`Olá ${clientName},\n\nObrigado por escolher a MTOUR Portugal. Se gostou do serviço, deixe-nos uma avaliação Google:\n${googleUrl}\n\nObrigado!`)}`
+    : "";
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> Link de avaliação Google</h3>
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <Input placeholder="https://g.page/r/..." value={googleUrl} onChange={(e) => setGoogleUrl(e.target.value)} />
+          <Button className="gradient-gold text-gold-foreground" onClick={saveUrl}>Guardar link</Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Cole aqui o link direto do Perfil de Empresa Google (Google Business Profile → Pedir avaliações).</p>
+      </Card>
+
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Enviar convite ao cliente</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div><Label>Nome cliente</Label><Input value={clientName} onChange={(e) => setClientName(e.target.value)} /></div>
+          <div><Label>Email cliente</Label><Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} /></div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={shareLink}><Copy className="h-4 w-4 mr-1" /> Copiar mensagem</Button>
+          <Button className="gradient-gold text-gold-foreground" asChild disabled={!clientEmail || !googleUrl}>
+            <a href={mailto || "#"} onClick={(e) => { if (!clientEmail || !googleUrl) { e.preventDefault(); toast.error("Preencha email e link Google."); } }}>
+              <Send className="h-4 w-4 mr-1" /> Enviar por email
+            </a>
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+type Referral = { id: string; date: string; referrer: string; contact: string; lead_name: string; lead_contact: string; status: string; notes: string };
+
+function ReferralPanel() {
+  const [items, setItems] = useState<Referral[]>(() => {
+    try { return JSON.parse(localStorage.getItem("referrals") ?? "[]"); } catch { return []; }
+  });
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Referral | null>(null);
+  const [viewing, setViewing] = useState<Referral | null>(null);
+  const empty: Referral = { id: "", date: new Date().toISOString().slice(0,10), referrer: "", contact: "", lead_name: "", lead_contact: "", status: "novo", notes: "" };
+  const [form, setForm] = useState<Referral>(empty);
+
+  const persist = (list: Referral[]) => { setItems(list); localStorage.setItem("referrals", JSON.stringify(list)); };
+
+  const add = () => {
+    if (!form.referrer || !form.lead_name) { toast.error("Cliente indicador e nome do novo cliente são obrigatórios."); return; }
+    const item = { ...form, id: crypto.randomUUID() };
+    persist([item, ...items]);
+    setForm(empty); setOpen(false);
+    toast.success("Indicação registada");
+  };
+
+  const save = () => {
+    if (!editing) return;
+    persist(items.map((i) => i.id === editing.id ? editing : i));
+    setEditing(null);
+    toast.success("Indicação atualizada");
+  };
+
+  const del = (id: string) => { if (confirm("Excluir indicação?")) persist(items.filter((i) => i.id !== id)); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><UserPlus className="h-4 w-4 mr-1" /> Nova indicação</Button>
+      </div>
+      <Card>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Data</TableHead><TableHead>Cliente indicador</TableHead><TableHead>Novo cliente</TableHead>
+            <TableHead>Contacto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right w-32">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {items.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Sem indicações registadas.</TableCell></TableRow>}
+            {items.map((i) => (
+              <TableRow key={i.id}>
+                <TableCell>{i.date}</TableCell>
+                <TableCell>{i.referrer}</TableCell>
+                <TableCell>{i.lead_name}</TableCell>
+                <TableCell>{i.lead_contact}</TableCell>
+                <TableCell><Badge variant="outline">{i.status}</Badge></TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setViewing(i)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditing({ ...i })}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" title="Excluir" onClick={() => del(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <QuickViewDialog open={!!viewing} onClose={() => setViewing(null)} title="Indicação" record={viewing} />
+
+      <Dialog open={open || !!editing} onOpenChange={(o) => { if (!o) { setOpen(false); setEditing(null); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? "Editar indicação" : "Nova indicação de cliente"}</DialogTitle></DialogHeader>
+          {(() => {
+            const f = editing ?? form;
+            const setF = (v: Referral) => editing ? setEditing(v) : setForm(v);
+            return (
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Data</Label><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
+                <div><Label>Estado</Label>
+                  <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="novo">Novo</SelectItem>
+                      <SelectItem value="contactado">Contactado</SelectItem>
+                      <SelectItem value="convertido">Convertido</SelectItem>
+                      <SelectItem value="perdido">Perdido</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Cliente indicador</Label><Input value={f.referrer} onChange={(e) => setF({ ...f, referrer: e.target.value })} /></div>
+                <div><Label>Contacto indicador</Label><Input value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /></div>
+                <div><Label>Novo cliente (nome)</Label><Input value={f.lead_name} onChange={(e) => setF({ ...f, lead_name: e.target.value })} /></div>
+                <div><Label>Novo cliente (contacto)</Label><Input value={f.lead_contact} onChange={(e) => setF({ ...f, lead_contact: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Notas</Label>
+                  <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={editing ? save : add}>{editing ? "Guardar" : "Registar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function FeedbackHistoryPanel() {
+  const { data: surveys = [] } = useSurveys();
+  const answered = surveys.filter((s: any) => s.status === "respondido");
+  return (
+    <div className="space-y-4">
+      <Card className="p-4 text-sm text-muted-foreground">
+        Histórico consolidado de respostas recebidas. Pode visualizar, editar ou excluir cada registo.
+      </Card>
+      <SurveyTable surveys={answered} />
+    </div>
+  );
+}
+
 function TemplatesPanel() {
   const qc = useQueryClient();
   const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplatesAll"], queryFn: async () => (await supabase.from("survey_templates").select("*").order("created_at")).data ?? [] });
@@ -167,14 +408,25 @@ function TemplatesPanel() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("survey_templates").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { toast.success("Modelo removido"); qc.invalidateQueries({ queryKey: ["surveyTemplatesAll"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button onClick={() => setOpen(true)}>Novo modelo</Button></div>
       <div className="grid gap-3 md:grid-cols-2">
         {templates.map((t: any) => (
           <Card key={t.id} className="p-4">
-            <div className="font-medium">{t.name}</div>
-            <div className="text-xs text-muted-foreground">{t.description}</div>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-medium">{t.name}</div>
+                <div className="text-xs text-muted-foreground">{t.description}</div>
+              </div>
+              <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir modelo ${t.name}?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+            </div>
             <ul className="mt-2 text-sm list-disc pl-5">
               {(t.questions ?? []).map((q: any) => <li key={q.id}>{q.label} <span className="text-xs text-muted-foreground">({q.type})</span></li>)}
             </ul>

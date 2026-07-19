@@ -541,7 +541,7 @@ function TvdeHistory() {
     queryKey: ["tvde-shifts-hist", from, to, driverId, statusFilter],
     queryFn: async () => {
       let q = supabase.from("tvde_shifts")
-        .select("*, drivers(full_name), vehicles(plate), tvde_earnings(gross,tips,bonus,commissions,other_deductions), tvde_private_jobs(id,value)")
+        .select("*, drivers(full_name), vehicles(plate), tvde_earnings(gross,tips,bonus,commissions,other_deductions)")
         .eq("operation_type", "tvde")
         .gte("shift_date", from).lte("shift_date", to)
         .order("shift_date", { ascending: false });
@@ -615,18 +615,18 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
           <TableHead>Data</TableHead><TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
           <TableHead className="text-right">Bruto plat.</TableHead>
           <TableHead className="text-right">Líquido plat.</TableHead>
-          <TableHead className="text-right">Nº particulares</TableHead>
-          <TableHead className="text-right">Total particulares</TableHead>
+          <TableHead className="text-right">Comissão Motorista</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="w-24 text-right">Ações</TableHead>
         </TableRow></TableHeader>
         <TableBody>
-          {shifts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sem operações no período.</TableCell></TableRow>}
+          {shifts.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sem operações no período.</TableCell></TableRow>}
           {shifts.map((s: any) => {
             const gross = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0), 0);
             const net = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0) - Number(e.commissions || 0) - Number(e.other_deductions || 0), 0);
-            const jobs = s.tvde_private_jobs ?? [];
-            const jobsTotal = jobs.reduce((a: number, j: any) => a + Number(j.value || 0), 0);
+            const pctMatch = /Motorista %:\s*(\d+(?:\.\d+)?)/.exec(s.notes ?? "");
+            const driverPct = pctMatch ? Number(pctMatch[1]) : 0;
+            const driverCommission = (net * driverPct) / 100;
             return (
               <TableRow key={s.id}>
                 <TableCell>{s.shift_date}</TableCell>
@@ -634,8 +634,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
                 <TableCell>{s.vehicles?.plate ?? "—"}</TableCell>
                 <TableCell className="text-right">€ {gross.toFixed(2)}</TableCell>
                 <TableCell className="text-right font-semibold">€ {net.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{jobs.length}</TableCell>
-                <TableCell className="text-right">€ {jobsTotal.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{driverPct ? `€ ${driverCommission.toFixed(2)} (${driverPct}%)` : "—"}</TableCell>
                 <TableCell>{s.closed_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Fechada</Badge> : <Badge variant="outline">Em aberto</Badge>}</TableCell>
                 <TableCell className="text-right">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
