@@ -234,7 +234,7 @@ function AllShiftsPanel() {
     <Card className="p-5 space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="font-semibold">Todos os turnos</h3>
+          <h3 className="font-semibold">Todos os Serviços</h3>
           <div className="text-sm text-muted-foreground">Total: <b>{total}</b> · Em aberto: <b>{abertos}</b> · Fechados: <b>{fechados}</b></div>
         </div>
         <div className="flex flex-wrap gap-2">
