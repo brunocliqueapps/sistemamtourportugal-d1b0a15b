@@ -24,7 +24,7 @@ const cols: { key: string; label: string }[] = [
   { key: "perdido", label: "Perdido" },
 ];
 
-const empty = { name: "", email: "", phone: "", origin: "", status: "novo", notes: "" };
+const empty = { name: "", email: "", phone: "", origin: "", status: "novo", notes: "", lost_reason: "" };
 
 function CRM() {
   const qc = useQueryClient();
@@ -103,7 +103,7 @@ function CRM() {
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(l: any) {
     setEditing(l);
-    setForm({ name: l.name ?? "", email: l.email ?? "", phone: l.phone ?? "", origin: l.origin ?? "", status: l.status ?? "novo", notes: l.notes ?? "" });
+    setForm({ name: l.name ?? "", email: l.email ?? "", phone: l.phone ?? "", origin: l.origin ?? "", status: l.status ?? "novo", notes: l.notes ?? "", lost_reason: l.lost_reason ?? "" });
     setOpen(true);
   }
 
@@ -232,6 +232,16 @@ function CRM() {
               </Select>
             </div>
             <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            {form.status === "perdido" && (
+              <div>
+                <Label>Motivo da perda</Label>
+                <Input
+                  value={form.lost_reason}
+                  onChange={(e) => setForm({ ...form, lost_reason: e.target.value })}
+                  placeholder="Descreva o motivo da perda"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
