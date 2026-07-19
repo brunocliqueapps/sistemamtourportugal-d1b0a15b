@@ -150,6 +150,14 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={title}
+        record={viewing}
+        fields={fields.map((f) => ({ key: f.key, label: f.label }))}
+      />
     </div>
   );
 }
