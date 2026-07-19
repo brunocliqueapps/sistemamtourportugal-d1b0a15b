@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, FileText, Wallet, ClipboardList, Moon, Sun, LogOut,
-  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star,
+  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { usePermissions, type ModuleKey } from "@/lib/permissions";
@@ -50,6 +50,7 @@ const groups: Group[] = [
   ]},
   { label: "Administração", items: [
     { to: "/cadastros", label: "Cadastros", icon: Users, module: "cadastros" },
+    { to: "/alertas", label: "Alertas & Vencimentos", icon: Bell, module: "alertas" },
     { to: "/importar", label: "Importar CSV", icon: Upload, module: "importar" },
     { to: "/configuracoes", label: "Configurações", icon: Settings, module: "configuracoes" },
   ]},
