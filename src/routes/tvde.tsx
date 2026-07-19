@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/tvde")({ component: TVDE });
 
@@ -156,11 +158,13 @@ function TVDE() {
 
   if (!shift) {
     return (
-      <div className="p-6 md:p-8 space-y-4">
-        <PageHeader title="TVDE" description="Sem turno TVDE em curso." />
-        <Card className="p-6 text-muted-foreground">
-          Abre um turno em <b>Operação → Turnos Motorista</b> selecionando o tipo <b>Plataforma TVDE</b>. Depois volta aqui para registar ganhos, serviços particulares e despesas.
-        </Card>
+      <div className="p-6 md:p-8 space-y-6">
+        <PageHeader
+          title="TVDE"
+          description="Sem operação TVDE em curso. Abra uma nova operação para começar a registar."
+          actions={<NewOperationButton />}
+        />
+        <TvdeHistory />
       </div>
     );
   }
@@ -199,6 +203,7 @@ function TVDE() {
       <PageHeader
         title="Fechamento TVDE"
         description={`${shift.shift_date} · ${shift.drivers?.full_name ?? "—"} · ${shift.vehicles?.plate ?? "—"}`}
+        actions={<NewOperationButton />}
       />
 
       {/* KPIs */}
@@ -446,7 +451,175 @@ function TVDE() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <TvdeHistory />
     </div>
+  );
+}
+
+function NewOperationButton() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<any>({
+    driver_id: "", vehicle_id: "",
+    shift_date: new Date().toISOString().slice(0, 10),
+    km_initial: "", notes: "",
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-op"], enabled: open,
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["veh-op-tvde"], enabled: open,
+    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
+  });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!form.vehicle_id) throw new Error("Veículo obrigatório.");
+      const { error } = await supabase.from("tvde_shifts").insert({
+        driver_id: form.driver_id || null,
+        vehicle_id: form.vehicle_id,
+        operation_type: "tvde",
+        shift_date: form.shift_date,
+        start_time: new Date().toISOString(),
+        km_initial: form.km_initial ? Number(form.km_initial) : null,
+        notes: form.notes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Operação TVDE aberta");
+      qc.invalidateQueries();
+      setOpen(false);
+      setForm({ driver_id: "", vehicle_id: "", shift_date: new Date().toISOString().slice(0, 10), km_initial: "", notes: "" });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}>
+        <Plus className="w-4 h-4 mr-1" /> Nova Operação
+      </Button>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Nova operação TVDE</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Data</Label><Input type="date" value={form.shift_date} onChange={(e) => setForm({ ...form, shift_date: e.target.value })} /></div>
+          <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
+          <div className="col-span-2"><Label>Motorista</Label>
+            <Select value={form.driver_id} onValueChange={(v) => setForm({ ...form, driver_id: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-2"><Label>Veículo *</Label>
+            <Select value={form.vehicle_id} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-2"><Label>Notas</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button className="gradient-gold text-gold-foreground" onClick={() => create.mutate()} disabled={create.isPending}>Abrir operação</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TvdeHistory() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(first);
+  const [to, setTo] = useState(last);
+  const [driverId, setDriverId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-hist"],
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ["tvde-shifts-hist", from, to, driverId, statusFilter],
+    queryFn: async () => {
+      let q = supabase.from("tvde_shifts")
+        .select("*, drivers(full_name), vehicles(plate), tvde_earnings(gross,tips,bonus,commissions,other_deductions), tvde_private_jobs(id,value)")
+        .eq("operation_type", "tvde")
+        .gte("shift_date", from).lte("shift_date", to)
+        .order("shift_date", { ascending: false });
+      if (driverId !== "all") q = q.eq("driver_id", driverId);
+      if (statusFilter === "open") q = q.is("closed_at", null);
+      if (statusFilter === "closed") q = q.not("closed_at", "is", null);
+      return (await q).data ?? [];
+    },
+  });
+
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h3 className="font-semibold">Histórico de operações TVDE</h3>
+        <div className="flex flex-wrap gap-2">
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+          <Select value={driverId} onValueChange={setDriverId}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Motorista" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os motoristas</SelectItem>
+              {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="open">Em aberto</SelectItem>
+              <SelectItem value="closed">Fechadas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Data</TableHead><TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
+          <TableHead className="text-right">Bruto plat.</TableHead>
+          <TableHead className="text-right">Líquido plat.</TableHead>
+          <TableHead className="text-right">Nº particulares</TableHead>
+          <TableHead className="text-right">Total particulares</TableHead>
+          <TableHead>Estado</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {shifts.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sem operações no período.</TableCell></TableRow>}
+          {shifts.map((s: any) => {
+            const gross = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0), 0);
+            const net = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0) - Number(e.commissions || 0) - Number(e.other_deductions || 0), 0);
+            const jobs = s.tvde_private_jobs ?? [];
+            const jobsTotal = jobs.reduce((a: number, j: any) => a + Number(j.value || 0), 0);
+            return (
+              <TableRow key={s.id}>
+                <TableCell>{s.shift_date}</TableCell>
+                <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
+                <TableCell>{s.vehicles?.plate ?? "—"}</TableCell>
+                <TableCell className="text-right">€ {gross.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold">€ {net.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{jobs.length}</TableCell>
+                <TableCell className="text-right">€ {jobsTotal.toFixed(2)}</TableCell>
+                <TableCell>{s.closed_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Fechada</Badge> : <Badge variant="outline">Em aberto</Badge>}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }
 
