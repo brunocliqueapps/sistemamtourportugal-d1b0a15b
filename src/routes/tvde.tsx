@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { Plus } from "lucide-react";
+import { Plus, Eye, Pencil } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/tvde")({ component: TVDE });
 
