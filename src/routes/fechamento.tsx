@@ -154,7 +154,10 @@ function Fechamento() {
       <div className="flex flex-wrap gap-3">
         <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={locked}>Gravar fechamento</Button>
         {current && !locked && <Button variant="destructive" onClick={() => { if (confirm("Bloquear período? Só admin pode reabrir.")) lockIt.mutate(); }}><Lock className="h-4 w-4 mr-1" /> Bloquear período</Button>}
-        {locked && <Badge className="self-center">Período bloqueado</Badge>}
+        {locked && <>
+          <Badge className="self-center">Período bloqueado</Badge>
+          {isAdmin && <Button variant="outline" onClick={() => { if (confirm("Reabrir período bloqueado?")) unlockIt.mutate(); }}><Unlock className="h-4 w-4 mr-1" /> Reabrir período</Button>}
+        </>}
       </div>
     </div>
   );
