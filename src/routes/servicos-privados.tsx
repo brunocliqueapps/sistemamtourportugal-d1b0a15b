@@ -16,7 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { CheckCircle2, Plus, Trash2, CheckCircle } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, CheckCircle, Eye, Pencil } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/servicos-privados")({ component: ServicosPrivados });
 
@@ -63,6 +64,8 @@ function ServicosPrivados() {
 
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [viewing, setViewing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
   const selectableIds = services.filter((s: any) => !closingBy(s.id)?.closed_at).map((s: any) => s.id);
   const selectedIds = selectableIds.filter((id: string) => selected[id]);
   const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
@@ -72,6 +75,27 @@ function ServicosPrivados() {
     setSelected(next);
   };
   const { user } = useAuth();
+
+  const saveEdit = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const payload: any = {
+        oc_code: editing.oc_code,
+        voucher_code: editing.voucher_code,
+        service_date: editing.service_date,
+        start_time: editing.start_time,
+        origin: editing.origin,
+        destination: editing.destination,
+        sale_value: Number(editing.sale_value) || 0,
+        notes: editing.notes,
+        status: editing.status,
+      };
+      const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Serviço atualizado"); setEditing(null); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const bulkClose = useMutation({
     mutationFn: async () => {
       if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
@@ -193,7 +217,11 @@ function ServicosPrivados() {
                       : <Badge variant="outline">{s.status}</Badge>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <FinalizeDialog service={s} closing={c} />
+                    <div className="inline-flex items-center gap-1">
+                      <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing({ ...s })}><Pencil className="h-4 w-4" /></Button>
+                      <FinalizeDialog service={s} closing={c} />
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -204,7 +232,193 @@ function ServicosPrivados() {
           </TableBody>
         </Table>
       </Card>
+
+      <PrivateShiftsPanel from={from} to={to} />
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Serviço privado"
+        record={viewing}
+        fields={[
+          { key: "oc_code", label: "Nº OC" },
+          { key: "voucher_code", label: "Voucher" },
+          { key: "service_date", label: "Data" },
+          { key: "start_time", label: "Hora" },
+          { key: "origin", label: "Origem" },
+          { key: "destination", label: "Destino" },
+          { key: "status", label: "Estado" },
+          { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "amount_received", label: "Recebido", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "amount_pending", label: "Pendente", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "notes", label: "Notas" },
+        ]}
+      />
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Nº OC</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
+              <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
+              <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
+              <div><Label>Hora</Label><Input type="time" value={editing.start_time?.slice(0, 5) ?? ""} onChange={(e) => setEditing({ ...editing, start_time: e.target.value })} /></div>
+              <div><Label>Origem</Label><Input value={editing.origin ?? ""} onChange={(e) => setEditing({ ...editing, origin: e.target.value })} /></div>
+              <div><Label>Destino</Label><Input value={editing.destination ?? ""} onChange={(e) => setEditing({ ...editing, destination: e.target.value })} /></div>
+              <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={editing.sale_value ?? 0} onChange={(e) => setEditing({ ...editing, sale_value: e.target.value })} /></div>
+              <div><Label>Estado</Label>
+                <Select value={editing.status ?? "agendado"} onValueChange={(v) => setEditing({ ...editing, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="em_execucao">Em execução</SelectItem>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2"><Label>Notas</Label>
+                <Textarea value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => saveEdit.mutate()} disabled={saveEdit.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [viewing, setViewing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ["priv-shifts", from, to],
+    queryFn: async () => (await supabase.from("tvde_shifts")
+      .select("*, drivers(full_name), vehicles(plate)")
+      .eq("operation_type", "privado")
+      .gte("shift_date", from).lte("shift_date", to)
+      .order("shift_date", { ascending: false })).data ?? [],
+  });
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const payload: any = {
+        shift_date: editing.shift_date,
+        km_initial: editing.km_initial === "" || editing.km_initial == null ? null : Number(editing.km_initial),
+        km_final: editing.km_final === "" || editing.km_final == null ? null : Number(editing.km_final),
+        notes: editing.notes || null,
+      };
+      if (editing._reopen) payload.closed_at = null;
+      const { error } = await supabase.from("tvde_shifts").update(payload).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Turno atualizado"); setEditing(null); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const closeShift = useMutation({
+    mutationFn: async (s: any) => {
+      const km = prompt("Km final (opcional):");
+      const { error } = await supabase.from("tvde_shifts").update({
+        end_time: new Date().toISOString(),
+        km_final: km ? Number(km) : s.km_final,
+        closed_at: new Date().toISOString(),
+        closed_by: user?.id ?? null,
+      }).eq("id", s.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Turno fechado"); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="p-5 space-y-3">
+      <h3 className="font-semibold">Turnos privados (Turnos Motorista)</h3>
+      <div className="text-xs text-muted-foreground">Serviços privados abertos como turno em "Turnos Motorista".</div>
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Data</TableHead><TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
+          <TableHead>Km inicial</TableHead><TableHead>Km final</TableHead>
+          <TableHead>Estado</TableHead><TableHead className="w-40 text-right">Ações</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {shifts.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem turnos privados no período.</TableCell></TableRow>}
+          {shifts.map((s: any) => (
+            <TableRow key={s.id}>
+              <TableCell>{s.shift_date}</TableCell>
+              <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
+              <TableCell>{s.vehicles?.plate ?? "—"}</TableCell>
+              <TableCell>{s.km_initial ?? "—"}</TableCell>
+              <TableCell>{s.km_final ?? "—"}</TableCell>
+              <TableCell>{s.closed_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Fechado</Badge> : <Badge variant="outline">Em aberto</Badge>}</TableCell>
+              <TableCell className="text-right">
+                <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing({ ...s, _reopen: false })}><Pencil className="h-4 w-4" /></Button>
+                {!s.closed_at && (
+                  <Button size="sm" variant="default" className="ml-1" onClick={() => { if (confirm("Fechar turno?")) closeShift.mutate(s); }}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" /> Fechar
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Turno privado"
+        record={viewing}
+        fields={[
+          { key: "shift_date", label: "Data" },
+          { key: "operation_type", label: "Tipo" },
+          { key: "start_time", label: "Início" },
+          { key: "end_time", label: "Fim" },
+          { key: "km_initial", label: "Km inicial" },
+          { key: "km_final", label: "Km final" },
+          { key: "closed_at", label: "Fechado em" },
+          { key: "notes", label: "Notas" },
+        ]}
+      />
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar turno</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Data</Label><Input type="date" value={editing.shift_date ?? ""} onChange={(e) => setEditing({ ...editing, shift_date: e.target.value })} /></div>
+              <div />
+              <div><Label>Km inicial</Label><Input type="number" value={editing.km_initial ?? ""} onChange={(e) => setEditing({ ...editing, km_initial: e.target.value })} /></div>
+              <div><Label>Km final</Label><Input type="number" value={editing.km_final ?? ""} onChange={(e) => setEditing({ ...editing, km_final: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Notas</Label>
+                <Textarea value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+              </div>
+              {editing.closed_at && (
+                <label className="col-span-2 flex items-center gap-2 text-sm">
+                  <Checkbox checked={!!editing._reopen} onCheckedChange={(v) => setEditing({ ...editing, _reopen: !!v })} />
+                  Reabrir turno
+                </label>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 
