@@ -25,6 +25,9 @@ function Financeiro() {
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<string>("all"); // 'all' | '1'..'12'
   const [f, setF] = useState<any>({
     doc_type: "fatura", invoice_number: "", series: "", issue_date: new Date().toISOString().slice(0,10),
     due_date: "", entity_name: "", entity_nif: "", description: "",
@@ -34,8 +37,15 @@ function Financeiro() {
   });
 
   const { data: rows = [] } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: async () => (await supabase.from("invoices").select("*").order("issue_date", { ascending: false })).data ?? [],
+    queryKey: ["invoices", year, month],
+    queryFn: async () => {
+      const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
+      const endD = month === "all"
+        ? new Date(year + 1, 0, 1)
+        : new Date(year, Number(month), 1);
+      const end = endD.toISOString().slice(0,10);
+      return (await supabase.from("invoices").select("*").gte("issue_date", start).lt("issue_date", end).order("issue_date", { ascending: false })).data ?? [];
+    },
   });
   const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await supabase.from("vat_rates").select("*").eq("active", true)).data ?? [] });
   const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await supabase.from("cost_centers").select("*").eq("active", true)).data ?? [] });
