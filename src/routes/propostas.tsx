@@ -215,6 +215,24 @@ function Propostas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Proposta"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "title", label: "Título" },
+          { key: "clients", label: "Cliente", format: (v, r) => v?.name ?? r?.leads?.name ?? "—" },
+          { key: "proposal_type", label: "Tipo" },
+          { key: "tour_route_custom", label: "Roteiro personalizado" },
+          { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "status", label: "Estado" },
+          { key: "created_at", label: "Criada em" },
+          { key: "approved_at", label: "Aprovada em" },
+          { key: "description", label: "Descrição" },
+        ]}
+      />
     </div>
   );
 }
