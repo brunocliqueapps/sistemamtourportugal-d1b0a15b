@@ -589,6 +589,39 @@ function TvdeHistory() {
         </div>
       </div>
 
+      <ShiftHistoryTable shifts={shifts} />
+    </Card>
+  );
+}
+
+function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
+  const qc = useQueryClient();
+  const [viewing, setViewing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const payload: any = {
+        shift_date: editing.shift_date,
+        km_initial: editing.km_initial === "" || editing.km_initial == null ? null : Number(editing.km_initial),
+        km_final: editing.km_final === "" || editing.km_final == null ? null : Number(editing.km_final),
+        notes: editing.notes || null,
+      };
+      if (editing._reopen) payload.closed_at = null;
+      const { error } = await supabase.from("tvde_shifts").update(payload).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Operação atualizada");
+      setEditing(null);
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
       <Table>
         <TableHeader><TableRow>
           <TableHead>Data</TableHead><TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
@@ -597,9 +630,10 @@ function TvdeHistory() {
           <TableHead className="text-right">Nº particulares</TableHead>
           <TableHead className="text-right">Total particulares</TableHead>
           <TableHead>Estado</TableHead>
+          <TableHead className="w-24 text-right">Ações</TableHead>
         </TableRow></TableHeader>
         <TableBody>
-          {shifts.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sem operações no período.</TableCell></TableRow>}
+          {shifts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sem operações no período.</TableCell></TableRow>}
           {shifts.map((s: any) => {
             const gross = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0), 0);
             const net = (s.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0) - Number(e.commissions || 0) - Number(e.other_deductions || 0), 0);
@@ -615,12 +649,60 @@ function TvdeHistory() {
                 <TableCell className="text-right">{jobs.length}</TableCell>
                 <TableCell className="text-right">€ {jobsTotal.toFixed(2)}</TableCell>
                 <TableCell>{s.closed_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Fechada</Badge> : <Badge variant="outline">Em aberto</Badge>}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing({ ...s, _reopen: false })}><Pencil className="h-4 w-4" /></Button>
+                </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
-    </Card>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Operação TVDE"
+        record={viewing}
+        fields={[
+          { key: "shift_date", label: "Data" },
+          { key: "start_time", label: "Início" },
+          { key: "end_time", label: "Fim" },
+          { key: "closed_at", label: "Fechada em" },
+          { key: "km_initial", label: "Km inicial" },
+          { key: "km_final", label: "Km final" },
+          { key: "notes", label: "Notas" },
+        ]}
+      />
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar operação TVDE</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Data</Label><Input type="date" value={editing.shift_date ?? ""} onChange={(e) => setEditing({ ...editing, shift_date: e.target.value })} /></div>
+              <div className="flex items-end">
+                {editing.closed_at && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!editing._reopen} onChange={(e) => setEditing({ ...editing, _reopen: e.target.checked })} />
+                    Reabrir operação
+                  </label>
+                )}
+              </div>
+              <div><Label>Km inicial</Label><Input type="number" value={editing.km_initial ?? ""} onChange={(e) => setEditing({ ...editing, km_initial: e.target.value })} /></div>
+              <div><Label>Km final</Label><Input type="number" value={editing.km_final ?? ""} onChange={(e) => setEditing({ ...editing, km_final: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Notas</Label>
+                <textarea className="w-full min-h-24 rounded-md border border-input bg-background p-2 text-sm" value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
