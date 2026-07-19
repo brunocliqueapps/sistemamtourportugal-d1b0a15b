@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export type FieldType = "text" | "number" | "date" | "email" | "phone" | "checkbox" | "textarea";
 export interface CrudField {
