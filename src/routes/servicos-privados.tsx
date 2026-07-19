@@ -64,6 +64,8 @@ function ServicosPrivados() {
 
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [viewing, setViewing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
   const selectableIds = services.filter((s: any) => !closingBy(s.id)?.closed_at).map((s: any) => s.id);
   const selectedIds = selectableIds.filter((id: string) => selected[id]);
   const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
@@ -73,6 +75,27 @@ function ServicosPrivados() {
     setSelected(next);
   };
   const { user } = useAuth();
+
+  const saveEdit = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const payload: any = {
+        oc_code: editing.oc_code,
+        voucher_code: editing.voucher_code,
+        service_date: editing.service_date,
+        start_time: editing.start_time,
+        origin: editing.origin,
+        destination: editing.destination,
+        sale_value: Number(editing.sale_value) || 0,
+        notes: editing.notes,
+        status: editing.status,
+      };
+      const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Serviço atualizado"); setEditing(null); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const bulkClose = useMutation({
     mutationFn: async () => {
       if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
