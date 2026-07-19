@@ -106,32 +106,34 @@ function TVDE() {
     onSuccess: () => qc.invalidateQueries(),
   });
 
-  const addJob = useMutation({
+  const saveEarn = useMutation({
     mutationFn: async () => {
-      if (!job.client_name) throw new Error("Cliente obrigatório.");
-      if (!Number(job.value)) throw new Error("Valor obrigatório.");
-      const { error } = await supabase.from("tvde_private_jobs").insert({
-        tvde_shift_id: shift!.id,
-        client_name: job.client_name, client_phone: job.client_phone || null,
-        origin: job.origin || null, destination: job.destination || null,
-        value: Number(job.value),
-        payment_method_id: job.payment_method_id || null,
-        payment_status: job.payment_status,
-        received_by: job.received_by_driver ? shift!.driver_id ? null : user!.id : user!.id,
-        approved_by: user!.id,
-        oc_code: job.oc_code || null,
-        notes: job.notes || null,
-      });
+      const { error } = await supabase.from("tvde_earnings").update({
+        platform: editEarn.platform,
+        gross: Number(editEarn.gross) || 0, tips: Number(editEarn.tips) || 0, bonus: Number(editEarn.bonus) || 0,
+        commissions: Number(editEarn.commissions) || 0, other_deductions: Number(editEarn.other_deductions) || 0,
+        notes: editEarn.notes || null,
+      }).eq("id", editEarn.id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Serviço particular registado"); qc.invalidateQueries(); setJob(EMPTY_JOB); },
+    onSuccess: () => { toast.success("Ganho atualizado"); setEditEarn(null); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const delJob = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("tvde_private_jobs").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => qc.invalidateQueries(),
+  const saveExp = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("service_expenses").update({
+        category: editExp.category,
+        description: editExp.description || null,
+        amount: Number(editExp.amount) || 0,
+        payment_method_id: editExp.payment_method_id || null,
+      }).eq("id", editExp.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Despesa atualizada"); setEditExp(null); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
   });
+
 
   const closeShift = useMutation({
     mutationFn: async () => {
