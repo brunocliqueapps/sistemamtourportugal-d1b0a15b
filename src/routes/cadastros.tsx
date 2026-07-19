@@ -63,22 +63,43 @@ const produtos: CrudField[] = [
   { key: "name", label: "Nome", required: true }, { key: "kind", label: "Tipo" },
   { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
-const centros: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "description", label: "Descrição" }, { key: "active", label: "Ativo", type: "checkbox" },
-];
-const contas: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "bank", label: "Banco" }, { key: "iban", label: "IBAN" },
-  { key: "currency", label: "Moeda" }, { key: "opening_balance", label: "Saldo inicial (€)", type: "number", step: "0.01" },
-  { key: "active", label: "Ativo", type: "checkbox" },
-];
-const formasPag: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "active", label: "Ativo", type: "checkbox" },
-];
-const taxasIva: CrudField[] = [
-  { key: "name", label: "Nome", required: true },
-  { key: "rate", label: "Taxa (%)", type: "number", step: "0.01" },
-  { key: "is_exempt", label: "Isento", type: "checkbox" }, { key: "active", label: "Ativo", type: "checkbox" },
-];
+
+function Cadastros() {
+  return (
+    <div className="p-6 md:p-8">
+      <PageHeader title="Cadastros" description="Clientes, motoristas, veículos, fornecedores, parceiros e mais." />
+      <Tabs defaultValue="clients">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="clients">Clientes</TabsTrigger>
+          <TabsTrigger value="drivers">Motoristas</TabsTrigger>
+          <TabsTrigger value="vehicles">Veículos</TabsTrigger>
+          <TabsTrigger value="employees">Funcionários</TabsTrigger>
+          <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
+          <TabsTrigger value="partners">Parceiros</TabsTrigger>
+          <TabsTrigger value="hotels">Hotéis</TabsTrigger>
+          <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
+          <TabsTrigger value="agencies">Agências</TabsTrigger>
+          <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
+        </TabsList>
+
+        <div className="mt-6">
+          <TabsContent value="clients"><EntityCrud table="clients" title="Clientes" fields={clientes} columns={["name","nif","email","phone"]} /></TabsContent>
+          <TabsContent value="drivers"><EntityCrud table="drivers" title="Motoristas" fields={motoristas} columns={["full_name","phone","license_expiry","tvde_card_expiry"]} /></TabsContent>
+          <TabsContent value="vehicles"><EntityCrud table="vehicles" title="Veículos" fields={veiculos} columns={["plate","brand","model","seats"]} /></TabsContent>
+          <TabsContent value="employees"><EntityCrud table="employees" title="Funcionários" fields={funcionarios} columns={["full_name","role","phone","active"]} /></TabsContent>
+          <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["name","nif","category","phone"]} /></TabsContent>
+          <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","type","commission_pct","active"]} /></TabsContent>
+          <TabsContent value="hotels"><EntityCrud table="hotels" title="Hotéis" fields={hoteis} columns={["name","city","phone","contact_person"]} /></TabsContent>
+          <TabsContent value="restaurants"><EntityCrud table="restaurants" title="Restaurantes" fields={restaurantes} columns={["name","city","cuisine","phone"]} /></TabsContent>
+          <TabsContent value="agencies"><EntityCrud table="agencies" title="Agências" fields={agencias} columns={["name","nif","commission_pct","active"]} /></TabsContent>
+          <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
+        </div>
+      </Tabs>
+      <p className="text-xs text-muted-foreground mt-4">Centros de custo, contas bancárias, formas de pagamento e taxas de IVA foram movidos para <b>Configurações</b>.</p>
+    </div>
+  );
+}
+
 
 function Cadastros() {
   return (
