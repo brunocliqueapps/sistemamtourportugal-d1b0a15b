@@ -158,11 +158,13 @@ function TVDE() {
 
   if (!shift) {
     return (
-      <div className="p-6 md:p-8 space-y-4">
-        <PageHeader title="TVDE" description="Sem turno TVDE em curso." />
-        <Card className="p-6 text-muted-foreground">
-          Abre um turno em <b>Operação → Turnos Motorista</b> selecionando o tipo <b>Plataforma TVDE</b>. Depois volta aqui para registar ganhos, serviços particulares e despesas.
-        </Card>
+      <div className="p-6 md:p-8 space-y-6">
+        <PageHeader
+          title="TVDE"
+          description="Sem operação TVDE em curso. Abra uma nova operação para começar a registar."
+          actions={<NewOperationButton />}
+        />
+        <TvdeHistory />
       </div>
     );
   }
