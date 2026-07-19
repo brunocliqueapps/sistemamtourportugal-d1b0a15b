@@ -91,6 +91,7 @@ function OCList() {
                 <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
                 <TableCell className="text-right">€ {Number(s.sale_value||0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OC?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
