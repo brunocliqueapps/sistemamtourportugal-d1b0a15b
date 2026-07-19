@@ -119,15 +119,30 @@ function ServicosPrivados() {
           amount_received: sale,
           amount_pending: 0,
         }).eq("id", id);
+        // Lançamento automático no financeiro (Conta Corrente)
+        if (sale > 0) {
+          const { data: existing } = await supabase.from("cash_movements")
+            .select("id").eq("service_order_id", id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+          if (!existing || existing.length === 0) {
+            await supabase.from("cash_movements").insert({
+              kind: "entrada",
+              amount: sale,
+              service_order_id: id,
+              description: `Recebimento OC ${svc?.oc_code ?? ""} (fechamento em lote)`,
+              created_by: user?.id ?? null,
+            });
+          }
+        }
       }
     },
     onSuccess: () => {
-      toast.success(`${selectedIds.length} serviço(s) fechado(s)`);
+      toast.success(`${selectedIds.length} serviço(s) fechado(s) e lançado(s) no financeiro`);
       setSelected({});
       qc.invalidateQueries();
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
 
   return (
