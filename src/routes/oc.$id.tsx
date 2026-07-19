@@ -99,7 +99,7 @@ function OCDetail() {
   if (!so) return <div className="p-8 text-muted-foreground">A carregar…</div>;
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title={`OC ${so.oc_code}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
         <Link to="/oc" className="text-sm text-primary underline">← Voltar</Link>
       } />
@@ -112,7 +112,7 @@ function OCDetail() {
             <SelectContent>{STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div><div className="text-xs text-muted-foreground">Cliente</div><div>{so.clients?.name}</div><div className="text-xs">{so.clients?.phone}</div></div>
           <div><div className="text-xs text-muted-foreground">Data / Hora</div><div>{so.service_date} {so.start_time?.slice(0,5)}</div></div>
           <div><div className="text-xs text-muted-foreground">Passageiros</div><div>{so.passengers ?? "—"}</div></div>
@@ -138,7 +138,7 @@ function OCDetail() {
 
       <Card className="p-5 space-y-4">
         <h3 className="font-semibold">Fechamento do serviço</h3>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div><Label>Km inicial</Label><Input type="number" value={close.km_initial ?? 0} onChange={(e) => setClose({ ...close, km_initial: e.target.value })} /></div>
           <div><Label>Km final</Label><Input type="number" value={close.km_final ?? 0} onChange={(e) => setClose({ ...close, km_final: e.target.value })} /></div>
           <div><Label>Valor recebido (€)</Label><Input type="number" step="0.01" value={close.amount_received ?? 0} onChange={(e) => setClose({ ...close, amount_received: e.target.value })} /></div>
@@ -155,7 +155,7 @@ function OCDetail() {
 
       <Card className="p-5 space-y-4">
         <h3 className="font-semibold">Despesas do serviço</h3>
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <div><Label>Categoria</Label>
             <Select value={exp.category} onValueChange={(v) => setExp({ ...exp, category: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>

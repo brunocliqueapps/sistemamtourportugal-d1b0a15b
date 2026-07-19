@@ -76,17 +76,17 @@ function Dashboard() {
   ).sort().map(([mes, valor]) => ({ mes, valor }));
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Dashboard" description="Visão geral operacional e financeira." />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi icon={ClipboardList} label="Serviços hoje" value={todayServices.length} hint={`${inProgress.length} em curso`} />
         <Kpi icon={Users} label="Leads abertos" value={leads.filter((l: any) => l.status === "novo" || l.status === "em_negociacao").length} />
         <Kpi icon={Euro} label="Faturamento" value={`€ ${revenue.toFixed(2)}`} />
         <Kpi icon={Wallet} label="Saldo caixa" value={`€ ${balance.toFixed(2)}`} tone={balance < 0 ? "text-destructive" : "text-emerald-600"} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="p-5">
           <div className="text-sm text-muted-foreground">Entradas</div>
           <div className="text-2xl font-bold text-emerald-600">€ {inflow.toFixed(2)}</div>

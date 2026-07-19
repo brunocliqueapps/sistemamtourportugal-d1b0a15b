@@ -68,7 +68,7 @@ function Clientes() {
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-4">
       <PageHeader title="Clientes" description="Clientes registados manualmente ou convertidos de leads." />
 
       <div className="flex items-center justify-between gap-3">
@@ -126,7 +126,7 @@ function Clientes() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} cliente</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["name", "Nome *"], ["nif", "NIF"], ["email", "Email"], ["phone", "Telefone"],
               ["city", "Cidade"], ["country", "País"], ["address", "Morada"],
@@ -205,7 +205,7 @@ function ClientHistoryDialog({ client, onClose }: { client: any | null; onClose:
           <p className="text-sm text-muted-foreground">{client?.nif && `NIF ${client.nif} · `}{client?.email} {client?.phone && `· ${client.phone}`}</p>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <Card className="p-3"><div className="text-xs text-muted-foreground">Propostas</div><div className="text-2xl font-semibold">{proposals.length}</div></Card>
           <Card className="p-3"><div className="text-xs text-muted-foreground">Serviços</div><div className="text-2xl font-semibold">{totalServices}</div></Card>
           <Card className="p-3"><div className="text-xs text-muted-foreground">Faturado</div><div className="text-2xl font-semibold">{fmt(totalBilled)}</div></Card>

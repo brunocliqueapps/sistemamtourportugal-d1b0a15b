@@ -22,7 +22,7 @@ export const Route = createFileRoute("/pos-venda")({ component: PosVenda });
 function PosVenda() {
   const { isAdmin } = usePermissions();
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Pós-Venda" description="Pesquisas de satisfação, avaliações Google, indicações e histórico de feedback." />
       <Tabs defaultValue="pesquisa">
         <TabsList className="flex flex-wrap h-auto">
@@ -58,7 +58,7 @@ function ResultsPanel() {
   const nps = npsVals.length ? Math.round(((promoters - detractors) / npsVals.length) * 100) : 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <Card className="p-5"><div className="text-sm text-muted-foreground">Pesquisas enviadas</div><div className="text-2xl font-bold">{total}</div></Card>
       <Card className="p-5"><div className="text-sm text-muted-foreground">Taxa de resposta</div><div className="text-2xl font-bold">{respRate}%</div></Card>
       <Card className="p-5"><div className="text-sm text-muted-foreground">Média (1-5)</div><div className="text-2xl font-bold text-emerald-600">{avg}</div></Card>
@@ -129,7 +129,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar pesquisa</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Cliente</Label><Input value={editing.client_name ?? ""} onChange={(e) => setEditing({ ...editing, client_name: e.target.value })} /></div>
               <div className="col-span-2"><Label>Email</Label><Input value={editing.client_email ?? ""} onChange={(e) => setEditing({ ...editing, client_email: e.target.value })} /></div>
               <div><Label>Média (1-5)</Label><Input type="number" step="0.1" value={editing.average_score ?? ""} onChange={(e) => setEditing({ ...editing, average_score: e.target.value })} /></div>
@@ -371,7 +371,7 @@ function ReferralPanel() {
             const f = editing ?? form;
             const setF = (v: Referral) => editing ? setEditing(v) : setForm(v);
             return (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Data</Label><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
                 <div><Label>Estado</Label>
                   <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
