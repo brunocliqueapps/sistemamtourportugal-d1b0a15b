@@ -88,6 +88,7 @@ function Cadastros() {
           <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
           <TabsTrigger value="agencies">Agências</TabsTrigger>
           <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
+          <TabsTrigger value="routes">Roteiros</TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
