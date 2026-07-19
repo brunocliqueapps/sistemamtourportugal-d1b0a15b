@@ -9,15 +9,18 @@
 drop schema if exists mtour cascade;
 create schema mtour;
 
--- Dropar tabelas antigas do v1 (se existirem)
+-- Dropar TODAS as tabelas do schema public (reset completo idempotente)
 do $$ declare r record; begin
-  for r in (select tablename from pg_tables where schemaname='public'
-            and tablename in (
-              'evaluations','referrals','maintenances','driver_day_checklist','checklist_items',
-              'driver_days','vehicle_costs','vehicles','payments','proposal_days','proposals',
-              'travels','client_qualifications','leads','transactions','user_roles','profiles'))
+  for r in (select tablename from pg_tables where schemaname='public')
   loop execute format('drop table if exists public.%I cascade', r.tablename); end loop;
 end $$;
+
+-- Dropar funções e triggers customizados que possam existir
+drop function if exists public.handle_new_user() cascade;
+drop function if exists public.is_admin(uuid) cascade;
+drop function if exists public.has_role(uuid, public.app_role) cascade;
+drop function if exists public.log_audit() cascade;
+
 
 drop type if exists public.app_role cascade;
 drop type if exists public.lead_status cascade;
