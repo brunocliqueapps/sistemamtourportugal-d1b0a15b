@@ -309,7 +309,7 @@ function ReferralPanel() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Referral | null>(null);
   const [viewing, setViewing] = useState<Referral | null>(null);
-  const empty: Referral = { id: "", date: new Date().toISOString().slice(0,10), referrer: "", contact: "", lead_name: "", lead_contact: "", status: "novo", notes: "" };
+  const empty: Referral = { id: "", date: new Date().toISOString().slice(0,10), referrer: "", referrer_id: null, lead_name: "", lead_contact: "", lead_email: "", status: "novo", notes: "" };
   const [form, setForm] = useState<Referral>(empty);
 
   const persist = (list: Referral[]) => { setItems(list); localStorage.setItem("referrals", JSON.stringify(list)); };
