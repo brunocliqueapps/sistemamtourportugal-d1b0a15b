@@ -427,15 +427,25 @@ function TemplatesPanel() {
   const qc = useQueryClient();
   const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplatesAll"], queryFn: async () => (await supabase.from("survey_templates").select("*").order("created_at")).data ?? [] });
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState<any>({ name: "", description: "", questions: [] as any[] });
+  const emptyForm = { id: null as string | null, name: "", description: "", questions: [] as any[], active: true };
+  const [f, setF] = useState<any>(emptyForm);
 
   const addQ = () => setF({ ...f, questions: [...f.questions, { id: `q${Date.now()}`, label: "", type: "rating", required: true }] });
   const updateQ = (i: number, patch: any) => setF({ ...f, questions: f.questions.map((q: any, idx: number) => idx === i ? { ...q, ...patch } : q) });
   const rmQ = (i: number) => setF({ ...f, questions: f.questions.filter((_: any, idx: number) => idx !== i) });
 
   const save = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("survey_templates").insert(f); if (error) throw error; },
-    onSuccess: () => { toast.success("Modelo criado"); qc.invalidateQueries({ queryKey: ["surveyTemplatesAll"] }); setOpen(false); setF({ name: "", description: "", questions: [] }); },
+    mutationFn: async () => {
+      const payload = { name: f.name, description: f.description, questions: f.questions, active: f.active };
+      if (f.id) {
+        const { error } = await supabase.from("survey_templates").update(payload).eq("id", f.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("survey_templates").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success("Modelo guardado"); qc.invalidateQueries({ queryKey: ["surveyTemplatesAll"] }); qc.invalidateQueries({ queryKey: ["surveyTemplates"] }); setOpen(false); setF(emptyForm); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -445,9 +455,12 @@ function TemplatesPanel() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const openEdit = (t: any) => { setF({ id: t.id, name: t.name, description: t.description ?? "", questions: t.questions ?? [], active: t.active ?? true }); setOpen(true); };
+  const openNew = () => { setF(emptyForm); setOpen(true); };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Button onClick={() => setOpen(true)}>Novo modelo</Button></div>
+      <div className="flex justify-end"><Button className="gradient-gold text-gold-foreground" onClick={openNew}>Novo modelo</Button></div>
       <div className="grid gap-3 md:grid-cols-2">
         {templates.map((t: any) => (
           <Card key={t.id} className="p-4">
@@ -456,7 +469,10 @@ function TemplatesPanel() {
                 <div className="font-medium">{t.name}</div>
                 <div className="text-xs text-muted-foreground">{t.description}</div>
               </div>
-              <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir modelo ${t.name}?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+              <div className="flex">
+                <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir modelo ${t.name}?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
             <ul className="mt-2 text-sm list-disc pl-5">
               {(t.questions ?? []).map((q: any) => <li key={q.id}>{q.label} <span className="text-xs text-muted-foreground">({q.type})</span></li>)}
@@ -465,13 +481,13 @@ function TemplatesPanel() {
         ))}
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Novo modelo de pesquisa</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{f.id ? "Editar modelo" : "Novo modelo"} de pesquisa</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
             <div><Label>Descrição</Label><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
             <div className="space-y-2">
-              <div className="flex justify-between items-center"><Label>Perguntas</Label><Button size="sm" variant="outline" onClick={addQ}>+ Adicionar</Button></div>
+              <div className="flex justify-between items-center"><Label>Perguntas</Label><Button size="sm" variant="outline" onClick={addQ}>+ Adicionar pergunta</Button></div>
               {f.questions.map((q: any, i: number) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-7"><Input placeholder="Pergunta" value={q.label} onChange={(e) => updateQ(i, { label: e.target.value })} /></div>
@@ -489,14 +505,16 @@ function TemplatesPanel() {
                   <div className="col-span-2"><Button variant="ghost" size="sm" onClick={() => rmQ(i)}>Remover</Button></div>
                 </div>
               ))}
+              {f.questions.length === 0 && <p className="text-xs text-muted-foreground">Sem perguntas. Clique em "Adicionar pergunta".</p>}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.name || f.questions.length === 0}>Guardar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.name || f.questions.length === 0 || save.isPending}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+
   );
 }
