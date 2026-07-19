@@ -449,6 +449,7 @@ function TVDE() {
               <Button variant="destructive" onClick={() => closeShift.mutate()}>Fechar turno TVDE</Button>
             </div>
           </Card>
+        </TabsContent>
       </Tabs>
 
       <TvdeHistory />
