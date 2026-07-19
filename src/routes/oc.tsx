@@ -78,8 +78,20 @@ function OCList() {
       origin: s.origin ?? "", destination: s.destination ?? "",
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
       driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
+      client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "agendado",
       financial_status: s.financial_status ?? "nao_faturado",
+    });
+  }
+
+  function openNew() {
+    setEditing({});
+    setForm({
+      oc_code: "", voucher_code: "",
+      service_date: new Date().toISOString().slice(0,10), start_time: "",
+      origin: "", destination: "", passengers: "", sale_value: 0,
+      driver_id: "", vehicle_id: "", client_id: "",
+      operation_type: "privado", status: "agendado", financial_status: "nao_faturado",
     });
   }
 
