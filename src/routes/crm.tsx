@@ -118,7 +118,7 @@ function CRM() {
           <Card key={c.key} className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{c.label}</h3>
-              <Badge variant="secondary">{leads.filter((l: any) => l.status === c.key).length}</Badge>
+              <Badge variant="secondary">{leads.filter((l: any) => l.status === c.key && !l.archived).length}</Badge>
             </div>
             <div className="space-y-2">
               {leads.filter((l: any) => l.status === c.key && !l.archived).map((l: any) => (
