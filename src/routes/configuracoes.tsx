@@ -133,8 +133,11 @@ function UsersPanel() {
 
   return (
     <Card>
-      <div className="p-4 text-sm text-muted-foreground">
-        Utilizadores registados. Para criar novos, o próprio utilizador regista-se em <code>/registro</code> ou o admin cria no painel Supabase. Depois atribua o papel abaixo.
+      <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground">
+          Utilizadores registados. Crie novos abaixo ou peça o auto-registo em <code>/registro</code>. Depois atribua o papel.
+        </div>
+        <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); }} />
       </div>
       <Table>
         <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
