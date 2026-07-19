@@ -55,6 +55,7 @@ function OCList() {
   function openEdit(s: any) {
     setEditing(s);
     setForm({
+      oc_code: s.oc_code ?? "", voucher_code: s.voucher_code ?? "",
       service_date: s.service_date ?? "", start_time: s.start_time ?? "",
       origin: s.origin ?? "", destination: s.destination ?? "",
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
