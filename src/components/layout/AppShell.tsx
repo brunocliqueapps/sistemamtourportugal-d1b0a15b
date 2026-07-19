@@ -26,6 +26,8 @@ const groups: Group[] = [
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
+    { to: "/servicos-privados", label: "Serviços Privados", icon: ClipboardCheck, module: "operacao" },
+
     { to: "/operacao", label: "Turnos Motorista", icon: ClipboardList, module: "operacao" },
     { to: "/tvde", label: "TVDE (Uber/Bolt)", icon: Car, module: "tvde" },
   ]},

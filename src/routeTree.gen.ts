@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TvdeRouteImport } from './routes/tvde'
+import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
 import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PropostasRouteImport } from './routes/propostas'
@@ -32,6 +33,11 @@ import { Route as OcIdRouteImport } from './routes/oc.$id'
 const TvdeRoute = TvdeRouteImport.update({
   id: '/tvde',
   path: '/tvde',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicosPrivadosRoute = ServicosPrivadosRouteImport.update({
+  id: '/servicos-privados',
+  path: '/servicos-privados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoteiroRoute = RoteiroRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
+    | '/servicos-privados'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
+    | '/servicos-privados'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
+    | '/servicos-privados'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   PropostasRoute: typeof PropostasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   RoteiroRoute: typeof RoteiroRoute
+  ServicosPrivadosRoute: typeof ServicosPrivadosRoute
   TvdeRoute: typeof TvdeRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/tvde'
       fullPath: '/tvde'
       preLoaderRoute: typeof TvdeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/servicos-privados': {
+      id: '/servicos-privados'
+      path: '/servicos-privados'
+      fullPath: '/servicos-privados'
+      preLoaderRoute: typeof ServicosPrivadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roteiro': {
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   PropostasRoute: PropostasRoute,
   RelatoriosRoute: RelatoriosRoute,
   RoteiroRoute: RoteiroRoute,
+  ServicosPrivadosRoute: ServicosPrivadosRoute,
   TvdeRoute: TvdeRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
 }
