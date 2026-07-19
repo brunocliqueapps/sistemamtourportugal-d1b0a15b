@@ -23,6 +23,7 @@ function ymLast(ym: string) {
 
 function Fechamento() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const qc = useQueryClient();
   const [ym, setYm] = useState(new Date().toISOString().slice(0, 7));
   const [ircRate, setIrcRate] = useState(21);
