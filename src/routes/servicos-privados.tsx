@@ -150,6 +150,9 @@ function ServicosPrivados() {
                 <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => setCreating(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Novo serviço
+            </Button>
           </div>
         }
       />
