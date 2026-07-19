@@ -688,18 +688,33 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
       <QuickViewDialog
         open={!!viewing}
         onClose={() => setViewing(null)}
-        title="Operação TVDE"
+        title="Operação TVDE — detalhes completos"
         record={viewing}
         fields={[
           { key: "shift_date", label: "Data" },
-          { key: "start_time", label: "Início" },
-          { key: "end_time", label: "Fim" },
-          { key: "closed_at", label: "Fechada em" },
+          { key: "operation_type", label: "Tipo" },
+          { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
+          { key: "vehicles", label: "Veículo", format: (v) => v?.plate ?? "—" },
+          { key: "start_time", label: "Início", format: (v) => v ? new Date(v).toLocaleString("pt-PT") : "—" },
+          { key: "end_time", label: "Fim", format: (v) => v ? new Date(v).toLocaleString("pt-PT") : "—" },
+          { key: "closed_at", label: "Fechada em", format: (v) => v ? new Date(v).toLocaleString("pt-PT") : "—" },
           { key: "km_initial", label: "Km inicial" },
           { key: "km_final", label: "Km final" },
+          { key: "km_final", label: "Km percorridos", format: (_v, r) => (r?.km_initial != null && r?.km_final != null) ? Math.max(0, Number(r.km_final) - Number(r.km_initial)) : "—" },
+          { key: "tvde_earnings", label: "Bruto plataformas", format: (arr) => `€ ${(arr ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0), 0).toFixed(2)}` },
+          { key: "tvde_earnings", label: "Comissões plataformas", format: (arr) => `€ ${(arr ?? []).reduce((a: number, e: any) => a + Number(e.commissions || 0), 0).toFixed(2)}` },
+          { key: "tvde_earnings", label: "Outras retenções", format: (arr) => `€ ${(arr ?? []).reduce((a: number, e: any) => a + Number(e.other_deductions || 0), 0).toFixed(2)}` },
+          { key: "tvde_earnings", label: "Líquido plataformas", format: (arr) => `€ ${(arr ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0) - Number(e.commissions || 0) - Number(e.other_deductions || 0), 0).toFixed(2)}` },
+          { key: "notes", label: "% Motorista", format: (v) => { const m = /Motorista %:\s*(\d+(?:\.\d+)?)/.exec(v ?? ""); return m ? `${m[1]}%` : "—"; } },
+          { key: "notes", label: "Comissão devida ao motorista", format: (v, r) => {
+              const m = /Motorista %:\s*(\d+(?:\.\d+)?)/.exec(v ?? ""); const pct = m ? Number(m[1]) : 0;
+              const net = (r?.tvde_earnings ?? []).reduce((a: number, e: any) => a + Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0) - Number(e.commissions || 0) - Number(e.other_deductions || 0), 0);
+              return `€ ${((net * pct) / 100).toFixed(2)}`;
+            } },
           { key: "notes", label: "Notas" },
         ]}
       />
+
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-lg">
