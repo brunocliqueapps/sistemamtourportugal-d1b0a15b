@@ -98,11 +98,34 @@ function Financeiro() {
   const totalOut = rows.filter((r: any) => r.kind === "saida").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
   const filtered = rows.filter((r: any) => r.kind === kind);
 
+  const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i);
+  const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Financeiro" description="Faturas e movimentos com controlo fiscal (IVA dedutível / não dedutível)." actions={
         <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
       } />
+
+      <Card className="p-4 flex flex-wrap gap-3 items-end">
+        <div>
+          <Label className="text-xs">Ano</Label>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Mês</Label>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ano todo</SelectItem>
+              {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Entradas</div><div className="text-2xl font-bold text-emerald-600">€ {totalIn.toFixed(2)}</div></Card>
@@ -120,6 +143,7 @@ function Financeiro() {
                 <TableHead>Entidade</TableHead><TableHead>NIF</TableHead>
                 <TableHead className="text-right">Base</TableHead><TableHead className="text-right">IVA</TableHead>
                 <TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead>
+                <TableHead className="text-right">PDF</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {filtered.map((r: any) => (
@@ -133,14 +157,20 @@ function Financeiro() {
                     <TableCell className="text-right">€ {Number(r.vat_amount).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-semibold">€ {Number(r.total).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={r.status === "pago" ? "default" : r.status === "vencido" ? "destructive" : "outline"}>{r.status}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => generateInvoicePdf(r.id).catch((e) => toast.error(e.message))}>
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem faturas.</TableCell></TableRow>}
+                {filtered.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sem faturas.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </Card>
         </TabsContent>
       </Tabs>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
