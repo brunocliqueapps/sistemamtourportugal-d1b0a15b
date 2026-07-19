@@ -49,8 +49,9 @@ function TVDE() {
 
   const [earn, setEarn] = useState<any>(EMPTY_EARN);
   const [exp, setExp] = useState<any>(EMPTY_EXP);
-  const [job, setJob] = useState<any>(EMPTY_JOB);
   const [close, setClose] = useState<any>({ km_final: "", driver_pct: 50, notes: "" });
+  const [editEarn, setEditEarn] = useState<any | null>(null);
+  const [editExp, setEditExp] = useState<any | null>(null);
 
   const addEarn = useMutation({
     mutationFn: async () => {
