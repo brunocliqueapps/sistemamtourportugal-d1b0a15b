@@ -11,11 +11,11 @@ export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
 function Kpi({ icon: Icon, label, value, hint, tone }: any) {
   return (
-    <Card className="p-5">
+    <Card className="p-3 sm:p-5">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-sm text-muted-foreground">{label}</div>
-          <div className={`text-3xl font-bold mt-1 ${tone ?? ""}`}>{value}</div>
+          <div className={`text-xl sm:text-3xl font-bold mt-1 ${tone ?? ""}`}>{value}</div>
           {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
         </div>
         <div className="h-10 w-10 rounded-lg gradient-gold flex items-center justify-center text-gold-foreground">
@@ -79,32 +79,32 @@ function Dashboard() {
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Dashboard" description="Visão geral operacional e financeira." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Kpi icon={ClipboardList} label="Serviços hoje" value={todayServices.length} hint={`${inProgress.length} em curso`} />
         <Kpi icon={Users} label="Leads abertos" value={leads.filter((l: any) => l.status === "novo" || l.status === "em_negociacao").length} />
         <Kpi icon={Euro} label="Faturamento" value={`€ ${revenue.toFixed(2)}`} />
         <Kpi icon={Wallet} label="Saldo caixa" value={`€ ${balance.toFixed(2)}`} tone={balance < 0 ? "text-destructive" : "text-emerald-600"} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="p-5">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+        <Card className="p-3 sm:p-5">
           <div className="text-sm text-muted-foreground">Entradas</div>
-          <div className="text-2xl font-bold text-emerald-600">€ {inflow.toFixed(2)}</div>
+          <div className="text-lg sm:text-2xl font-bold text-emerald-600">€ {inflow.toFixed(2)}</div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-3 sm:p-5">
           <div className="text-sm text-muted-foreground">Saídas</div>
-          <div className="text-2xl font-bold text-destructive">€ {outflow.toFixed(2)}</div>
+          <div className="text-lg sm:text-2xl font-bold text-destructive">€ {outflow.toFixed(2)}</div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-3 sm:p-5">
           <div className="text-sm text-muted-foreground">Conversão CRM</div>
-          <div className="text-2xl font-bold">
+          <div className="text-lg sm:text-2xl font-bold">
             {leads.length ? Math.round((leads.filter((l: any) => l.status === "fechado").length / leads.length) * 100) : 0}%
           </div>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-5">
+        <Card className="p-3 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Agenda de hoje</h3>
             <Link to="/agenda" className="text-sm text-primary underline">Ver agenda</Link>
@@ -123,7 +123,7 @@ function Dashboard() {
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-3 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <h3 className="font-semibold">Alertas de documentos</h3>
@@ -143,7 +143,7 @@ function Dashboard() {
         </Card>
       </div>
 
-      <Card className="p-5">
+      <Card className="p-3 sm:p-5">
         <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-4 w-4" /><h3 className="font-semibold">Faturamento por mês</h3></div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
