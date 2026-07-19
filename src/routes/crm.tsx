@@ -232,6 +232,16 @@ function CRM() {
               </Select>
             </div>
             <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            {form.status === "perdido" && (
+              <div>
+                <Label>Motivo da perda</Label>
+                <Input
+                  value={form.lost_reason}
+                  onChange={(e) => setForm({ ...form, lost_reason: e.target.value })}
+                  placeholder="Descreva o motivo da perda"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
