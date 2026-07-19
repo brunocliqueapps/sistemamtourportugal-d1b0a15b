@@ -199,7 +199,7 @@ function Financeiro() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova fatura · {kind === "entrada" ? "Entrada" : "Saída"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? `Editar fatura ${editing.code}` : "Nova fatura"} · {kind === "entrada" ? "Entrada" : "Saída"}</DialogTitle></DialogHeader>
           <Tabs value={kind} onValueChange={(v) => setKind(v as any)} className="mb-2">
             <TabsList><TabsTrigger value="entrada">Entrada</TabsTrigger><TabsTrigger value="saida">Saída</TabsTrigger></TabsList>
           </Tabs>
