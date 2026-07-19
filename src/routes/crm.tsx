@@ -254,6 +254,22 @@ function CRM() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Lead"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Código" }, { key: "name", label: "Nome" },
+          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "origin", label: "Origem" },
+          { key: "status", label: "Estado", format: (v) => cols.find((c) => c.key === v)?.label ?? v },
+          { key: "lost_reason", label: "Motivo da perda" },
+          { key: "archived", label: "Arquivado", format: (v) => v ? "Sim" : "Não" },
+          { key: "notes", label: "Notas" },
+        ]}
+      />
     </div>
   );
 }
