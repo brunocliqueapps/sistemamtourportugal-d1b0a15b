@@ -203,6 +203,7 @@ function TVDE() {
       <PageHeader
         title="Fechamento TVDE"
         description={`${shift.shift_date} · ${shift.drivers?.full_name ?? "—"} · ${shift.vehicles?.plate ?? "—"}`}
+        actions={<NewOperationButton />}
       />
 
       {/* KPIs */}
