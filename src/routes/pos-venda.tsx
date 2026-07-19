@@ -295,9 +295,14 @@ function GoogleReviewPanel() {
 }
 
 
-type Referral = { id: string; date: string; referrer: string; contact: string; lead_name: string; lead_contact: string; status: string; notes: string };
+type Referral = { id: string; date: string; referrer: string; referrer_id?: string | null; lead_name: string; lead_contact: string; lead_email: string; status: string; notes: string };
 
 function ReferralPanel() {
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-for-referral"],
+    queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [],
+  });
+
   const [items, setItems] = useState<Referral[]>(() => {
     try { return JSON.parse(localStorage.getItem("referrals") ?? "[]"); } catch { return []; }
   });
