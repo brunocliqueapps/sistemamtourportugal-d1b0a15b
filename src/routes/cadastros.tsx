@@ -102,6 +102,7 @@ function Cadastros() {
           <TabsContent value="restaurants"><EntityCrud table="restaurants" title="Restaurantes" fields={restaurantes} columns={["name","city","cuisine","phone"]} /></TabsContent>
           <TabsContent value="agencies"><EntityCrud table="agencies" title="Agências" fields={agencias} columns={["name","nif","commission_pct","active"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
+          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["name","region","duration_hours","default_price"]} /></TabsContent>
         </div>
       </Tabs>
       <p className="text-xs text-muted-foreground mt-4">Centros de custo, contas bancárias, formas de pagamento e taxas de IVA foram movidos para <b>Configurações</b>.</p>
