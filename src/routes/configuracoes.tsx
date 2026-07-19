@@ -48,6 +48,7 @@ function Configuracoes() {
           <TabsTrigger value="bank_accounts">Contas bancárias</TabsTrigger>
           <TabsTrigger value="payment_methods">Formas de pagto</TabsTrigger>
           <TabsTrigger value="vat_rates">Taxas IVA</TabsTrigger>
+          <TabsTrigger value="status_options">Estados</TabsTrigger>
           <TabsTrigger value="users">Utilizadores</TabsTrigger>
           <TabsTrigger value="permissions">Permissões</TabsTrigger>
         </TabsList>
