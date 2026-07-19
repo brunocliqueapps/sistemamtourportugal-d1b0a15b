@@ -34,6 +34,7 @@ function Propostas() {
   });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at",{ascending:false})).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour-routes-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name,region,default_price").eq("active", true).order("region").order("name")).data ?? [] });
 
   const save = useMutation({
     mutationFn: async () => {
