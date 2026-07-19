@@ -384,10 +384,16 @@ function ReferralPanel() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Cliente indicador</Label><Input value={f.referrer} onChange={(e) => setF({ ...f, referrer: e.target.value })} /></div>
-                <div><Label>Contacto indicador</Label><Input value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Cliente indicador (registado)</Label>
+                  <Select value={f.referrer_id ?? ""} onValueChange={(v) => { const c = clients.find((x: any) => x.id === v); setF({ ...f, referrer_id: v, referrer: c?.name ?? "" }); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 <div><Label>Novo cliente (nome)</Label><Input value={f.lead_name} onChange={(e) => setF({ ...f, lead_name: e.target.value })} /></div>
                 <div><Label>Novo cliente (contacto)</Label><Input value={f.lead_contact} onChange={(e) => setF({ ...f, lead_contact: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Novo cliente (email)</Label><Input type="email" value={f.lead_email} onChange={(e) => setF({ ...f, lead_email: e.target.value })} /></div>
+
                 <div className="col-span-2"><Label>Notas</Label>
                   <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
                 </div>
