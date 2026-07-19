@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TvdeRouteImport } from './routes/tvde'
+import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
@@ -31,6 +32,11 @@ import { Route as OcIdRouteImport } from './routes/oc.$id'
 const TvdeRoute = TvdeRouteImport.update({
   id: '/tvde',
   path: '/tvde',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoteiroRoute = RoteiroRouteImport.update({
+  id: '/roteiro',
+  path: '/roteiro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
+  '/roteiro': typeof RoteiroRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
+  '/roteiro': typeof RoteiroRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
+  '/roteiro': typeof RoteiroRoute
   '/tvde': typeof TvdeRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
+    | '/roteiro'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
+    | '/roteiro'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
+    | '/roteiro'
     | '/tvde'
     | '/oc/$id'
     | '/pesquisa/$token'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   PosVendaRoute: typeof PosVendaRoute
   PropostasRoute: typeof PropostasRoute
   RelatoriosRoute: typeof RelatoriosRoute
+  RoteiroRoute: typeof RoteiroRoute
   TvdeRoute: typeof TvdeRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/tvde'
       fullPath: '/tvde'
       preLoaderRoute: typeof TvdeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roteiro': {
+      id: '/roteiro'
+      path: '/roteiro'
+      fullPath: '/roteiro'
+      preLoaderRoute: typeof RoteiroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorios': {
@@ -420,19 +440,10 @@ const rootRouteChildren: RootRouteChildren = {
   PosVendaRoute: PosVendaRoute,
   PropostasRoute: PropostasRoute,
   RelatoriosRoute: RelatoriosRoute,
+  RoteiroRoute: RoteiroRoute,
   TvdeRoute: TvdeRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
