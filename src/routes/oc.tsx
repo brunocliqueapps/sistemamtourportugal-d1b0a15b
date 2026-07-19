@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, CheckCircle2 } from "lucide-react";
+import { Pencil, Trash2, Eye, CheckCircle2, Plus } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ function OCList() {
   });
   const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate").order("plate")).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts","oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_financial_status").eq("active",true).order("sort")).data ?? [] });
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
@@ -45,10 +46,18 @@ function OCList() {
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (payload.sale_value != null) payload.sale_value = Number(payload.sale_value);
       if (payload.passengers != null) payload.passengers = Number(payload.passengers) || null;
-      const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
-      if (error) throw error;
+      if (editing?.id) {
+        const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        if (!payload.operation_type) payload.operation_type = "privado";
+        if (!payload.status) payload.status = "agendado";
+        if (!payload.financial_status) payload.financial_status = "nao_faturado";
+        const { error } = await supabase.from("service_orders").insert(payload);
+        if (error) throw error;
+      }
     },
-    onSuccess: () => { toast.success("OC atualizada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
+    onSuccess: () => { toast.success(editing?.id ? "OC atualizada" : "OC criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -69,8 +78,20 @@ function OCList() {
       origin: s.origin ?? "", destination: s.destination ?? "",
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
       driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
+      client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "agendado",
       financial_status: s.financial_status ?? "nao_faturado",
+    });
+  }
+
+  function openNew() {
+    setEditing({});
+    setForm({
+      oc_code: "", voucher_code: "",
+      service_date: new Date().toISOString().slice(0,10), start_time: "",
+      origin: "", destination: "", passengers: "", sale_value: 0,
+      driver_id: "", vehicle_id: "", client_id: "",
+      operation_type: "privado", status: "agendado", financial_status: "nao_faturado",
     });
   }
 
@@ -85,7 +106,9 @@ function OCList() {
 
   return (
     <div className="p-6 md:p-8 space-y-4">
-      <PageHeader title="Ordens de Serviço (OC)" description="Todas as OCs geradas pelas propostas aprovadas." />
+      <PageHeader title="Ordens de Serviço (OC)" description="OCs geradas pelas propostas aprovadas ou criadas manualmente." actions={
+        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OC</Button>
+      } />
       <Card>
         <Table>
           <TableHeader><TableRow>
@@ -130,10 +153,26 @@ function OCList() {
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Editar OC {editing?.oc_code}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing?.id ? `Editar OC ${editing?.oc_code ?? ""}` : "Nova OC"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} /></div>
-            <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} /></div>
+            <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
+            <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
+            <div className="col-span-2"><Label>Cliente</Label>
+              <Select value={form.client_id ?? ""} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Tipo de operação</Label>
+              <Select value={form.operation_type ?? "privado"} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="privado">Privado</SelectItem>
+                  <SelectItem value="tvde">TVDE</SelectItem>
+                  <SelectItem value="interno">Interno</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Data</Label><Input type="date" value={form.service_date ?? ""} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
             <div><Label>Horário</Label><Input type="time" value={form.start_time ?? ""} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
             <div><Label>Origem</Label><Input value={form.origin ?? ""} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
@@ -167,7 +206,7 @@ function OCList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>Atualizar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>{editing?.id ? "Atualizar" : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

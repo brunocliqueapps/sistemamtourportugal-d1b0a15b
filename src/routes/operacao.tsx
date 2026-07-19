@@ -25,7 +25,7 @@ function Operacao() {
     enabled: !!user,
     queryFn: async () => (await supabase.from("tvde_shifts").select("*").is("closed_at", null).order("created_at",{ascending:false}).limit(1).maybeSingle()).data,
   });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["veh-op"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").eq("active", true)).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["veh-op"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").neq("active", false).order("plate")).data ?? [] });
   const { data: myOCs = [] } = useQuery({
     queryKey: ["my-ocs", user?.id],
     enabled: !!user,
