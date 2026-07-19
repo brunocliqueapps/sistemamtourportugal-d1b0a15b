@@ -103,7 +103,7 @@ function CRM() {
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(l: any) {
     setEditing(l);
-    setForm({ name: l.name ?? "", email: l.email ?? "", phone: l.phone ?? "", origin: l.origin ?? "", status: l.status ?? "novo", notes: l.notes ?? "" });
+    setForm({ name: l.name ?? "", email: l.email ?? "", phone: l.phone ?? "", origin: l.origin ?? "", status: l.status ?? "novo", notes: l.notes ?? "", lost_reason: l.lost_reason ?? "" });
     setOpen(true);
   }
 
