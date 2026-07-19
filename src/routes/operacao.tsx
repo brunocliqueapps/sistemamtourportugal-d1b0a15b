@@ -50,7 +50,7 @@ function Operacao() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Turno aberto"); qc.invalidateQueries(); },
+    onSuccess: () => { toast.success("Serviço aberto"); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
 
