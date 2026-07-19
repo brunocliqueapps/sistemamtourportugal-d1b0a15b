@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileDown } from "lucide-react";
+import { Plus, FileDown, Pencil, Trash2 } from "lucide-react";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { useState } from "react";
 import { toast } from "sonner";
