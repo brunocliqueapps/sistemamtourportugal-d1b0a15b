@@ -39,12 +39,6 @@ const groups: Group[] = [
     { to: "/fechamento", label: "Fechamento Mensal", icon: Calculator, module: "fechamento" },
     { to: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
   ]},
-  { label: "Financeiro", items: [
-    { to: "/financeiro", label: "Faturas & Movimentos", icon: Wallet, module: "financeiro" },
-    { to: "/conta-corrente", label: "Conta Corrente", icon: Landmark, module: "conta_corrente" },
-    { to: "/fechamento", label: "Fechamento Mensal", icon: Calculator, module: "fechamento" },
-    { to: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
-  ]},
   { label: "Pós-Venda", items: [
     { to: "/pos-venda", label: "Satisfação", icon: Star, module: "pos_venda" },
   ]},
