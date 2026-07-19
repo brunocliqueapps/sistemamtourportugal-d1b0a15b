@@ -92,6 +92,7 @@ function Propostas() {
     setForm({
       title: p.title ?? "", description: p.description ?? "", total_value: p.total_value ?? 0,
       client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
+      proposal_type: p.proposal_type ?? "servico", tour_route_id: p.tour_route_id ?? "", tour_route_custom: p.tour_route_custom ?? "",
     });
     setOpen(true);
   }
