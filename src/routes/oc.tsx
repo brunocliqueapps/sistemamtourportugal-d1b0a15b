@@ -19,6 +19,7 @@ export const Route = createFileRoute("/oc")({ component: OCList });
 
 const OP_FALLBACK = ["agendado","em_execucao","finalizado","no_show","cancelado","reagendado"];
 const FIN_FALLBACK = ["nao_faturado","faturado","pago"];
+const OPTYPE_FALLBACK = ["privado","tvde","interno"];
 
 function OCList() {
   const qc = useQueryClient();
@@ -35,8 +36,10 @@ function OCList() {
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts","oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_financial_status").eq("active",true).order("sort")).data ?? [] });
+  const { data: opTypeOpts = [] } = useQuery({ queryKey: ["status-opts","operation_type"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","operation_type").eq("active",true).order("sort")).data ?? [] });
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
   const financial = finOpts.length ? finOpts : FIN_FALLBACK.map((c) => ({ code: c, label: c }));
+  const opTypes = opTypeOpts.length ? opTypeOpts : OPTYPE_FALLBACK.map((c) => ({ code: c, label: c }));
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
 
@@ -166,11 +169,7 @@ function OCList() {
             <div><Label>Tipo de operação</Label>
               <Select value={form.operation_type ?? "privado"} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="privado">Privado</SelectItem>
-                  <SelectItem value="tvde">TVDE</SelectItem>
-                  <SelectItem value="interno">Interno</SelectItem>
-                </SelectContent>
+                <SelectContent>{opTypes.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Data</Label><Input type="date" value={form.service_date ?? ""} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>

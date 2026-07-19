@@ -78,8 +78,8 @@ function Configuracoes() {
             ] as CrudField[]} columns={["name","rate","is_exempt","active"]} orderBy="rate" />
           </TabsContent>
           <TabsContent value="status_options">
-            <EntityCrud table="status_options" title="Estados (OC e Propostas)" fields={[
-              { key: "domain", label: "Domínio (oc_operational_status | oc_financial_status | proposal_status)", required: true },
+            <EntityCrud table="status_options" title="Estados e Tipos (OC, Propostas, Operação)" fields={[
+              { key: "domain", label: "Domínio (operation_type | oc_operational_status | oc_financial_status | proposal_status)", required: true },
               { key: "code", label: "Código", required: true },
               { key: "label", label: "Rótulo", required: true },
               { key: "sort", label: "Ordem", type: "number" },
