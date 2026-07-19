@@ -32,11 +32,13 @@ function Propostas() {
 
   const { data: props = [] } = useQuery({
     queryKey: ["proposals"],
-    queryFn: async () => (await supabase.from("proposals").select("*, clients(name), leads(name)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("proposals").select("*, clients(name), leads(name), tour_routes(name,region)").order("created_at", { ascending: false })).data ?? [],
   });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at",{ascending:false})).data ?? [] });
   const { data: routes = [] } = useQuery({ queryKey: ["tour-routes-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name,region,default_price").eq("active", true).order("region").order("name")).data ?? [] });
+  const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts","proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","proposal_status").eq("active",true).order("sort")).data ?? [] });
+  const statuses = statusOpts.length ? statusOpts : ["rascunho","enviada","aprovada","convertida","rejeitada"].map((c) => ({ code: c, label: c }));
 
   const save = useMutation({
     mutationFn: async () => {
