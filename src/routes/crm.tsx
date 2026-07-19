@@ -24,7 +24,7 @@ const cols: { key: string; label: string }[] = [
   { key: "perdido", label: "Perdido" },
 ];
 
-const empty = { name: "", email: "", phone: "", origin: "", status: "novo", notes: "" };
+const empty = { name: "", email: "", phone: "", origin: "", status: "novo", notes: "", lost_reason: "" };
 
 function CRM() {
   const qc = useQueryClient();
