@@ -69,7 +69,7 @@ function Financeiro() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (kind === "saida" && !file && !f.photo_url) toast.warning("Recomenda-se anexar a fatura em saídas.");
+      if (!editing && kind === "saida" && !file && !f.photo_url) toast.warning("Recomenda-se anexar a fatura em saídas.");
       let photo_url = f.photo_url ?? null;
       if (file) {
         const path = `${user!.id}/${Date.now()}-${file.name}`;
@@ -77,24 +77,46 @@ function Financeiro() {
         if (up.error) throw up.error;
         photo_url = supabase.storage.from("invoices").getPublicUrl(path).data.publicUrl;
       }
-      const payload: any = { ...f, kind, photo_url, created_by: user!.id };
+      const payload: any = { ...f, kind, photo_url };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
-      const { data, error } = await supabase.from("invoices").insert(payload).select().single();
-      if (error) throw error;
-      // Se pago, criar movimento
-      if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
-        await supabase.from("cash_movements").insert({
-          kind, amount: Number(payload.paid_amount || payload.total),
-          invoice_id: data.id, payment_method_id: payload.payment_method_id,
-          bank_account_id: payload.bank_account_id,
-          description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
-          created_by: user!.id,
-        });
+      if (editing?.id) {
+        const { error } = await supabase.from("invoices").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        payload.created_by = user!.id;
+        const { data, error } = await supabase.from("invoices").insert(payload).select().single();
+        if (error) throw error;
+        if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
+          await supabase.from("cash_movements").insert({
+            kind, amount: Number(payload.paid_amount || payload.total),
+            invoice_id: data.id, payment_method_id: payload.payment_method_id,
+            bank_account_id: payload.bank_account_id,
+            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
+            created_by: user!.id,
+          });
+        }
       }
     },
-    onSuccess: () => { toast.success("Fatura registada"); qc.invalidateQueries({ queryKey: ["invoices"] }); setOpen(false); setFile(null); },
+    onSuccess: () => {
+      toast.success(editing ? "Fatura atualizada" : "Fatura registada");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      setOpen(false); setEditing(null); setFile(null); setF(emptyForm);
+    },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("cash_movements").delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Fatura removida"); qc.invalidateQueries({ queryKey: ["invoices"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  function openNew() { setEditing(null); setF(emptyForm); setFile(null); setOpen(true); }
+  function openEdit(r: any) { setEditing(r); setKind(r.kind); setF({ ...emptyForm, ...r }); setFile(null); setOpen(true); }
 
   const totalIn = rows.filter((r: any) => r.kind === "entrada").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
   const totalOut = rows.filter((r: any) => r.kind === "saida").reduce((a: number, r: any) => a + Number(r.total || 0), 0);
@@ -106,8 +128,9 @@ function Financeiro() {
   return (
     <div className="p-6 md:p-8 space-y-6">
       <PageHeader title="Financeiro" description="Faturas e movimentos com controlo fiscal (IVA dedutível / não dedutível)." actions={
-        <Button className="gradient-gold text-gold-foreground" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
+        <Button className="gradient-gold text-gold-foreground" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
       } />
+
 
       <Card className="p-4 flex flex-wrap gap-3 items-end">
         <div>
