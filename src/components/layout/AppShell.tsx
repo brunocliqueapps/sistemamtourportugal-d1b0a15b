@@ -34,8 +34,9 @@ const groups: Group[] = [
     { to: "/tvde", label: "TVDE (Uber/Bolt)", icon: Car, module: "tvde" },
   ]},
   { label: "Financeiro", items: [
-    { to: "/financeiro", label: "Faturas & Movimentos", icon: Wallet, module: "financeiro" },
-    { to: "/conta-corrente", label: "Conta Corrente", icon: Landmark, module: "conta_corrente" },
+    { to: "/financeiro", label: "Faturas", icon: Wallet, module: "financeiro" },
+    { to: "/conta-corrente", label: "Conta Corrente e Movimentos", icon: Landmark, module: "conta_corrente" },
+
     { to: "/fechamento", label: "Fechamento Mensal", icon: Calculator, module: "fechamento" },
     { to: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
   ]},
