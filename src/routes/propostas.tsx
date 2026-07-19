@@ -41,6 +41,8 @@ function Propostas() {
       const payload: any = { ...form, total_value: Number(form.total_value || 0) };
       if (!payload.client_id) payload.client_id = null;
       if (!payload.lead_id) payload.lead_id = null;
+      if (!payload.tour_route_id) payload.tour_route_id = null;
+      if (payload.proposal_type !== "roteiro") { payload.tour_route_id = null; payload.tour_route_custom = null; }
       if (editing?.id) {
         const { error } = await supabase.from("proposals").update(payload).eq("id", editing.id);
         if (error) throw error;
