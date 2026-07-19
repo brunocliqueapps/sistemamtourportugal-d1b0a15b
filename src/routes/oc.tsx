@@ -70,8 +70,18 @@ function OCList() {
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
       driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
       status: s.status ?? "agendado",
+      financial_status: s.financial_status ?? "nao_faturado",
     });
   }
+
+  const concluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("service_orders").update({ status: "finalizado" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pedido concluído"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   return (
     <div className="p-6 md:p-8 space-y-4">
