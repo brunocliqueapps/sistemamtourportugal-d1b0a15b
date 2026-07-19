@@ -33,6 +33,8 @@ function CRM() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [showArchivedList, setShowArchivedList] = useState(false);
+  const [viewing, setViewing] = useState<any | null>(null);
+
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
