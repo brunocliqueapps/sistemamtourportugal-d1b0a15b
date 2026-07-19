@@ -73,6 +73,15 @@ function CRM() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const archive = useMutation({
+    mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+      const { error } = await supabase.from("leads").update({ archived }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => { toast.success(v.archived ? "Lead arquivado (fora do pipeline)" : "Lead restaurado ao pipeline"); qc.invalidateQueries({ queryKey: ["leads"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const convert = useMutation({
     mutationFn: async (l: any) => {
       const { data: existing } = await supabase.from("clients").select("id").eq("name", l.name).maybeSingle();
