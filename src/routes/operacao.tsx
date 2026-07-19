@@ -78,13 +78,13 @@ function Operacao() {
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Serviços Motorista" description="Painel de controlo: todos os serviços (Privado, TVDE, Interno) de todos os motoristas no período." />
 
       {!shift ? (
         <Card className="p-6 space-y-4">
           <h3 className="font-semibold">Abrir Serviço</h3>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div><Label>Tipo de operação</Label>
               <Select value={form.operation_type} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -156,7 +156,7 @@ function Operacao() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar OC {editing?.oc_code}</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Nº OC</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
               <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>

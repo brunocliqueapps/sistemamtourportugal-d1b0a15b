@@ -104,7 +104,7 @@ function Propostas() {
   }
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Propostas" description="Cria, aprova e converte automaticamente em OC + Voucher + Serviço." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova proposta</Button>
       } />
@@ -142,7 +142,7 @@ function Propostas() {
           <DialogHeader><DialogTitle>{editing ? "Editar Proposta" : "Nova Proposta"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Cliente</Label>
                 <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
@@ -156,7 +156,7 @@ function Propostas() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} /></div>
               <div><Label>Estado</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
@@ -165,7 +165,7 @@ function Propostas() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Tipo de proposta/operação</Label>
                 <Select value={form.proposal_type} onValueChange={(v) => setForm({ ...form, proposal_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -201,7 +201,7 @@ function Propostas() {
       <Dialog open={!!approveOpen} onOpenChange={(v) => !v && setApproveOpen(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Aprovar e converter em OC</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>Data do serviço</Label><Input type="date" value={srv.service_date} onChange={(e) => setSrv({ ...srv, service_date: e.target.value })} /></div>
             <div><Label>Horário</Label><Input type="time" value={srv.start_time} onChange={(e) => setSrv({ ...srv, start_time: e.target.value })} /></div>
             <div><Label>Origem</Label><Input value={srv.origin} onChange={(e) => setSrv({ ...srv, origin: e.target.value })} /></div>

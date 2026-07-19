@@ -247,7 +247,7 @@ function Relatorios() {
     conversao: {
       title: "Conversão de vendas",
       render: () => (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <KPI label="Leads" value={leads.length} />
           <KPI label="Fechados" value={leads.filter((l: any) => l.status === "fechado").length} />
           <KPI label="Conversão" value={`${convRate}%`} tone="text-emerald-600" />
@@ -457,7 +457,7 @@ function Relatorios() {
       title: "Clientes",
       render: () => (
         <div className="grid gap-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <KPI label="Clientes ativos no período" value={clientesAtivos} />
             <KPI label="Ticket médio" value={`€ ${(clientesAtivos ? totRec / clientesAtivos : 0).toFixed(2)}`} />
             <KPI label="Serviços totais" value={so.length} />
@@ -520,11 +520,11 @@ function Relatorios() {
   }, [so, group]);
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Relatórios e Resultados" description="Análise detalhada com filtros e agrupamentos." />
 
       <Card className="p-4">
-        <div className="grid gap-3 md:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div>
             <Label className="text-xs">Período</Label>
             <Select value={period} onValueChange={(v) => applyPeriod(v as Period)}>
@@ -573,7 +573,7 @@ function Relatorios() {
         </div>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KPI label="Receitas" value={`€ ${totRec.toFixed(2)}`} tone="text-emerald-600" />
         <KPI label="Despesas" value={`€ ${totDesp.toFixed(2)}`} tone="text-destructive" />
         <KPI label="Saldo caixa" value={`€ ${(inflow - outflow).toFixed(2)}`} tone={inflow - outflow < 0 ? "text-destructive" : "text-emerald-600"} />

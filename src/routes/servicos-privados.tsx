@@ -146,7 +146,7 @@ function ServicosPrivados() {
 
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title="Serviços Privados"
         description="Ordens de serviço privadas — todo serviço criado aparece aqui automaticamente para fechamento."
@@ -172,7 +172,7 @@ function ServicosPrivados() {
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Serviços no período</div><div className="text-2xl font-semibold">{total}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Finalizados</div><div className="text-2xl font-semibold text-emerald-600">{finalizados}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-2xl font-semibold">{total - finalizados}</div></Card>
@@ -292,7 +292,7 @@ function ServicosPrivados() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Nº OC</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
               <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
@@ -431,7 +431,7 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Editar turno</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Data</Label><Input type="date" value={editing.shift_date ?? ""} onChange={(e) => setEditing({ ...editing, shift_date: e.target.value })} /></div>
               <div />
               <div><Label>Km inicial</Label><Input type="number" value={editing.km_initial ?? ""} onChange={(e) => setEditing({ ...editing, km_initial: e.target.value })} /></div>
@@ -647,7 +647,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
         <div className="space-y-5">
           <section>
             <h4 className="font-medium mb-2">Horário e quilometragem</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div><Label>Hora de início</Label><Input type="datetime-local" value={toLocalInput(form.start_time)} onChange={(e) => setForm({ ...form, start_time: fromLocalInput(e.target.value) })} /></div>
               <div><Label>Hora de término</Label><Input type="datetime-local" value={toLocalInput(form.end_time)} onChange={(e) => setForm({ ...form, end_time: fromLocalInput(e.target.value) })} /></div>
               <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
@@ -660,7 +660,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
 
           <section>
             <h4 className="font-medium mb-2">Valores e pagamento</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div><Label>Valor do serviço</Label><Input disabled value={saleValue.toFixed(2)} /></div>
               <div><Label>Valor recebido</Label><Input type="number" step="0.01" value={form.amount_received} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} /></div>
               <div>
@@ -717,7 +717,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
               const isOutra = e.category === "outra";
               return (
                 <div key={i} className="border rounded-lg p-3 mb-2 space-y-3 bg-muted/30">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div>
                       <Label>Categoria</Label>
                       <Select value={e.category} onValueChange={(v) => updateExpense(i, { category: v })}>
@@ -732,7 +732,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
                   </div>
 
                   {isOutra && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t">
                       <div className="md:col-span-3"><Label>Descrição *</Label><Input value={e.description} onChange={(ev) => updateExpense(i, { description: ev.target.value })} /></div>
                       <div>
                         <Label>Forma de pagamento *</Label>
@@ -861,7 +861,7 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Nº OC</Label><Input value={form.oc_code} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
           <div><Label>Nº Voucher</Label><Input value={form.voucher_code} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
           <div className="col-span-2"><Label>Cliente *</Label>

@@ -102,7 +102,7 @@ function ContaCorrente() {
   const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Conta Corrente" description="Extrato de entradas e saídas." actions={
         <div className="flex flex-wrap gap-2">
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
@@ -127,7 +127,7 @@ function ContaCorrente() {
         </div>
       } />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Saldo inicial</div><div className="text-xl font-bold">€ {opening.toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Entradas</div><div className="text-xl font-bold text-emerald-600">€ {inflow.toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Saídas</div><div className="text-xl font-bold text-destructive">€ {outflow.toFixed(2)}</div></Card>
@@ -163,7 +163,7 @@ function ContaCorrente() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar movimento" : "Novo movimento"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>Data</Label><Input type="date" value={form.movement_date} onChange={(e) => setForm({ ...form, movement_date: e.target.value })} /></div>
             <div><Label>Tipo</Label>
               <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v })}>

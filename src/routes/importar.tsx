@@ -101,10 +101,10 @@ function Importar() {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Importação CSV" description="Importe clientes, motoristas, veículos ou despesas em lote." />
       <Card className="p-6 space-y-4">
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
             <Label>Entidade</Label>
             <Select value={entity} onValueChange={(v) => { setEntity(v as EntityKey); setRows([]); setHeaders([]); }}>

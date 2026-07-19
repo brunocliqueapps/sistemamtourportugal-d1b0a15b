@@ -136,13 +136,13 @@ function Alertas() {
   function openEdit(r: Doc) { setEditing(r); setForm(r); setOpen(true); }
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title="Alertas de Documentos e Vencimentos"
         description="Controlo de seguros, taxas, licenças e documentos da empresa."
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi label="Total" value={kpis.total} icon={Bell} tone="text-primary" />
         <Kpi label="Vencidos" value={kpis.vencidos} icon={AlertTriangle} tone="text-destructive" />
         <Kpi label="A vencer" value={kpis.urgentes} icon={Clock} tone="text-amber-500" />
@@ -224,7 +224,7 @@ function Alertas() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} · Documento / Vencimento</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label>Título *</Label>
               <Input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />

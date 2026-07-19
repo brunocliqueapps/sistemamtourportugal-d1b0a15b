@@ -74,14 +74,14 @@ function Roteiro() {
   const finalizados = services.filter((s: any) => closingBy(s.id)?.closed_at).length;
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title="Roteiro do Dia"
         description="Todos os serviços agrupados por cliente, com programação, gastos, ocorrências e finalização."
         actions={<Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />}
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Serviços</div><div className="text-2xl font-semibold">{totalDia}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Finalizados</div><div className="text-2xl font-semibold">{finalizados}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-2xl font-semibold">{totalDia - finalizados}</div></Card>
@@ -227,7 +227,7 @@ function FinalizeDialog({ service }: { service: any }) {
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Finalizar {service.oc_code}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
             <div><Label>Km final</Label><Input type="number" value={form.km_final} onChange={(e) => setForm({ ...form, km_final: e.target.value })} /></div>
           </div>

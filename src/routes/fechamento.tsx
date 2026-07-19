@@ -105,7 +105,7 @@ function Fechamento() {
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Fechamento Mensal" description="Apuramento gerencial de IVA e provisão de IRC. Sujeito a validação do contabilista." actions={
         <Input type="month" value={ym} onChange={(e) => setYm(e.target.value)} className="w-44" />
       } />
@@ -118,7 +118,7 @@ function Fechamento() {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Receitas</div><div className="text-xl font-bold text-emerald-600">€ {revenue.toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Despesas</div><div className="text-xl font-bold text-destructive">€ {expenses.toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Resultado operacional est.</div><div className="text-xl font-bold">€ {operatingProfit.toFixed(2)}</div></Card>
@@ -127,7 +127,7 @@ function Fechamento() {
 
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Apuramento de IVA (pré-apuramento)</h3>
-        <div className="grid gap-3 md:grid-cols-3 text-sm">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
           <div>IVA liquidado (vendas): <b>€ {vatCharged.toFixed(2)}</b></div>
           <div>IVA suportado (compras): <b>€ {vatSupported.toFixed(2)}</b></div>
           <div>IVA dedutível: <b>€ {vatDeductible.toFixed(2)}</b></div>
@@ -141,12 +141,12 @@ function Fechamento() {
 
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Provisão de IRC (estimativa)</h3>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div><Label>Taxa IRC (%)</Label><Input type="number" step="0.01" value={ircRate} onChange={(e) => setIrcRate(Number(e.target.value))} /></div>
           <div><Label>Pagamentos por conta</Label><Input type="number" step="0.01" value={payAcc} onChange={(e) => setPayAcc(Number(e.target.value))} /></div>
           <div><Label>Retenções na fonte</Label><Input type="number" step="0.01" value={withhold} onChange={(e) => setWithhold(Number(e.target.value))} /></div>
         </div>
-        <div className="grid gap-3 md:grid-cols-4 text-sm mt-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm mt-2">
           <div>Matéria coletável est.: <b>€ {ircBase.toFixed(2)}</b></div>
           <div>IRC estimado: <b>€ {ircEst.toFixed(2)}</b></div>
           <div className={ircBalance > 0 ? "text-destructive" : "text-emerald-600"}>Saldo IRC est.: <b>€ {ircBalance.toFixed(2)}</b></div>

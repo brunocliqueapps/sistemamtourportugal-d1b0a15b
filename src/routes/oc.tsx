@@ -108,7 +108,7 @@ function OCList() {
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-4">
       <PageHeader title="Ordens de Serviço (OC)" description="OCs geradas pelas propostas aprovadas ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OC</Button>
       } />
@@ -157,7 +157,7 @@ function OCList() {
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing?.id ? `Editar OC ${editing?.oc_code ?? ""}` : "Nova OC"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div className="col-span-2"><Label>Cliente</Label>

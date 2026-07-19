@@ -179,7 +179,7 @@ function TVDE() {
 
   if (!shift) {
     return (
-      <div className="p-6 md:p-8 space-y-6">
+      <div className="p-4 sm:p-6 md:p-8 space-y-6">
         <PageHeader
           title="TVDE"
           description="Sem operação TVDE em curso. Abra uma nova operação para começar a registar."
@@ -216,7 +216,7 @@ function TVDE() {
 
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title="Fechamento TVDE"
         description={`${shift.shift_date} · ${shift.drivers?.full_name ?? "—"} · ${shift.vehicles?.plate ?? "—"}`}
@@ -224,7 +224,7 @@ function TVDE() {
       />
 
       {/* KPIs */}
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Receita bruta</div><div className="text-xl font-bold">€ {receitaBruta.toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Comissões + retenções</div><div className="text-xl font-bold text-destructive">€ {(commissions + otherDed).toFixed(2)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Despesas</div><div className="text-xl font-bold text-destructive">€ {totalExp.toFixed(2)}</div></Card>
@@ -234,7 +234,7 @@ function TVDE() {
       {/* -------------------- PLATAFORMAS -------------------- */}
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Ganhos por plataforma</h3>
-        <div className="grid gap-3 md:grid-cols-7">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           <div><Label>Plataforma</Label>
             <Select value={earn.platform} onValueChange={(v) => setEarn({ ...earn, platform: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -279,7 +279,7 @@ function TVDE() {
           </TableBody>
         </Table>
 
-        <div className="grid gap-2 md:grid-cols-4 pt-2 border-t text-sm">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 pt-2 border-t text-sm">
           <div>Uber: <b>€ {uber.toFixed(2)}</b></div>
           <div>Bolt: <b>€ {bolt.toFixed(2)}</b></div>
           <div>Outras: <b>€ {outrasPlat.toFixed(2)}</b></div>
@@ -290,7 +290,7 @@ function TVDE() {
       {/* -------------------- DESPESAS -------------------- */}
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Despesas da operação TVDE</h3>
-        <div className="grid gap-3 md:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div><Label>Categoria</Label>
             <Select value={exp.category} onValueChange={(v) => setExp({ ...exp, category: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -344,7 +344,7 @@ function TVDE() {
           </TableBody>
         </Table>
 
-        <div className="grid gap-2 md:grid-cols-5 pt-2 border-t text-sm">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 pt-2 border-t text-sm">
           <div>Combustível: <b>€ {fuel.toFixed(2)}</b></div>
           <div>Estacionamento: <b>€ {parking.toFixed(2)}</b></div>
           <div>Portagens: <b>€ {tolls.toFixed(2)}</b></div>
@@ -382,7 +382,7 @@ function TVDE() {
 
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Acerto motorista × empresa</h3>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div><Label>Km final</Label><Input type="number" value={close.km_final} onChange={(e) => setClose({ ...close, km_final: e.target.value })} /></div>
           <div><Label>% Motorista</Label><Input type="number" value={close.driver_pct} onChange={(e) => setClose({ ...close, driver_pct: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Observações do acerto</Label><Input value={close.notes} onChange={(e) => setClose({ ...close, notes: e.target.value })} /></div>
@@ -407,7 +407,7 @@ function TVDE() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar ganho</DialogTitle></DialogHeader>
           {editEarn && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Plataforma</Label>
                 <Select value={editEarn.platform} onValueChange={(v) => setEditEarn({ ...editEarn, platform: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -437,7 +437,7 @@ function TVDE() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar despesa</DialogTitle></DialogHeader>
           {editExp && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Categoria</Label>
                 <Select value={editExp.category} onValueChange={(v) => setEditExp({ ...editExp, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -522,7 +522,7 @@ function NewOperationButton() {
       </Button>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Nova operação TVDE</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Data</Label><Input type="date" value={form.shift_date} onChange={(e) => setForm({ ...form, shift_date: e.target.value })} /></div>
           <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
           <div className="col-span-2"><Label>Motorista</Label>
@@ -720,7 +720,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Editar operação TVDE</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Data</Label><Input type="date" value={editing.shift_date ?? ""} onChange={(e) => setEditing({ ...editing, shift_date: e.target.value })} /></div>
               <div className="flex items-end">
                 {editing.closed_at && (

@@ -149,7 +149,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} · {title}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fields.map((f) => (
               <div key={f.key} className={f.type === "textarea" ? "col-span-2" : ""}>
                 <Label>{f.label}{f.required && <span className="text-destructive"> *</span>}</Label>

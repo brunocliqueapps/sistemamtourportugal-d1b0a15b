@@ -137,7 +137,7 @@ function Financeiro() {
   const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Financeiro" description="Faturas e movimentos com controlo fiscal (IVA dedutível / não dedutível)." actions={
         <Button className="gradient-gold text-gold-foreground" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova fatura</Button>
       } />
@@ -174,7 +174,7 @@ function Financeiro() {
       </Card>
 
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Entradas</div><div className="text-2xl font-bold text-emerald-600">€ {totalIn.toFixed(2)}</div></Card>
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Saídas</div><div className="text-2xl font-bold text-destructive">€ {totalOut.toFixed(2)}</div></Card>
         <Card className="p-5"><div className="text-sm text-muted-foreground">Resultado</div><div className="text-2xl font-bold">€ {(totalIn - totalOut).toFixed(2)}</div></Card>
