@@ -301,7 +301,7 @@ function Financeiro() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat}>{editing ? "Atualizar" : "Registar"}</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat || !f.entity_name}>{editing ? "Atualizar" : "Registar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
