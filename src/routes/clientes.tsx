@@ -104,6 +104,9 @@ function Clientes() {
                 <TableCell>{c.phone ?? "—"}</TableCell>
                 <TableCell>{c.city ?? "—"}</TableCell>
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(c)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" title="Histórico" onClick={() => setHistoryClient(c)}>
                     <History className="h-4 w-4" />
                   </Button>
