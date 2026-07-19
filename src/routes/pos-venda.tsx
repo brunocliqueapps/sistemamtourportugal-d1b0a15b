@@ -227,23 +227,28 @@ function SendPanel() {
 function GoogleReviewPanel() {
   const [googleUrl, setGoogleUrl] = useState<string>(() => localStorage.getItem("google_review_url") ?? "");
   const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [sent, setSent] = useState<{ id: string; name: string; date: string; sent: boolean }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("google_review_sent") ?? "[]"); } catch { return []; }
+  });
+  const persist = (list: typeof sent) => { setSent(list); localStorage.setItem("google_review_sent", JSON.stringify(list)); };
 
   const saveUrl = () => {
     localStorage.setItem("google_review_url", googleUrl);
     toast.success("Link Google guardado");
   };
 
-  const shareLink = () => {
+  const copyAndTrack = () => {
     if (!googleUrl) { toast.error("Configura primeiro o link Google."); return; }
-    const msg = `Olá ${clientName || ""}! Obrigado por escolher a MTOUR Portugal. Se gostou do serviço, ajude-nos com uma avaliação Google: ${googleUrl}`;
+    if (!clientName.trim()) { toast.error("Indica o nome do cliente."); return; }
+    const msg = `Olá ${clientName}! Obrigado por escolher a MTOUR Portugal. Se gostou do serviço, ajude-nos com uma avaliação Google: ${googleUrl}`;
     navigator.clipboard.writeText(msg);
-    toast.success("Mensagem copiada — pode enviar por email/WhatsApp.");
+    persist([{ id: crypto.randomUUID(), name: clientName, date: new Date().toISOString().slice(0,10), sent: false }, ...sent]);
+    setClientName("");
+    toast.success("Mensagem copiada e registada.");
   };
 
-  const mailto = clientEmail
-    ? `mailto:${clientEmail}?subject=${encodeURIComponent("Avalie a MTOUR Portugal no Google")}&body=${encodeURIComponent(`Olá ${clientName},\n\nObrigado por escolher a MTOUR Portugal. Se gostou do serviço, deixe-nos uma avaliação Google:\n${googleUrl}\n\nObrigado!`)}`
-    : "";
+  const toggleSent = (id: string) => persist(sent.map((s) => s.id === id ? { ...s, sent: !s.sent } : s));
+  const remove = (id: string) => persist(sent.filter((s) => s.id !== id));
 
   return (
     <div className="space-y-4">
@@ -257,34 +262,54 @@ function GoogleReviewPanel() {
       </Card>
 
       <Card className="p-5 space-y-3">
-        <h3 className="font-semibold">Enviar convite ao cliente</h3>
-        <div className="grid gap-3 md:grid-cols-2">
+        <h3 className="font-semibold">Preparar convite ao cliente</h3>
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div><Label>Nome cliente</Label><Input value={clientName} onChange={(e) => setClientName(e.target.value)} /></div>
-          <div><Label>Email cliente</Label><Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} /></div>
+          <div className="flex items-end"><Button className="gradient-gold text-gold-foreground" onClick={copyAndTrack}><Copy className="h-4 w-4 mr-1" /> Copiar mensagem e registar</Button></div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={shareLink}><Copy className="h-4 w-4 mr-1" /> Copiar mensagem</Button>
-          <Button className="gradient-gold text-gold-foreground" asChild disabled={!clientEmail || !googleUrl}>
-            <a href={mailto || "#"} onClick={(e) => { if (!clientEmail || !googleUrl) { e.preventDefault(); toast.error("Preencha email e link Google."); } }}>
-              <Send className="h-4 w-4 mr-1" /> Enviar por email
-            </a>
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">Copie a mensagem e envie pelo canal que preferir (WhatsApp, SMS). Marque abaixo assim que enviar.</p>
+      </Card>
+
+      <Card>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead className="w-12">Enviado</TableHead>
+            <TableHead>Cliente</TableHead><TableHead>Data</TableHead>
+            <TableHead className="w-16 text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {sent.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Sem registos.</TableCell></TableRow>}
+            {sent.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell><input type="checkbox" checked={s.sent} onChange={() => toggleSent(s.id)} /></TableCell>
+                <TableCell>{s.name}</TableCell>
+                <TableCell>{s.date}</TableCell>
+                <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => remove(s.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Card>
     </div>
   );
 }
 
-type Referral = { id: string; date: string; referrer: string; contact: string; lead_name: string; lead_contact: string; status: string; notes: string };
+
+type Referral = { id: string; date: string; referrer: string; referrer_id?: string | null; lead_name: string; lead_contact: string; lead_email: string; status: string; notes: string };
 
 function ReferralPanel() {
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-for-referral"],
+    queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [],
+  });
+
   const [items, setItems] = useState<Referral[]>(() => {
     try { return JSON.parse(localStorage.getItem("referrals") ?? "[]"); } catch { return []; }
   });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Referral | null>(null);
   const [viewing, setViewing] = useState<Referral | null>(null);
-  const empty: Referral = { id: "", date: new Date().toISOString().slice(0,10), referrer: "", contact: "", lead_name: "", lead_contact: "", status: "novo", notes: "" };
+  const empty: Referral = { id: "", date: new Date().toISOString().slice(0,10), referrer: "", referrer_id: null, lead_name: "", lead_contact: "", lead_email: "", status: "novo", notes: "" };
   const [form, setForm] = useState<Referral>(empty);
 
   const persist = (list: Referral[]) => { setItems(list); localStorage.setItem("referrals", JSON.stringify(list)); };
@@ -359,10 +384,16 @@ function ReferralPanel() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Cliente indicador</Label><Input value={f.referrer} onChange={(e) => setF({ ...f, referrer: e.target.value })} /></div>
-                <div><Label>Contacto indicador</Label><Input value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Cliente indicador (registado)</Label>
+                  <Select value={f.referrer_id ?? ""} onValueChange={(v) => { const c = clients.find((x: any) => x.id === v); setF({ ...f, referrer_id: v, referrer: c?.name ?? "" }); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 <div><Label>Novo cliente (nome)</Label><Input value={f.lead_name} onChange={(e) => setF({ ...f, lead_name: e.target.value })} /></div>
                 <div><Label>Novo cliente (contacto)</Label><Input value={f.lead_contact} onChange={(e) => setF({ ...f, lead_contact: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Novo cliente (email)</Label><Input type="email" value={f.lead_email} onChange={(e) => setF({ ...f, lead_email: e.target.value })} /></div>
+
                 <div className="col-span-2"><Label>Notas</Label>
                   <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
                 </div>
@@ -396,15 +427,25 @@ function TemplatesPanel() {
   const qc = useQueryClient();
   const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplatesAll"], queryFn: async () => (await supabase.from("survey_templates").select("*").order("created_at")).data ?? [] });
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState<any>({ name: "", description: "", questions: [] as any[] });
+  const emptyForm = { id: null as string | null, name: "", description: "", questions: [] as any[], active: true };
+  const [f, setF] = useState<any>(emptyForm);
 
   const addQ = () => setF({ ...f, questions: [...f.questions, { id: `q${Date.now()}`, label: "", type: "rating", required: true }] });
   const updateQ = (i: number, patch: any) => setF({ ...f, questions: f.questions.map((q: any, idx: number) => idx === i ? { ...q, ...patch } : q) });
   const rmQ = (i: number) => setF({ ...f, questions: f.questions.filter((_: any, idx: number) => idx !== i) });
 
   const save = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("survey_templates").insert(f); if (error) throw error; },
-    onSuccess: () => { toast.success("Modelo criado"); qc.invalidateQueries({ queryKey: ["surveyTemplatesAll"] }); setOpen(false); setF({ name: "", description: "", questions: [] }); },
+    mutationFn: async () => {
+      const payload = { name: f.name, description: f.description, questions: f.questions, active: f.active };
+      if (f.id) {
+        const { error } = await supabase.from("survey_templates").update(payload).eq("id", f.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("survey_templates").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success("Modelo guardado"); qc.invalidateQueries({ queryKey: ["surveyTemplatesAll"] }); qc.invalidateQueries({ queryKey: ["surveyTemplates"] }); setOpen(false); setF(emptyForm); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -414,9 +455,12 @@ function TemplatesPanel() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const openEdit = (t: any) => { setF({ id: t.id, name: t.name, description: t.description ?? "", questions: t.questions ?? [], active: t.active ?? true }); setOpen(true); };
+  const openNew = () => { setF(emptyForm); setOpen(true); };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Button onClick={() => setOpen(true)}>Novo modelo</Button></div>
+      <div className="flex justify-end"><Button className="gradient-gold text-gold-foreground" onClick={openNew}>Novo modelo</Button></div>
       <div className="grid gap-3 md:grid-cols-2">
         {templates.map((t: any) => (
           <Card key={t.id} className="p-4">
@@ -425,7 +469,10 @@ function TemplatesPanel() {
                 <div className="font-medium">{t.name}</div>
                 <div className="text-xs text-muted-foreground">{t.description}</div>
               </div>
-              <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir modelo ${t.name}?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+              <div className="flex">
+                <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" title="Excluir" onClick={() => { if (confirm(`Excluir modelo ${t.name}?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
             <ul className="mt-2 text-sm list-disc pl-5">
               {(t.questions ?? []).map((q: any) => <li key={q.id}>{q.label} <span className="text-xs text-muted-foreground">({q.type})</span></li>)}
@@ -434,13 +481,13 @@ function TemplatesPanel() {
         ))}
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Novo modelo de pesquisa</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{f.id ? "Editar modelo" : "Novo modelo"} de pesquisa</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
             <div><Label>Descrição</Label><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
             <div className="space-y-2">
-              <div className="flex justify-between items-center"><Label>Perguntas</Label><Button size="sm" variant="outline" onClick={addQ}>+ Adicionar</Button></div>
+              <div className="flex justify-between items-center"><Label>Perguntas</Label><Button size="sm" variant="outline" onClick={addQ}>+ Adicionar pergunta</Button></div>
               {f.questions.map((q: any, i: number) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-7"><Input placeholder="Pergunta" value={q.label} onChange={(e) => updateQ(i, { label: e.target.value })} /></div>
@@ -458,14 +505,16 @@ function TemplatesPanel() {
                   <div className="col-span-2"><Button variant="ghost" size="sm" onClick={() => rmQ(i)}>Remover</Button></div>
                 </div>
               ))}
+              {f.questions.length === 0 && <p className="text-xs text-muted-foreground">Sem perguntas. Clique em "Adicionar pergunta".</p>}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.name || f.questions.length === 0}>Guardar</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.name || f.questions.length === 0 || save.isPending}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+
   );
 }

@@ -587,11 +587,22 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
   const [viewing, setViewing] = useState<any | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
 
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-hist"], enabled: !!editing,
+    queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [],
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["veh-hist"], enabled: !!editing,
+    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
+  });
+
   const save = useMutation({
     mutationFn: async () => {
       if (!editing) return;
       const payload: any = {
         shift_date: editing.shift_date,
+        driver_id: editing.driver_id || null,
+        vehicle_id: editing.vehicle_id || null,
         km_initial: editing.km_initial === "" || editing.km_initial == null ? null : Number(editing.km_initial),
         km_final: editing.km_final === "" || editing.km_final == null ? null : Number(editing.km_final),
         notes: editing.notes || null,
@@ -607,6 +618,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <>
@@ -676,6 +688,18 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
                   </label>
                 )}
               </div>
+              <div className="col-span-2"><Label>Motorista</Label>
+                <Select value={editing.driver_id ?? ""} onValueChange={(v) => setEditing({ ...editing, driver_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2"><Label>Veículo</Label>
+                <Select value={editing.vehicle_id ?? ""} onValueChange={(v) => setEditing({ ...editing, vehicle_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div><Label>Km inicial</Label><Input type="number" value={editing.km_initial ?? ""} onChange={(e) => setEditing({ ...editing, km_initial: e.target.value })} /></div>
               <div><Label>Km final</Label><Input type="number" value={editing.km_final ?? ""} onChange={(e) => setEditing({ ...editing, km_final: e.target.value })} /></div>
               <div className="col-span-2"><Label>Notas</Label>
@@ -692,6 +716,7 @@ function ShiftHistoryTable({ shifts }: { shifts: any[] }) {
     </>
   );
 }
+
 
 function Row({ label, v, bold }: { label: string; v: number; bold?: boolean }) {
   return (
