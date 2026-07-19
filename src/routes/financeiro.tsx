@@ -29,9 +29,10 @@ function Financeiro() {
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<string>("all"); // 'all' | '1'..'12'
+  const [ccFilter, setCcFilter] = useState<string>("all");
   const emptyForm = {
     doc_type: "fatura", invoice_number: "", series: "", issue_date: new Date().toISOString().slice(0,10),
-    due_date: "", entity_name: "", entity_nif: "", description: "",
+    due_date: "", entity_id: "", entity_name: "", entity_nif: "", description: "",
     value_ex_vat: 0, vat_rate_id: "", vat_amount: 0, vat_deductible: 0, vat_non_deductible: 0,
     deduction_pct: 100, total: 0, cost_center_id: "", payment_method_id: "", bank_account_id: "",
     status: "pendente", paid_amount: 0, observations: "",
@@ -39,20 +40,26 @@ function Financeiro() {
   const [f, setF] = useState<any>(emptyForm);
 
   const { data: rows = [] } = useQuery({
-    queryKey: ["invoices", year, month],
+    queryKey: ["invoices", year, month, ccFilter],
     queryFn: async () => {
       const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
       const endD = month === "all"
         ? new Date(year + 1, 0, 1)
         : new Date(year, Number(month), 1);
       const end = endD.toISOString().slice(0,10);
-      return (await supabase.from("invoices").select("*").gte("issue_date", start).lt("issue_date", end).order("issue_date", { ascending: false })).data ?? [];
+      let q = supabase.from("invoices").select("*").gte("issue_date", start).lt("issue_date", end).order("issue_date", { ascending: false });
+      if (ccFilter !== "all") q = q.eq("cost_center_id", ccFilter);
+      return (await q).data ?? [];
     },
   });
   const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await supabase.from("vat_rates").select("*").eq("active", true)).data ?? [] });
   const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await supabase.from("cost_centers").select("*").eq("active", true)).data ?? [] });
   const { data: pm = [] } = useQuery({ queryKey: ["pmf"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
   const { data: ba = [] } = useQuery({ queryKey: ["ba"], queryFn: async () => (await supabase.from("bank_accounts").select("*").eq("active", true)).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-fin"], queryFn: async () => (await supabase.from("clients").select("id,name,nif,phone,email").order("name")).data ?? [] });
+  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-fin"], queryFn: async () => (await supabase.from("suppliers").select("id,name,nif,phone,email").order("name")).data ?? [] });
+  const entities = kind === "entrada" ? clients : suppliers;
+
 
   function recalc(patch: Partial<any>) {
     const next = { ...f, ...patch };
@@ -78,6 +85,8 @@ function Financeiro() {
         photo_url = supabase.storage.from("invoices").getPublicUrl(path).data.publicUrl;
       }
       const payload: any = { ...f, kind, photo_url };
+      delete payload.entity_id; // not persisted (schema keeps free-text name/nif for fiscal print)
+
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
         const { error } = await supabase.from("invoices").update(payload).eq("id", editing.id);
@@ -150,7 +159,18 @@ function Financeiro() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <Label className="text-xs">Centro de custo</Label>
+          <Select value={ccFilter} onValueChange={setCcFilter}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {cc.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </Card>
+
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5"><div className="text-sm text-muted-foreground">Total Entradas</div><div className="text-2xl font-bold text-emerald-600">€ {totalIn.toFixed(2)}</div></Card>
@@ -220,8 +240,28 @@ function Financeiro() {
                 <SelectContent>{["pendente","pago","parcialmente_pago","vencido","cancelado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="col-span-2"><Label>{kind === "entrada" ? "Cliente" : "Fornecedor"}</Label><Input value={f.entity_name} onChange={(e) => setF({ ...f, entity_name: e.target.value })} /></div>
+            <div className="col-span-2">
+              <Label>{kind === "entrada" ? "Cliente" : "Fornecedor"} *</Label>
+              <Select
+                value={f.entity_id || ""}
+                onValueChange={(v) => {
+                  const ent = entities.find((e: any) => e.id === v);
+                  setF({ ...f, entity_id: v, entity_name: ent?.name ?? "", entity_nif: ent?.nif ?? f.entity_nif });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Selecionar ${kind === "entrada" ? "cliente" : "fornecedor"} cadastrado`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {entities.length === 0 && <div className="p-2 text-xs text-muted-foreground">Sem registos — cadastre em Cadastros.</div>}
+                  {entities.map((e: any) => (
+                    <SelectItem key={e.id} value={e.id}>{e.name}{e.nif ? ` · ${e.nif}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>NIF</Label><Input value={f.entity_nif} onChange={(e) => setF({ ...f, entity_nif: e.target.value })} /></div>
+
             <div className="col-span-3"><Label>Descrição</Label><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
 
             <div><Label>Valor s/IVA (€)</Label><Input type="number" step="0.01" value={f.value_ex_vat} onChange={(e) => recalc({ value_ex_vat: e.target.value })} /></div>
@@ -261,7 +301,7 @@ function Financeiro() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat}>{editing ? "Atualizar" : "Registar"}</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!f.value_ex_vat || !f.entity_name}>{editing ? "Atualizar" : "Registar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
