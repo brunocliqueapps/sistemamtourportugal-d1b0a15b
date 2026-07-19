@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
@@ -18,115 +18,88 @@ export const Route = createFileRoute("/operacao")({ component: Operacao });
 function Operacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [form, setForm] = useState<any>({ vehicle_id: "", operation_type: "privado", km_initial: 0 });
 
-  const { data: today } = useQuery({
-    queryKey: ["driver-day-today", user?.id],
+  const { data: shift } = useQuery({
+    queryKey: ["shift-open", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const d = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase.from("driver_days").select("*").eq("driver_id", user!.id).eq("date", d).is("end_time", null).maybeSingle();
-      return data;
-    },
+    queryFn: async () => (await supabase.from("tvde_shifts").select("*").is("closed_at", null).order("created_at",{ascending:false}).limit(1).maybeSingle()).data,
   });
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ["vehicles-mini"],
-    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model")).data ?? [],
-  });
-  const { data: items = [] } = useQuery({
-    queryKey: ["checklist-items"],
-    queryFn: async () => (await supabase.from("checklist_items").select("*")).data ?? [],
-  });
-  const { data: history = [] } = useQuery({
-    queryKey: ["driver-days-history", user?.id],
+  const { data: vehicles = [] } = useQuery({ queryKey: ["veh-op"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").eq("active", true)).data ?? [] });
+  const { data: myOCs = [] } = useQuery({
+    queryKey: ["my-ocs", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("driver_days").select("*, vehicles(plate)").eq("driver_id", user!.id).order("date", { ascending: false }).limit(10)).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("id,oc_code,service_date,start_time,origin,destination,status,clients(name)").order("service_date", { ascending: false }).limit(20)).data ?? [],
   });
-
-  const [form, setForm] = useState<any>({ vehicle_id: "", km_initial: 0, fuel_initial: 100, checks: {} as Record<string, boolean> });
-  const [end, setEnd] = useState({ km_final: 0, fuel_final: 0 });
-
-  useEffect(() => { if (today) setEnd({ km_final: today.km_initial ?? 0, fuel_final: today.fuel_initial ?? 0 }); }, [today]);
 
   const open = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.from("driver_days").insert({
-        driver_id: user!.id, vehicle_id: form.vehicle_id, date: new Date().toISOString().slice(0, 10),
-        start_time: new Date().toISOString(), km_initial: form.km_initial, fuel_initial: form.fuel_initial,
-      }).select().single();
+      const { error } = await supabase.from("tvde_shifts").insert({
+        vehicle_id: form.vehicle_id, operation_type: form.operation_type,
+        shift_date: new Date().toISOString().slice(0, 10),
+        start_time: new Date().toISOString(), km_initial: Number(form.km_initial) || null,
+      });
       if (error) throw error;
-      const rows = items.filter((i: any) => form.checks[i.id]).map((i: any) => ({ driver_day_id: data.id, checklist_item_id: i.id, checked: true }));
-      if (rows.length) await supabase.from("driver_day_checklist").insert(rows);
     },
-    onSuccess: () => { toast.success("Dia aberto"); qc.invalidateQueries(); },
+    onSuccess: () => { toast.success("Turno aberto"); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
-  });
-
-  const close = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("driver_days").update({
-        end_time: new Date().toISOString(), km_final: end.km_final, fuel_final: end.fuel_final,
-      }).eq("id", today!.id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Dia fechado"); qc.invalidateQueries(); },
   });
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <PageHeader title="Operação do Motorista" description="Abertura e fechamento do dia com checklist." />
+      <PageHeader title="Turnos Motorista" description="Abre o turno indicando o tipo de operação (Privado, TVDE, Interno)." />
 
-      {!today ? (
+      {!shift ? (
         <Card className="p-6 space-y-4">
-          <h3 className="font-semibold">Abrir o dia</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Veículo</Label>
-              <Select value={form.vehicle_id} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
-                <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>)}</SelectContent>
+          <h3 className="font-semibold">Abrir turno</h3>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div><Label>Tipo de operação</Label>
+              <Select value={form.operation_type} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="privado">Serviço privado</SelectItem>
+                  <SelectItem value="tvde">Plataforma TVDE</SelectItem>
+                  <SelectItem value="interno">Uso interno</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: Number(e.target.value) })} /></div>
-            <div><Label>Combustível (%)</Label><Input type="number" min={0} max={100} value={form.fuel_initial} onChange={(e) => setForm({ ...form, fuel_initial: Number(e.target.value) })} /></div>
-          </div>
-          <div>
-            <Label className="mb-2 block">Checklist</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {items.map((i: any) => (
-                <label key={i.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={!!form.checks[i.id]} onCheckedChange={(v) => setForm({ ...form, checks: { ...form.checks, [i.id]: !!v } })} />
-                  {i.name}
-                </label>
-              ))}
+            <div><Label>Veículo</Label>
+              <Select value={form.vehicle_id} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand} {v.model}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
+            <div><Label>Km inicial</Label><Input type="number" value={form.km_initial} onChange={(e) => setForm({ ...form, km_initial: e.target.value })} /></div>
           </div>
-          <Button className="gradient-gold text-gold-foreground" onClick={() => open.mutate()} disabled={!form.vehicle_id}>Abrir Dia</Button>
+          <Button className="gradient-gold text-gold-foreground" onClick={() => open.mutate()} disabled={!form.vehicle_id}>Abrir turno</Button>
         </Card>
       ) : (
-        <Card className="p-6 space-y-4">
+        <Card className="p-6">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Dia em curso · abriu às {new Date(today.start_time).toLocaleTimeString("pt-PT")}</h3>
-            <span className="text-sm text-muted-foreground">Km inicial: {today.km_initial}</span>
+            <div>
+              <div className="text-sm text-muted-foreground">Turno em curso</div>
+              <div className="font-semibold">Tipo: <Badge>{shift.operation_type}</Badge> · Iniciado {new Date(shift.start_time).toLocaleTimeString("pt-PT")}</div>
+            </div>
+            {shift.operation_type === "tvde"
+              ? <Link to="/tvde" className="text-primary underline">Ir para fechamento TVDE →</Link>
+              : <span className="text-sm text-muted-foreground">Fecha os serviços privados nas respetivas OCs</span>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Km final</Label><Input type="number" value={end.km_final} onChange={(e) => setEnd({ ...end, km_final: Number(e.target.value) })} /></div>
-            <div><Label>Combustível final (%)</Label><Input type="number" value={end.fuel_final} onChange={(e) => setEnd({ ...end, fuel_final: Number(e.target.value) })} /></div>
-          </div>
-          <Button variant="destructive" onClick={() => close.mutate()}>Fechar Dia</Button>
         </Card>
       )}
 
       <Card>
-        <div className="p-6 pb-0"><h3 className="font-semibold">Histórico</h3></div>
+        <div className="p-5 pb-0"><h3 className="font-semibold">Meus últimos serviços</h3></div>
         <Table>
-          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Veículo</TableHead><TableHead>Km</TableHead><TableHead>Combustível</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>OC</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader>
           <TableBody>
-            {history.map((h: any) => (
-              <TableRow key={h.id}>
-                <TableCell>{h.date}</TableCell>
-                <TableCell>{h.vehicles?.plate ?? "—"}</TableCell>
-                <TableCell>{h.km_initial ?? 0} → {h.km_final ?? "—"}</TableCell>
-                <TableCell>{h.fuel_initial ?? 0}% → {h.fuel_final ?? "—"}%</TableCell>
+            {myOCs.map((s: any) => (
+              <TableRow key={s.id}>
+                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code}</Link></TableCell>
+                <TableCell>{s.service_date} {s.start_time?.slice(0,5)}</TableCell>
+                <TableCell>{s.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
+                <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
               </TableRow>
             ))}
           </TableBody>
