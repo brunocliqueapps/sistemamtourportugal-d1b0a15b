@@ -121,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <>
           <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-[85vw] max-w-xs z-50 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border overflow-y-auto">
             {SideContent}
           </aside>
         </>
