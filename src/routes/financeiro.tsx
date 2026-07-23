@@ -226,7 +226,7 @@ function Financeiro() {
           <Tabs value={kind} onValueChange={(v) => setKind(v as any)} className="mb-2">
             <TabsList><TabsTrigger value="entrada">Entrada</TabsTrigger><TabsTrigger value="saida">Saída</TabsTrigger></TabsList>
           </Tabs>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div><Label>Tipo doc</Label>
               <Select value={f.doc_type} onValueChange={(v) => setF({ ...f, doc_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

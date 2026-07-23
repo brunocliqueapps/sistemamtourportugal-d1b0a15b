@@ -73,12 +73,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               const Icon = n.icon;
               return (
                 <Link key={n.to} to={n.to} onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-md text-sm transition-colors ${
                     active ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                            : "hover:bg-sidebar-accent text-sidebar-foreground/90"
                   }`}>
-                  <Icon className="h-4 w-4" />
-                  {n.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{n.label}</span>
                 </Link>
               );
             })}
@@ -121,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <>
           <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-[85vw] max-w-xs z-50 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border overflow-y-auto">
             {SideContent}
           </aside>
         </>
@@ -131,18 +131,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="hidden md:flex items-center justify-end gap-2 border-b border-border px-6 py-2 bg-background/70 backdrop-blur">
           <GlobalSearch />
         </div>
-        <div className="md:hidden flex items-center justify-between border-b border-border px-4 py-3 bg-sidebar text-sidebar-foreground">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="text-sidebar-foreground"><Menu className="h-5 w-5" /></Button>
-            <Logo className="h-8 w-8" />
-            <span className="font-bold text-sidebar-primary">MTOUR</span>
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border px-3 py-2 bg-sidebar text-sidebar-foreground">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="text-sidebar-foreground h-11 w-11 shrink-0" aria-label="Abrir menu"><Menu className="h-5 w-5" /></Button>
+            <Logo className="h-8 w-8 shrink-0" />
+            <span className="font-bold text-sidebar-primary truncate">MTOUR</span>
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <GlobalSearch />
-            <Button variant="ghost" size="sm" onClick={toggle} className="text-sidebar-foreground">
+            <Button variant="ghost" size="icon" onClick={toggle} className="text-sidebar-foreground h-11 w-11" aria-label="Alternar tema">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-sidebar-foreground">
+            <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground h-11 w-11" aria-label="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
