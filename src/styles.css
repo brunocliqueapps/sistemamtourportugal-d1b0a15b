@@ -148,10 +148,51 @@
     border-color: var(--color-border);
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "ss01", "cv11";
+    overflow-x: hidden;
+  }
+
+  img,
+  svg,
+  video,
+  canvas,
+  iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Prevent iOS zoom on focus */
+  @media (max-width: 640px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* WCAG touch targets on coarse pointers */
+  @media (pointer: coarse) {
+    button:not([data-size="icon"]),
+    [role="button"]:not([data-size="icon"]),
+    [data-slot="button"]:not([data-size="icon"]),
+    a[data-slot="button"]:not([data-size="icon"]) {
+      min-height: 44px;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .table-nowrap td,
+  .table-nowrap th {
+    white-space: nowrap;
   }
 }
 
