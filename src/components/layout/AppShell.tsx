@@ -131,18 +131,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="hidden md:flex items-center justify-end gap-2 border-b border-border px-6 py-2 bg-background/70 backdrop-blur">
           <GlobalSearch />
         </div>
-        <div className="md:hidden flex items-center justify-between border-b border-border px-4 py-3 bg-sidebar text-sidebar-foreground">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="text-sidebar-foreground"><Menu className="h-5 w-5" /></Button>
-            <Logo className="h-8 w-8" />
-            <span className="font-bold text-sidebar-primary">MTOUR</span>
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border px-3 py-2 bg-sidebar text-sidebar-foreground">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="text-sidebar-foreground h-11 w-11 shrink-0" aria-label="Abrir menu"><Menu className="h-5 w-5" /></Button>
+            <Logo className="h-8 w-8 shrink-0" />
+            <span className="font-bold text-sidebar-primary truncate">MTOUR</span>
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <GlobalSearch />
-            <Button variant="ghost" size="sm" onClick={toggle} className="text-sidebar-foreground">
+            <Button variant="ghost" size="icon" onClick={toggle} className="text-sidebar-foreground h-11 w-11" aria-label="Alternar tema">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-sidebar-foreground">
+            <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground h-11 w-11" aria-label="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
