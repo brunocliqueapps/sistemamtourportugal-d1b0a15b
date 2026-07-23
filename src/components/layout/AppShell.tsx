@@ -73,12 +73,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               const Icon = n.icon;
               return (
                 <Link key={n.to} to={n.to} onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-md text-sm transition-colors ${
                     active ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                            : "hover:bg-sidebar-accent text-sidebar-foreground/90"
                   }`}>
-                  <Icon className="h-4 w-4" />
-                  {n.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{n.label}</span>
                 </Link>
               );
             })}
