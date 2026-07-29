@@ -8,17 +8,19 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
-export type FieldType = "text" | "number" | "date" | "email" | "phone" | "checkbox" | "textarea";
+export type FieldType = "text" | "number" | "date" | "email" | "phone" | "checkbox" | "textarea" | "select";
 export interface CrudField {
   key: string;
   label: string;
   type?: FieldType;
   required?: boolean;
   step?: string;
+  options?: { value: string; label: string }[];
 }
 
 const EXPIRY_META: Record<string, { primaryKey: string; entityLabel: string; category: string }> = {
@@ -157,6 +159,13 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
                   <div className="flex items-center h-9">
                     <Checkbox checked={!!form[f.key]} onCheckedChange={(v) => setForm({ ...form, [f.key]: !!v })} />
                   </div>
+                ) : f.type === "select" ? (
+                  <Select value={form[f.key] ?? ""} onValueChange={(v) => setForm({ ...form, [f.key]: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      {(f.options ?? []).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 ) : f.type === "textarea" ? (
                   <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
                     value={form[f.key] ?? ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />

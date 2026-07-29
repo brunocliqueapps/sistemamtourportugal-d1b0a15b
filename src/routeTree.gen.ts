@@ -22,9 +22,11 @@ import { Route as ImportarRouteImport } from './routes/importar'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as FechamentoRouteImport } from './routes/fechamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CustosFixosRouteImport } from './routes/custos-fixos'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ContaCorrenteRouteImport } from './routes/conta-corrente'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ComissoesRouteImport } from './routes/comissoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CadastrosRouteImport } from './routes/cadastros'
 import { Route as AlertasRouteImport } from './routes/alertas'
@@ -98,6 +100,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustosFixosRoute = CustosFixosRouteImport.update({
+  id: '/custos-fixos',
+  path: '/custos-fixos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrmRoute = CrmRouteImport.update({
   id: '/crm',
   path: '/crm',
@@ -111,6 +118,11 @@ const ContaCorrenteRoute = ContaCorrenteRouteImport.update({
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComissoesRoute = ComissoesRouteImport.update({
+  id: '/comissoes',
+  path: '/comissoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesRoute = ClientesRouteImport.update({
@@ -155,9 +167,11 @@ export interface FileRoutesByFullPath {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
+  '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
@@ -180,9 +194,11 @@ export interface FileRoutesByTo {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
+  '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
@@ -206,9 +222,11 @@ export interface FileRoutesById {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
+  '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
@@ -233,9 +251,11 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
+    | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
     | '/financeiro'
@@ -258,9 +278,11 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
+    | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
     | '/financeiro'
@@ -283,9 +305,11 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
+    | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
     | '/financeiro'
@@ -309,9 +333,11 @@ export interface RootRouteChildren {
   AlertasRoute: typeof AlertasRoute
   CadastrosRoute: typeof CadastrosRoute
   ClientesRoute: typeof ClientesRoute
+  ComissoesRoute: typeof ComissoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContaCorrenteRoute: typeof ContaCorrenteRoute
   CrmRoute: typeof CrmRoute
+  CustosFixosRoute: typeof CustosFixosRoute
   DashboardRoute: typeof DashboardRoute
   FechamentoRoute: typeof FechamentoRoute
   FinanceiroRoute: typeof FinanceiroRoute
@@ -421,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/custos-fixos': {
+      id: '/custos-fixos'
+      path: '/custos-fixos'
+      fullPath: '/custos-fixos'
+      preLoaderRoute: typeof CustosFixosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crm': {
       id: '/crm'
       path: '/crm'
@@ -440,6 +473,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comissoes': {
+      id: '/comissoes'
+      path: '/comissoes'
+      fullPath: '/comissoes'
+      preLoaderRoute: typeof ComissoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes': {
@@ -510,9 +550,11 @@ const rootRouteChildren: RootRouteChildren = {
   AlertasRoute: AlertasRoute,
   CadastrosRoute: CadastrosRoute,
   ClientesRoute: ClientesRoute,
+  ComissoesRoute: ComissoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContaCorrenteRoute: ContaCorrenteRoute,
   CrmRoute: CrmRoute,
+  CustosFixosRoute: CustosFixosRoute,
   DashboardRoute: DashboardRoute,
   FechamentoRoute: FechamentoRoute,
   FinanceiroRoute: FinanceiroRoute,

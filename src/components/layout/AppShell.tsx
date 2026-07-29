@@ -37,7 +37,8 @@ const groups: Group[] = [
   { label: "Financeiro", items: [
     { to: "/financeiro", label: "Faturas", icon: Wallet, module: "financeiro" },
     { to: "/conta-corrente", label: "Conta Corrente e Movimentos", icon: Landmark, module: "conta_corrente" },
-
+    { to: "/custos-fixos", label: "Custos Fixos", icon: Calculator, module: "conta_corrente" },
+    { to: "/comissoes", label: "Comissões Semanais", icon: BarChart3, module: "conta_corrente" },
     { to: "/fechamento", label: "Fechamento Mensal", icon: Calculator, module: "fechamento" },
     { to: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
   ]},

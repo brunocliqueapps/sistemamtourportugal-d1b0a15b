@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntityCrud, type CrudField } from "@/components/EntityCrud";
+import { VehicleDrivers } from "@/components/VehicleDrivers";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
@@ -14,6 +15,23 @@ const clientes: CrudField[] = [
 const motoristas: CrudField[] = [
   { key: "full_name", label: "Nome", required: true },
   { key: "phone", label: "Telefone" }, { key: "email", label: "Email", type: "email" },
+  { key: "nif", label: "NIF" }, { key: "address", label: "Morada" },
+  { key: "id_document_type", label: "Documento de identificação", type: "select", options: [
+    { value: "cartao_cidadao", label: "Cartão de Cidadão" },
+    { value: "titulo_residencia", label: "Título de Residência" },
+    { value: "passaporte", label: "Passaporte" },
+  ]},
+  { key: "id_document_number", label: "Nº documento" },
+  { key: "id_document_expiry", label: "Validade documento", type: "date" },
+  { key: "criminal_record", label: "Registo criminal entregue", type: "checkbox" },
+  { key: "criminal_record_expiry", label: "Validade registo criminal (opcional)", type: "date" },
+  { key: "contract_type", label: "Vínculo", type: "select", options: [
+    { value: "contratado", label: "Contratado" },
+    { value: "funcionario_fixo", label: "Funcionário Fixo" },
+  ]},
+  { key: "commission_pct", label: "Recebe por percentagem (%)", type: "select", options: [
+    { value: "20", label: "20%" }, { value: "30", label: "30%" }, { value: "40", label: "40%" }, { value: "50", label: "50%" },
+  ]},
   { key: "license_number", label: "Nº Carta" }, { key: "license_expiry", label: "Validade Carta", type: "date" },
   { key: "tvde_card_number", label: "Nº Cartão TVDE" }, { key: "tvde_card_expiry", label: "Validade TVDE", type: "date" },
   { key: "hire_date", label: "Data admissão", type: "date" }, { key: "active", label: "Ativo", type: "checkbox" },
@@ -22,6 +40,11 @@ const veiculos: CrudField[] = [
   { key: "plate", label: "Matrícula", required: true },
   { key: "brand", label: "Marca" }, { key: "model", label: "Modelo" }, { key: "year", label: "Ano", type: "number" },
   { key: "color", label: "Cor" }, { key: "seats", label: "Lugares", type: "number" }, { key: "fuel_type", label: "Combustível" },
+  { key: "usage_type", label: "Utilização", type: "select", options: [
+    { value: "proprio", label: "Uso próprio" }, { value: "aluguel", label: "Aluguel" },
+  ]},
+  { key: "owner_company", label: "Empresa proprietária (parceiro)" },
+  { key: "rental_weekly_cost", label: "Custo semanal aluguer (€)", type: "number", step: "0.01" },
   { key: "operates_tvde", label: "Opera TVDE", type: "checkbox" },
   { key: "insurance_expiry", label: "Seguro (valid.)", type: "date" },
   { key: "inspection_expiry", label: "Inspeção (valid.)", type: "date" },
@@ -32,32 +55,37 @@ const veiculos: CrudField[] = [
 const funcionarios: CrudField[] = [
   { key: "full_name", label: "Nome", required: true }, { key: "role", label: "Função" },
   { key: "email", label: "Email", type: "email" }, { key: "phone", label: "Telefone" },
+  { key: "nif", label: "NIF" }, { key: "address", label: "Morada" },
+  { key: "citizen_card_number", label: "Cartão de cidadão" }, { key: "citizen_card_expiry", label: "Validade CC", type: "date" },
+  { key: "residence_permit_number", label: "Título de residência" }, { key: "residence_permit_expiry", label: "Validade TR", type: "date" },
+  { key: "criminal_record", label: "Registo criminal entregue", type: "checkbox" },
+  { key: "criminal_record_expiry", label: "Validade registo criminal (opcional)", type: "date" },
+  { key: "salary", label: "Salário mensal (€)", type: "number", step: "0.01" },
+  { key: "salary_pay_day", label: "Dia de pagamento", type: "number" },
   { key: "hire_date", label: "Admissão", type: "date" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
 const fornecedores: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "nif", label: "NIF" }, { key: "category", label: "Categoria" },
-  { key: "email", label: "Email" }, { key: "phone", label: "Telefone" }, { key: "address", label: "Morada" },
+  { key: "company_name", label: "Nome da empresa", required: true },
+  { key: "name", label: "Nome comercial" },
+  { key: "contact_person", label: "Nome do responsável" },
+  { key: "products_services", label: "Produtos / Serviços", type: "textarea" },
+  { key: "nif", label: "NIF" }, { key: "category", label: "Categoria" },
+  { key: "email", label: "Email" }, { key: "phone", label: "Telefone", type: "phone" }, { key: "address", label: "Morada" },
   { key: "active", label: "Ativo", type: "checkbox" },
 ];
 const parceiros: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "type", label: "Tipo" }, { key: "nif", label: "NIF" },
-  { key: "email", label: "Email" }, { key: "phone", label: "Telefone" }, { key: "commission_pct", label: "Comissão %", type: "number", step: "0.01" },
+  { key: "name", label: "Nome", required: true },
+  { key: "partner_type", label: "Tipo", type: "select", options: [
+    { value: "hotel", label: "Hotel" }, { value: "restaurante", label: "Restaurante" },
+    { value: "agencia", label: "Agência" }, { value: "outro", label: "Outro" },
+  ]},
+  { key: "other_type_label", label: "Se outro, indicar" },
+  { key: "contact_person", label: "Nome do responsável" },
+  { key: "nif", label: "NIF" },
+  { key: "email", label: "Email" }, { key: "phone", label: "Telefone", type: "phone" },
+  { key: "address", label: "Morada" },
+  { key: "commission_pct", label: "Comissão %", type: "number", step: "0.01" },
   { key: "active", label: "Ativo", type: "checkbox" },
-];
-const hoteis: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "city", label: "Cidade" }, { key: "address", label: "Morada" },
-  { key: "phone", label: "Telefone" }, { key: "email", label: "Email" }, { key: "contact_person", label: "Contacto" },
-  { key: "active", label: "Ativo", type: "checkbox" },
-];
-const restaurantes: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "city", label: "Cidade" }, { key: "cuisine", label: "Cozinha" },
-  { key: "address", label: "Morada" }, { key: "phone", label: "Telefone" }, { key: "email", label: "Email" },
-  { key: "active", label: "Ativo", type: "checkbox" },
-];
-const agencias: CrudField[] = [
-  { key: "name", label: "Nome", required: true }, { key: "nif", label: "NIF" },
-  { key: "contact_person", label: "Contacto" }, { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
-  { key: "commission_pct", label: "Comissão %", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
 const produtos: CrudField[] = [
   { key: "name", label: "Nome", required: true }, { key: "kind", label: "Tipo" },
@@ -84,28 +112,25 @@ function Cadastros() {
           <TabsTrigger value="employees">Funcionários</TabsTrigger>
           <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
           <TabsTrigger value="partners">Parceiros</TabsTrigger>
-          <TabsTrigger value="hotels">Hotéis</TabsTrigger>
-          <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
-          <TabsTrigger value="agencies">Agências</TabsTrigger>
           <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
           <TabsTrigger value="routes">Roteiros</TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
           <TabsContent value="clients"><EntityCrud table="clients" title="Clientes" fields={clientes} columns={["name","nif","email","phone"]} /></TabsContent>
-          <TabsContent value="drivers"><EntityCrud table="drivers" title="Motoristas" fields={motoristas} columns={["full_name","phone","license_expiry","tvde_card_expiry"]} /></TabsContent>
-          <TabsContent value="vehicles"><EntityCrud table="vehicles" title="Veículos" fields={veiculos} columns={["plate","brand","model","seats"]} /></TabsContent>
-          <TabsContent value="employees"><EntityCrud table="employees" title="Funcionários" fields={funcionarios} columns={["full_name","role","phone","active"]} /></TabsContent>
-          <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["name","nif","category","phone"]} /></TabsContent>
-          <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","type","commission_pct","active"]} /></TabsContent>
-          <TabsContent value="hotels"><EntityCrud table="hotels" title="Hotéis" fields={hoteis} columns={["name","city","phone","contact_person"]} /></TabsContent>
-          <TabsContent value="restaurants"><EntityCrud table="restaurants" title="Restaurantes" fields={restaurantes} columns={["name","city","cuisine","phone"]} /></TabsContent>
-          <TabsContent value="agencies"><EntityCrud table="agencies" title="Agências" fields={agencias} columns={["name","nif","commission_pct","active"]} /></TabsContent>
+          <TabsContent value="drivers"><EntityCrud table="drivers" title="Motoristas" fields={motoristas} columns={["full_name","phone","contract_type","commission_pct","license_expiry"]} /></TabsContent>
+          <TabsContent value="vehicles" className="space-y-8">
+            <EntityCrud table="vehicles" title="Veículos" fields={veiculos} columns={["plate","brand","model","usage_type","seats"]} />
+            <VehicleDrivers />
+          </TabsContent>
+          <TabsContent value="employees"><EntityCrud table="employees" title="Funcionários" fields={funcionarios} columns={["full_name","role","phone","salary","active"]} /></TabsContent>
+          <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["company_name","contact_person","products_services","phone"]} /></TabsContent>
+          <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","partner_type","contact_person","phone"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
           <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["name","region","duration_hours","default_price"]} /></TabsContent>
         </div>
       </Tabs>
-      <p className="text-xs text-muted-foreground mt-4">Centros de custo, contas bancárias, formas de pagamento e taxas de IVA foram movidos para <b>Configurações</b>.</p>
+      <p className="text-xs text-muted-foreground mt-4">Hotéis, restaurantes e agências passaram a ser geridos em <b>Parceiros</b> (por tipo). Centros de custo, contas bancárias, formas de pagamento e taxas de IVA estão em <b>Configurações</b>.</p>
     </div>
   );
 }

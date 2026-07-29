@@ -12,26 +12,14 @@ import { useState } from "react";
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
 const STATUS_LABEL: Record<string, string> = {
-  agendado: "Agendado",
-  confirmado: "Confirmado",
-  motorista_designado: "Motorista designado",
-  em_deslocacao: "Em deslocação",
-  cliente_a_bordo: "Cliente a bordo",
-  em_execucao: "Em execução",
-  finalizado: "Finalizado",
-  cancelado: "Cancelado",
-  nao_realizado: "Não realizado",
+  para_atendimento: "Para Atendimento",
+  em_atendimento: "Em Atendimento",
+  atendimento_finalizado: "Atendimento Finalizado",
 };
 const STATUS_CLASS: Record<string, string> = {
-  agendado: "bg-slate-500",
-  confirmado: "bg-blue-500",
-  motorista_designado: "bg-indigo-500",
-  em_deslocacao: "bg-amber-500",
-  cliente_a_bordo: "bg-amber-600",
-  em_execucao: "bg-orange-500",
-  finalizado: "bg-emerald-600",
-  cancelado: "bg-rose-600",
-  nao_realizado: "bg-zinc-600",
+  para_atendimento: "bg-slate-500",
+  em_atendimento: "bg-amber-500",
+  atendimento_finalizado: "bg-emerald-600",
 };
 
 function paymentBadge(sale: number, received: number) {
@@ -45,17 +33,26 @@ function Agenda() {
   const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
   const [range, setRange] = useState<"day" | "week" | "month">("week");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [vehicleFilter, setVehicleFilter] = useState<string>("all");
+  const [driverFilter, setDriverFilter] = useState<string>("all");
+  const [year, setYear] = useState<string>("all");
   const days = range === "day" ? 0 : range === "week" ? 6 : 30;
   const to = new Date(new Date(from).getTime() + days * 86400000).toISOString().slice(0, 10);
 
+  const { data: vehicles = [] } = useQuery({ queryKey: ["agenda-vehicles"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,owner_company").order("plate")).data ?? [] });
+  const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
+
   const { data } = useQuery({
-    queryKey: ["agenda", from, range, statusFilter],
+    queryKey: ["agenda", from, range, statusFilter, vehicleFilter, driverFilter, year],
     queryFn: async () => {
       let q = supabase.from("service_orders")
-        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model)")
-        .gte("service_date", from).lte("service_date", to)
+        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company)")
+        .gte("service_date", year === "all" ? from : `${year}-01-01`)
+        .lte("service_date", year === "all" ? to : `${year}-12-31`)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
+      if (driverFilter !== "all") q = q.eq("driver_id", driverFilter);
       const { data } = await q;
       return data ?? [];
     },
@@ -73,7 +70,14 @@ function Agenda() {
         description="Serviços agendados com informações rápidas por cliente."
         actions={
           <div className="flex flex-wrap gap-2 items-center">
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-44" />
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-44" disabled={year !== "all"} />
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Por período</SelectItem>
+                {Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - 2 + i)).map((y) => <SelectItem key={y} value={y}>Ano {y}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Select value={range} onValueChange={(v) => setRange(v as any)}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -87,6 +91,20 @@ function Agenda() {
               <SelectContent>
                 <SelectItem value="all">Todos os estados</SelectItem>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os veículos</SelectItem>
+                {vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={driverFilter} onValueChange={setDriverFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motoristas</SelectItem>
+                {driversList.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
