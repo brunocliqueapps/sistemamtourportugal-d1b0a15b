@@ -47,6 +47,9 @@ function Clientes() {
   const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form };
+      delete payload.client_number; // número de cliente é fixo
+      delete payload.id; delete payload.created_at; delete payload.updated_at; delete payload.lead_id;
+      payload.passengers = payload.passengers === "" || payload.passengers == null ? null : Number(payload.passengers);
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
         const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
