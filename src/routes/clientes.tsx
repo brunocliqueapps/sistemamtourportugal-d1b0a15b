@@ -67,6 +67,8 @@ function Clientes() {
     onSuccess: () => {
       toast.success("Guardado");
       qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["next-client-number"] });
+
       setOpen(false); setEditing(null); setForm(emptyClient);
     },
     onError: (e: any) => toast.error(e.message),
