@@ -9,12 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoucherRouteImport } from './routes/voucher'
 import { Route as TvdeRouteImport } from './routes/tvde'
 import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
 import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
+import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OcRouteImport } from './routes/oc'
 import { Route as ImportarRouteImport } from './routes/importar'
@@ -32,6 +34,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
 
+const VoucherRoute = VoucherRouteImport.update({
+  id: '/voucher',
+  path: '/voucher',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TvdeRoute = TvdeRouteImport.update({
   id: '/tvde',
   path: '/tvde',
@@ -60,6 +67,11 @@ const PropostasRoute = PropostasRouteImport.update({
 const PosVendaRoute = PosVendaRouteImport.update({
   id: '/pos-venda',
   path: '/pos-venda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrcamentoRoute = OrcamentoRouteImport.update({
+  id: '/orcamento',
+  path: '/orcamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OperacaoRoute = OperacaoRouteImport.update({
@@ -158,12 +170,14 @@ export interface FileRoutesByFullPath {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -182,12 +196,14 @@ export interface FileRoutesByTo {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -207,12 +223,14 @@ export interface FileRoutesById {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -233,12 +251,14 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -257,12 +277,14 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   id:
@@ -281,12 +303,14 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   fileRoutesById: FileRoutesById
@@ -306,17 +330,26 @@ export interface RootRouteChildren {
   ImportarRoute: typeof ImportarRoute
   OcRoute: typeof OcRouteWithChildren
   OperacaoRoute: typeof OperacaoRoute
+  OrcamentoRoute: typeof OrcamentoRoute
   PosVendaRoute: typeof PosVendaRoute
   PropostasRoute: typeof PropostasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   RoteiroRoute: typeof RoteiroRoute
   ServicosPrivadosRoute: typeof ServicosPrivadosRoute
   TvdeRoute: typeof TvdeRoute
+  VoucherRoute: typeof VoucherRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voucher': {
+      id: '/voucher'
+      path: '/voucher'
+      fullPath: '/voucher'
+      preLoaderRoute: typeof VoucherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tvde': {
       id: '/tvde'
       path: '/tvde'
@@ -357,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/pos-venda'
       fullPath: '/pos-venda'
       preLoaderRoute: typeof PosVendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orcamento': {
+      id: '/orcamento'
+      path: '/orcamento'
+      fullPath: '/orcamento'
+      preLoaderRoute: typeof OrcamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/operacao': {
@@ -499,12 +539,14 @@ const rootRouteChildren: RootRouteChildren = {
   ImportarRoute: ImportarRoute,
   OcRoute: OcRouteWithChildren,
   OperacaoRoute: OperacaoRoute,
+  OrcamentoRoute: OrcamentoRoute,
   PosVendaRoute: PosVendaRoute,
   PropostasRoute: PropostasRoute,
   RelatoriosRoute: RelatoriosRoute,
   RoteiroRoute: RoteiroRoute,
   ServicosPrivadosRoute: ServicosPrivadosRoute,
   TvdeRoute: TvdeRoute,
+  VoucherRoute: VoucherRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
 }
 export const routeTree = rootRouteImport
