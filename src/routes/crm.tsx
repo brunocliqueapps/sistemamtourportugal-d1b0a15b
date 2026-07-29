@@ -219,10 +219,12 @@ function CRM() {
             <TableHeader>
               <TableRow>
                 <TableHead>Código</TableHead>
+                <TableHead>Nº cliente</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Origem</TableHead>
+                <TableHead>Temperatura</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -231,10 +233,16 @@ function CRM() {
               {leads.filter((l: any) => showArchivedList ? l.archived : true).map((l: any) => (
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
                   <TableCell className="font-mono text-xs">{l.code}</TableCell>
+                  <TableCell className="font-mono text-xs">{l.client_number ?? "—"}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
                   <TableCell className="text-sm">{l.email}</TableCell>
-                  <TableCell className="text-sm">{l.phone}</TableCell>
+                  <TableCell className="text-sm">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</TableCell>
                   <TableCell className="text-sm">{l.origin}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.cls}>
+                      {TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.label ?? l.temperature}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{cols.find((c) => c.key === l.status)?.label ?? l.status}</Badge>
                     {l.archived && <Badge variant="secondary" className="ml-1">Arquivado</Badge>}
