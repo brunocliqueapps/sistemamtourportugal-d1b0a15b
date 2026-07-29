@@ -29,7 +29,7 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), drivers(full_name), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,operation_type,itinerary,total_value,notes)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), drivers(full_name), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
