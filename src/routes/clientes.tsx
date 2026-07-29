@@ -17,7 +17,18 @@ import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
-const emptyClient = { name: "", nif: "", email: "", phone: "", city: "", country: "", address: "", notes: "" };
+const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+
+const PHONE_COUNTRIES = [
+  "+351", "+55", "+34", "+33", "+44", "+49", "+39", "+1", "+41", "+31", "+353", "+352", "+244", "+238", "+258",
+];
+
+const emptyClient = {
+  name: "", nif: "", email: "", phone: "", phone_country: "+351", origin: "",
+  birth_date: "", emergency_contact: "", city: "", country: "", address: "", notes: "",
+  arrival_date: "", arrival_time: "", arrival_place: "",
+  departure_date: "", departure_time: "", departure_place: "", passengers: "",
+};
 
 function Clientes() {
   const qc = useQueryClient();
