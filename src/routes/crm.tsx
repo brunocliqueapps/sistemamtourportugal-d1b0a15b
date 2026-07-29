@@ -76,11 +76,16 @@ function CRM() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const payload: any = { ...form };
+      for (const k of ["birth_date", "arrival_date", "arrival_time", "departure_date", "departure_time"]) {
+        if (!payload[k]) payload[k] = null;
+      }
+      payload.passengers = payload.passengers === "" || payload.passengers == null ? null : Number(payload.passengers);
       if (editing?.id) {
-        const { error } = await supabase.from("leads").update(form).eq("id", editing.id);
+        const { error } = await supabase.from("leads").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("leads").insert(form);
+        const { error } = await supabase.from("leads").insert(payload);
         if (error) throw error;
       }
     },
