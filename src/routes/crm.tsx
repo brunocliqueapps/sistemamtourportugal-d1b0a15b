@@ -33,23 +33,8 @@ const TEMPS: { key: string; label: string; cls: string }[] = [
   { key: "quente", label: "Quente", cls: "bg-red-500/15 text-red-600 dark:text-red-300 border-red-500/30" },
 ];
 
-const PHONE_COUNTRIES = [
-  { code: "+351", label: "🇵🇹 Portugal +351" },
-  { code: "+55", label: "🇧🇷 Brasil +55" },
-  { code: "+34", label: "🇪🇸 Espanha +34" },
-  { code: "+33", label: "🇫🇷 França +33" },
-  { code: "+44", label: "🇬🇧 Reino Unido +44" },
-  { code: "+49", label: "🇩🇪 Alemanha +49" },
-  { code: "+39", label: "🇮🇹 Itália +39" },
-  { code: "+1", label: "🇺🇸 EUA/Canadá +1" },
-  { code: "+41", label: "🇨🇭 Suíça +41" },
-  { code: "+31", label: "🇳🇱 Países Baixos +31" },
-  { code: "+353", label: "🇮🇪 Irlanda +353" },
-  { code: "+352", label: "🇱🇺 Luxemburgo +352" },
-  { code: "+244", label: "🇦🇴 Angola +244" },
-  { code: "+238", label: "🇨🇻 Cabo Verde +238" },
-  { code: "+258", label: "🇲🇿 Moçambique +258" },
-];
+
+
 
 const empty = {
   name: "", email: "", phone: "", phone_country: "+351", origin: "", status: "novo",
