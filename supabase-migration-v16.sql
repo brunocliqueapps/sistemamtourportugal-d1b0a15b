@@ -100,6 +100,20 @@ insert into public.status_options (domain, code, label, sort, active) values
   ('oc_operational_status','atendimento_finalizado','Atendimento Finalizado',3,true)
 on conflict do nothing;
 
+-- A coluna status é um enum antigo (service_status). Convertemos para texto
+-- para permitir os novos estados geridos em status_options.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'service_orders'
+      and column_name = 'status' and data_type = 'USER-DEFINED'
+  ) then
+    alter table public.service_orders alter column status drop default;
+    alter table public.service_orders alter column status type text using status::text;
+  end if;
+end $$;
+
 update public.service_orders set status = 'para_atendimento'
   where status in ('agendado','confirmado','motorista_designado','reagendado');
 update public.service_orders set status = 'em_atendimento'
