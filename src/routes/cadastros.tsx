@@ -101,7 +101,6 @@ function Cadastros() {
       <Tabs defaultValue="drivers">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="drivers">Motoristas</TabsTrigger>
-          <TabsTrigger value="drivers">Motoristas</TabsTrigger>
           <TabsTrigger value="vehicles">Veículos</TabsTrigger>
           <TabsTrigger value="employees">Funcionários</TabsTrigger>
           <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
