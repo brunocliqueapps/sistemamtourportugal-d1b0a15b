@@ -41,6 +41,8 @@ function Clientes() {
   const [search, setSearch] = useState("");
   const [historyClient, setHistoryClient] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
+  const nextNumber = useNextClientNumber();
+
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients", "list"],
