@@ -15,6 +15,7 @@ import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
+import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OcRouteImport } from './routes/oc'
 import { Route as ImportarRouteImport } from './routes/importar'
@@ -60,6 +61,11 @@ const PropostasRoute = PropostasRouteImport.update({
 const PosVendaRoute = PosVendaRouteImport.update({
   id: '/pos-venda',
   path: '/pos-venda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrcamentoRoute = OrcamentoRouteImport.update({
+  id: '/orcamento',
+  path: '/orcamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OperacaoRoute = OperacaoRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/importar': typeof ImportarRoute
   '/oc': typeof OcRouteWithChildren
   '/operacao': typeof OperacaoRoute
+  '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/importar'
     | '/oc'
     | '/operacao'
+    | '/orcamento'
     | '/pos-venda'
     | '/propostas'
     | '/relatorios'
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   ImportarRoute: typeof ImportarRoute
   OcRoute: typeof OcRouteWithChildren
   OperacaoRoute: typeof OperacaoRoute
+  OrcamentoRoute: typeof OrcamentoRoute
   PosVendaRoute: typeof PosVendaRoute
   PropostasRoute: typeof PropostasRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/pos-venda'
       fullPath: '/pos-venda'
       preLoaderRoute: typeof PosVendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orcamento': {
+      id: '/orcamento'
+      path: '/orcamento'
+      fullPath: '/orcamento'
+      preLoaderRoute: typeof OrcamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/operacao': {
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImportarRoute: ImportarRoute,
   OcRoute: OcRouteWithChildren,
   OperacaoRoute: OperacaoRoute,
+  OrcamentoRoute: OrcamentoRoute,
   PosVendaRoute: PosVendaRoute,
   PropostasRoute: PropostasRoute,
   RelatoriosRoute: RelatoriosRoute,
