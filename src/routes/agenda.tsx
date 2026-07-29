@@ -93,6 +93,20 @@ function Agenda() {
                 {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os veículos</SelectItem>
+                {vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={driverFilter} onValueChange={setDriverFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motoristas</SelectItem>
+                {driversList.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         }
       />
