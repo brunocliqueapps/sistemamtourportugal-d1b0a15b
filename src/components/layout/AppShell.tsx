@@ -23,12 +23,11 @@ const groups: Group[] = [
     { to: "/clientes", label: "Clientes", icon: Users, module: "cadastros" },
     { to: "/propostas", label: "Proposta/Roteiro", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Orçamento", icon: Calculator, module: "propostas" },
-    { to: "/voucher", label: "Voucher", icon: FileText, module: "propostas" },
   ]},
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
+    { to: "/voucher", label: "Voucher", icon: FileText, module: "propostas" },
     { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
-    { to: "/operacao", label: "Serviços Motorista", icon: ClipboardList, module: "operacao" },
   ]},
   { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
