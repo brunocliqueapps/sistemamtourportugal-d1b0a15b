@@ -153,11 +153,16 @@ function Clientes() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} cliente</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {editing?.client_number && (
+            {editing?.client_number ? (
               <div className="text-xs text-muted-foreground">
                 Nº de cliente: <span className="font-mono font-semibold">{editing.client_number}</span> (fixo — todos os serviços começam por este número)
               </div>
-            )}
+            ) : nextNumber ? (
+              <div className="text-xs text-muted-foreground">
+                Nº de cliente a atribuir: <span className="font-mono font-semibold text-foreground">{nextNumber}</span>
+              </div>
+            ) : null}
+
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
