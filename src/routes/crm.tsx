@@ -129,6 +129,11 @@ function CRM() {
       if (existing?.id) throw new Error("Já existe cliente com este nome");
       const { error } = await supabase.from("clients").insert({
         name: l.name, email: l.email || null, phone: l.phone || null, notes: l.notes || null,
+        phone_country: l.phone_country || null, nif: l.nif || null, origin: l.origin || null,
+        birth_date: l.birth_date || null, emergency_contact: l.emergency_contact || null,
+        arrival_date: l.arrival_date || null, arrival_time: l.arrival_time || null, arrival_place: l.arrival_place || null,
+        departure_date: l.departure_date || null, departure_time: l.departure_time || null, departure_place: l.departure_place || null,
+        passengers: l.passengers ?? null, lead_id: l.id,
       });
       if (error) throw error;
       await supabase.from("leads").update({ status: "fechado" }).eq("id", l.id);
