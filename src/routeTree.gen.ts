@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoucherRouteImport } from './routes/voucher'
 import { Route as TvdeRouteImport } from './routes/tvde'
 import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
 import { Route as RoteiroRouteImport } from './routes/roteiro'
@@ -33,6 +34,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
 
+const VoucherRoute = VoucherRouteImport.update({
+  id: '/voucher',
+  path: '/voucher',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TvdeRoute = TvdeRouteImport.update({
   id: '/tvde',
   path: '/tvde',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
+  '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
 }
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   id:
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/roteiro'
     | '/servicos-privados'
     | '/tvde'
+    | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
   fileRoutesById: FileRoutesById
@@ -325,11 +337,19 @@ export interface RootRouteChildren {
   RoteiroRoute: typeof RoteiroRoute
   ServicosPrivadosRoute: typeof ServicosPrivadosRoute
   TvdeRoute: typeof TvdeRoute
+  VoucherRoute: typeof VoucherRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voucher': {
+      id: '/voucher'
+      path: '/voucher'
+      fullPath: '/voucher'
+      preLoaderRoute: typeof VoucherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tvde': {
       id: '/tvde'
       path: '/tvde'
@@ -526,6 +546,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoteiroRoute: RoteiroRoute,
   ServicosPrivadosRoute: ServicosPrivadosRoute,
   TvdeRoute: TvdeRoute,
+  VoucherRoute: VoucherRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
 }
 export const routeTree = rootRouteImport
