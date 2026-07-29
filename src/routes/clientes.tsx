@@ -15,6 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, History, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
+import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
+import { useNextClientNumber } from "@/lib/next-client-number";
+
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
