@@ -66,8 +66,16 @@ export function GlobalSearch() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Search className="h-4 w-4" /> Buscar <kbd className="hidden md:inline text-[10px] px-1 py-0.5 border rounded">⌘K</kbd>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        aria-label="Buscar"
+        className="gap-2 h-10 md:h-9 px-3 bg-transparent text-current border-current/40 hover:bg-current/10 hover:text-current"
+      >
+        <Search className="h-4 w-4 shrink-0 opacity-90" />
+        <span className="hidden sm:inline">Buscar</span>
+        <kbd className="hidden md:inline text-[10px] px-1 py-0.5 border border-current/40 rounded">⌘K</kbd>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
