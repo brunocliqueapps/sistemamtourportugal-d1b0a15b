@@ -4,7 +4,7 @@ import { useTheme } from "@/lib/theme";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Users, FileText, Wallet, ClipboardList, Moon, Sun, LogOut,
+  LayoutDashboard, Users, FileText, Wallet, Moon, Sun, LogOut,
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -23,12 +23,11 @@ const groups: Group[] = [
     { to: "/clientes", label: "Clientes", icon: Users, module: "cadastros" },
     { to: "/propostas", label: "Proposta/Roteiro", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Orçamento", icon: Calculator, module: "propostas" },
-    { to: "/voucher", label: "Voucher", icon: FileText, module: "propostas" },
   ]},
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
+    { to: "/voucher", label: "Voucher", icon: FileText, module: "propostas" },
     { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
-    { to: "/operacao", label: "Serviços Motorista", icon: ClipboardList, module: "operacao" },
   ]},
   { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
