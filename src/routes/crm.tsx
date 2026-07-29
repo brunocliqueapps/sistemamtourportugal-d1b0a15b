@@ -171,7 +171,10 @@ function CRM() {
                       <div className="text-xs text-muted-foreground">{l.code}</div>
                       <div className="font-medium truncate">{l.name}</div>
                       <div className="text-xs text-muted-foreground">{l.origin || "Sem origem"}</div>
-                      {l.phone && <div className="text-xs">{l.phone}</div>}
+                      {l.phone && <div className="text-xs">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</div>}
+                      <Badge variant="outline" className={`mt-1 text-[10px] ${TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.cls ?? ""}`}>
+                        {TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.label ?? l.temperature}
+                      </Badge>
                     </div>
                     <div className="flex flex-col gap-1">
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Visualizar" onClick={() => setViewing(l)}><Eye className="h-3 w-3" /></Button>
