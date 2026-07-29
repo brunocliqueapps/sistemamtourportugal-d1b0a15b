@@ -26,6 +26,7 @@ import { Route as CustosFixosRouteImport } from './routes/custos-fixos'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ContaCorrenteRouteImport } from './routes/conta-corrente'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ComissoesRouteImport } from './routes/comissoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CadastrosRouteImport } from './routes/cadastros'
 import { Route as AlertasRouteImport } from './routes/alertas'
@@ -119,6 +120,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ComissoesRoute = ComissoesRouteImport.update({
+  id: '/comissoes',
+  path: '/comissoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
   '/clientes': typeof ClientesRoute
+  '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
   '/crm': typeof CrmRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/cadastros'
     | '/clientes'
+    | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
     | '/crm'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   AlertasRoute: typeof AlertasRoute
   CadastrosRoute: typeof CadastrosRoute
   ClientesRoute: typeof ClientesRoute
+  ComissoesRoute: typeof ComissoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContaCorrenteRoute: typeof ContaCorrenteRoute
   CrmRoute: typeof CrmRoute
@@ -462,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/comissoes': {
+      id: '/comissoes'
+      path: '/comissoes'
+      fullPath: '/comissoes'
+      preLoaderRoute: typeof ComissoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
@@ -530,6 +550,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlertasRoute: AlertasRoute,
   CadastrosRoute: CadastrosRoute,
   ClientesRoute: ClientesRoute,
+  ComissoesRoute: ComissoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContaCorrenteRoute: ContaCorrenteRoute,
   CrmRoute: CrmRoute,
