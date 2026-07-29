@@ -82,6 +82,8 @@ function CRM() {
     onSuccess: () => {
       toast.success(editing ? "Lead atualizado" : "Lead criado");
       qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["next-client-number"] });
+
       setOpen(false); setEditing(null); setForm(empty);
     },
     onError: (e: any) => toast.error(e.message),
