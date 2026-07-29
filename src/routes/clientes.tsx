@@ -137,7 +137,7 @@ function Clientes() {
                   <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover cliente?")) del.mutate(c.id); }}>
+                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover cliente? Propostas, serviços e faturas associados também serão removidos.")) del.mutate(c.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
