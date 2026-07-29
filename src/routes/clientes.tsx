@@ -20,9 +20,8 @@ export const Route = createFileRoute("/clientes")({ component: Clientes });
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
 
-const PHONE_COUNTRIES = [
-  "+351", "+55", "+34", "+33", "+44", "+49", "+39", "+1", "+41", "+31", "+353", "+352", "+244", "+238", "+258",
-];
+
+
 
 const emptyClient = {
   name: "", nif: "", email: "", phone: "", phone_country: "+351", origin: "",
