@@ -267,12 +267,15 @@ function CRM() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar Lead" : "Novo Lead"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {editing?.client_number && (
+            {editing?.client_number ? (
               <div className="text-xs text-muted-foreground">Nº de cliente: <span className="font-mono">{editing.client_number}</span></div>
-            )}
+            ) : nextNumber ? (
+              <div className="text-xs text-muted-foreground">Nº de cliente a atribuir: <span className="font-mono font-semibold text-foreground">{nextNumber}</span></div>
+            ) : null}
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do lead</h4>
+
               <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
