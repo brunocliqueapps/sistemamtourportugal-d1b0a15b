@@ -263,7 +263,7 @@ function CRM() {
                 </TableRow>
               ))}
               {leads.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhum lead cadastrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum lead cadastrado</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
