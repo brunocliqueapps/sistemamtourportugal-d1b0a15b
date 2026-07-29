@@ -30,6 +30,7 @@ function ContaCorrente() {
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<string>("all");
+  const [kindFilter, setKindFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyMv);
@@ -37,7 +38,7 @@ function ContaCorrente() {
   const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
   const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
   const { data: mv = [] } = useQuery({
-    queryKey: ["cm", accountId, year, month],
+    queryKey: ["cm", accountId, year, month, kindFilter],
     queryFn: async () => {
       const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
       const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
@@ -46,6 +47,7 @@ function ContaCorrente() {
         .gte("movement_date", start).lt("movement_date", end)
         .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
+      if (kindFilter !== "all") q = q.eq("kind", kindFilter);
       return (await q).data ?? [];
     },
   });
@@ -121,6 +123,14 @@ function ContaCorrente() {
             <SelectContent>
               <SelectItem value="all">Todas as contas</SelectItem>
               {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={kindFilter} onValueChange={setKindFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Entradas e saídas</SelectItem>
+              <SelectItem value="entrada">Só entradas</SelectItem>
+              <SelectItem value="saida">Só saídas</SelectItem>
             </SelectContent>
           </Select>
           <Button className="gradient-gold text-gold-foreground" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo movimento</Button>
