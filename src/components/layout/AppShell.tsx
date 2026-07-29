@@ -4,7 +4,7 @@ import { useTheme } from "@/lib/theme";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Users, FileText, Wallet, ClipboardList, Moon, Sun, LogOut,
+  LayoutDashboard, Users, FileText, Wallet, Moon, Sun, LogOut,
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
