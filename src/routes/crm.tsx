@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
+import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
+import { useNextClientNumber } from "@/lib/next-client-number";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -33,23 +36,8 @@ const TEMPS: { key: string; label: string; cls: string }[] = [
   { key: "quente", label: "Quente", cls: "bg-red-500/15 text-red-600 dark:text-red-300 border-red-500/30" },
 ];
 
-const PHONE_COUNTRIES = [
-  { code: "+351", label: "🇵🇹 Portugal +351" },
-  { code: "+55", label: "🇧🇷 Brasil +55" },
-  { code: "+34", label: "🇪🇸 Espanha +34" },
-  { code: "+33", label: "🇫🇷 França +33" },
-  { code: "+44", label: "🇬🇧 Reino Unido +44" },
-  { code: "+49", label: "🇩🇪 Alemanha +49" },
-  { code: "+39", label: "🇮🇹 Itália +39" },
-  { code: "+1", label: "🇺🇸 EUA/Canadá +1" },
-  { code: "+41", label: "🇨🇭 Suíça +41" },
-  { code: "+31", label: "🇳🇱 Países Baixos +31" },
-  { code: "+353", label: "🇮🇪 Irlanda +353" },
-  { code: "+352", label: "🇱🇺 Luxemburgo +352" },
-  { code: "+244", label: "🇦🇴 Angola +244" },
-  { code: "+238", label: "🇨🇻 Cabo Verde +238" },
-  { code: "+258", label: "🇲🇿 Moçambique +258" },
-];
+
+
 
 const empty = {
   name: "", email: "", phone: "", phone_country: "+351", origin: "", status: "novo",
@@ -67,6 +55,8 @@ function CRM() {
   const [form, setForm] = useState<any>(empty);
   const [showArchivedList, setShowArchivedList] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
+  const nextNumber = useNextClientNumber();
+
 
 
   const { data: leads = [] } = useQuery({
@@ -92,6 +82,8 @@ function CRM() {
     onSuccess: () => {
       toast.success(editing ? "Lead atualizado" : "Lead criado");
       qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["next-client-number"] });
+
       setOpen(false); setEditing(null); setForm(empty);
     },
     onError: (e: any) => toast.error(e.message),
@@ -279,24 +271,23 @@ function CRM() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar Lead" : "Novo Lead"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {editing?.client_number && (
+            {editing?.client_number ? (
               <div className="text-xs text-muted-foreground">Nº de cliente: <span className="font-mono">{editing.client_number}</span></div>
-            )}
+            ) : nextNumber ? (
+              <div className="text-xs text-muted-foreground">Nº de cliente a atribuir: <span className="font-mono font-semibold text-foreground">{nextNumber}</span></div>
+            ) : null}
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do lead</h4>
+
               <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div>
                   <Label>Telefone</Label>
                   <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
-                    <Select value={form.phone_country || "+351"} onValueChange={(v) => setForm({ ...form, phone_country: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-60 overflow-y-auto">
-                        {PHONE_COUNTRIES.map((p) => <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
                     <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
                   </div>
                 </div>

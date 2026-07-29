@@ -15,14 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, History, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
+import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
+import { useNextClientNumber } from "@/lib/next-client-number";
+
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
 
-const PHONE_COUNTRIES = [
-  "+351", "+55", "+34", "+33", "+44", "+49", "+39", "+1", "+41", "+31", "+353", "+352", "+244", "+238", "+258",
-];
+
+
 
 const emptyClient = {
   name: "", nif: "", email: "", phone: "", phone_country: "+351", origin: "",
@@ -39,6 +41,8 @@ function Clientes() {
   const [search, setSearch] = useState("");
   const [historyClient, setHistoryClient] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
+  const nextNumber = useNextClientNumber();
+
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients", "list"],
@@ -63,6 +67,8 @@ function Clientes() {
     onSuccess: () => {
       toast.success("Guardado");
       qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["next-client-number"] });
+
       setOpen(false); setEditing(null); setForm(emptyClient);
     },
     onError: (e: any) => toast.error(e.message),
@@ -151,11 +157,16 @@ function Clientes() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} cliente</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {editing?.client_number && (
+            {editing?.client_number ? (
               <div className="text-xs text-muted-foreground">
                 Nº de cliente: <span className="font-mono font-semibold">{editing.client_number}</span> (fixo — todos os serviços começam por este número)
               </div>
-            )}
+            ) : nextNumber ? (
+              <div className="text-xs text-muted-foreground">
+                Nº de cliente a atribuir: <span className="font-mono font-semibold text-foreground">{nextNumber}</span>
+              </div>
+            ) : null}
+
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
@@ -165,12 +176,8 @@ function Clientes() {
                 <div>
                   <Label>Telefone</Label>
                   <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
-                    <Select value={form.phone_country || "+351"} onValueChange={(v) => setForm({ ...form, phone_country: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-60 overflow-y-auto">
-                        {PHONE_COUNTRIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
                     <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
                   </div>
                 </div>
