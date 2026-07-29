@@ -158,7 +158,7 @@ function Propostas() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <PageHeader title="Proposta / Roteiro" description="Gera propostas de roteiro personalizado ou serviço privado e converte em OC + Voucher + Serviço." actions={
+      <PageHeader title="Proposta / Roteiro" description="Gera propostas de roteiro personalizado ou serviço privado e converte em OS + Voucher + Serviço." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Roteiro Personalizado</Button>
       } />
 
