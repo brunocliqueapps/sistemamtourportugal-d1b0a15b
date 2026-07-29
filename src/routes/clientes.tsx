@@ -99,29 +99,31 @@ function Clientes() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Nº Cliente</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>NIF</TableHead>
+              <TableHead>NIF / Passaporte</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead>Cidade</TableHead>
+              <TableHead>Origem</TableHead>
               <TableHead className="w-40 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
-            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {filtered.map((c: any) => (
               <TableRow key={c.id}>
+                <TableCell className="font-mono text-xs">{c.client_number ?? "—"}</TableCell>
                 <TableCell className="font-medium">{c.name}</TableCell>
                 <TableCell>{c.nif ?? "—"}</TableCell>
                 <TableCell>{c.email ?? "—"}</TableCell>
-                <TableCell>{c.phone ?? "—"}</TableCell>
-                <TableCell>{c.city ?? "—"}</TableCell>
+                <TableCell>{[c.phone_country, c.phone].filter(Boolean).join(" ") || "—"}</TableCell>
+                <TableCell>{c.origin ?? "—"}</TableCell>
                 <TableCell className="text-right">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(c)}>
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" title="Histórico" onClick={() => setHistoryClient(c)}>
+                  <Button size="icon" variant="ghost" title="Histórico de serviços" onClick={() => setHistoryClient(c)}>
                     <History className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); }}>
@@ -140,17 +142,72 @@ function Clientes() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} cliente</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              ["name", "Nome *"], ["nif", "NIF"], ["email", "Email"], ["phone", "Telefone"],
-              ["city", "Cidade"], ["country", "País"], ["address", "Morada"],
-            ].map(([k, l]) => (
-              <div key={k}>
-                <Label>{l}</Label>
-                <Input value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+          <div className="space-y-4">
+            {editing?.client_number && (
+              <div className="text-xs text-muted-foreground">
+                Nº de cliente: <span className="font-mono font-semibold">{editing.client_number}</span> (fixo — todos os serviços começam por este número)
               </div>
-            ))}
-            <div className="col-span-2">
+            )}
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
+              <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
+                    <Select value={form.phone_country || "+351"} onValueChange={(v) => setForm({ ...form, phone_country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {PHONE_COUNTRIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>NIF / Passaporte</Label><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Origem</Label>
+                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact ?? ""} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+                <div><Label>País</Label><Input value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
+                <div><Label>Morada</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Dados da viagem</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Data de chegada</Label><Input type="date" value={form.arrival_date ?? ""} onChange={(e) => setForm({ ...form, arrival_date: e.target.value })} /></div>
+                <div><Label>Hora de chegada</Label><Input type="time" value={form.arrival_time ?? ""} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} /></div>
+                <div><Label>Local de chegada</Label><Input value={form.arrival_place ?? ""} onChange={(e) => setForm({ ...form, arrival_place: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Data de partida</Label><Input type="date" value={form.departure_date ?? ""} onChange={(e) => setForm({ ...form, departure_date: e.target.value })} /></div>
+                <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time ?? ""} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
+                <div><Label>Local de partida</Label><Input value={form.departure_place ?? ""} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
               <Label>Notas</Label>
               <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
                 value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -158,7 +215,7 @@ function Clientes() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => save.mutate()} className="gradient-gold text-gold-foreground" disabled={save.isPending}>
+            <Button onClick={() => save.mutate()} className="gradient-gold text-gold-foreground" disabled={save.isPending || !form.name}>
               {editing ? "Atualizar" : "Criar"}
             </Button>
           </DialogFooter>
@@ -173,10 +230,20 @@ function Clientes() {
         title="Cliente"
         record={viewing}
         fields={[
-          { key: "name", label: "Nome" }, { key: "nif", label: "NIF" },
-          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "client_number", label: "Nº Cliente" },
+          { key: "name", label: "Nome" }, { key: "nif", label: "NIF / Passaporte" },
+          { key: "email", label: "Email" }, { key: "phone_country", label: "Indicativo" },
+          { key: "phone", label: "Telefone" }, { key: "origin", label: "Origem" },
+          { key: "birth_date", label: "Data de nascimento" },
+          { key: "emergency_contact", label: "Contacto de emergência" },
           { key: "city", label: "Cidade" }, { key: "country", label: "País" },
-          { key: "address", label: "Morada" }, { key: "notes", label: "Notas" },
+          { key: "address", label: "Morada" },
+          { key: "arrival_date", label: "Data de chegada" }, { key: "arrival_time", label: "Hora de chegada" },
+          { key: "arrival_place", label: "Local de chegada" },
+          { key: "departure_date", label: "Data de partida" }, { key: "departure_time", label: "Hora de partida" },
+          { key: "departure_place", label: "Local de partida" },
+          { key: "passengers", label: "Passageiros" },
+          { key: "notes", label: "Notas" },
         ]}
       />
     </div>
