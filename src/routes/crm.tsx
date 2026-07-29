@@ -261,32 +261,92 @@ function CRM() {
 
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar Lead" : "Novo Lead"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-            </div>
-            <div><Label>Origem</Label><Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} placeholder="Instagram, Site, Indicação…" /></div>
-            <div><Label>Estado</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-            {form.status === "perdido" && (
-              <div>
-                <Label>Motivo da perda</Label>
-                <Input
-                  value={form.lost_reason}
-                  onChange={(e) => setForm({ ...form, lost_reason: e.target.value })}
-                  placeholder="Descreva o motivo da perda"
-                />
-              </div>
+          <div className="space-y-4">
+            {editing?.client_number && (
+              <div className="text-xs text-muted-foreground">Nº de cliente: <span className="font-mono">{editing.client_number}</span></div>
             )}
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Dados do lead</h4>
+              <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
+                    <Select value={form.phone_country || "+351"} onValueChange={(v) => setForm({ ...form, phone_country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {PHONE_COUNTRIES.map((p) => <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>NIF / Passaporte</Label><Input value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Origem</Label>
+                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Temperatura</Label>
+                  <Select value={form.temperature || "frio"} onValueChange={(v) => setForm({ ...form, temperature: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{TEMPS.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label>Estado</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Dados da viagem</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Data de chegada</Label><Input type="date" value={form.arrival_date} onChange={(e) => setForm({ ...form, arrival_date: e.target.value })} /></div>
+                <div><Label>Hora de chegada</Label><Input type="time" value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} /></div>
+                <div><Label>Local de chegada</Label><Input value={form.arrival_place} onChange={(e) => setForm({ ...form, arrival_place: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Data de partida</Label><Input type="date" value={form.departure_date} onChange={(e) => setForm({ ...form, departure_date: e.target.value })} /></div>
+                <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
+                <div><Label>Local de partida</Label><Input value={form.departure_place} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              {form.status === "perdido" && (
+                <div>
+                  <Label>Motivo da perda</Label>
+                  <Input
+                    value={form.lost_reason}
+                    onChange={(e) => setForm({ ...form, lost_reason: e.target.value })}
+                    placeholder="Descreva o motivo da perda"
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -301,10 +361,23 @@ function CRM() {
         title="Lead"
         record={viewing}
         fields={[
-          { key: "code", label: "Código" }, { key: "name", label: "Nome" },
-          { key: "email", label: "Email" }, { key: "phone", label: "Telefone" },
+          { key: "code", label: "Código" }, { key: "client_number", label: "Nº de cliente" },
+          { key: "name", label: "Nome" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
+          { key: "nif", label: "NIF / Passaporte" },
+          { key: "birth_date", label: "Data de nascimento" },
+          { key: "emergency_contact", label: "Contacto de emergência" },
           { key: "origin", label: "Origem" },
+          { key: "temperature", label: "Temperatura", format: (v) => TEMPS.find((t) => t.key === v)?.label ?? v },
           { key: "status", label: "Estado", format: (v) => cols.find((c) => c.key === v)?.label ?? v },
+          { key: "arrival_date", label: "Data de chegada" },
+          { key: "arrival_time", label: "Hora de chegada" },
+          { key: "arrival_place", label: "Local de chegada" },
+          { key: "departure_date", label: "Data de partida" },
+          { key: "departure_time", label: "Hora de partida" },
+          { key: "departure_place", label: "Local de partida" },
+          { key: "passengers", label: "Passageiros" },
           { key: "lost_reason", label: "Motivo da perda" },
           { key: "archived", label: "Arquivado", format: (v) => v ? "Sim" : "Não" },
           { key: "notes", label: "Notas" },
