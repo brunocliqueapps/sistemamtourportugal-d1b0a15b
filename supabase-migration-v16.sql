@@ -242,15 +242,31 @@ create policy "cs_auth_all" on public.commission_settlements for all to authenti
 
 -- Resumo semanal por veículo (entradas − saídas)
 create or replace view public.v_weekly_vehicle_result as
+with earn as (
+  select e.tvde_shift_id,
+         sum(coalesce(e.gross,0)+coalesce(e.tips,0)+coalesce(e.bonus,0)) as gross,
+         sum(coalesce(e.commissions,0)+coalesce(e.other_deductions,0))   as deductions
+  from public.tvde_earnings e group by 1
+), priv as (
+  select p.tvde_shift_id, sum(coalesce(p.value,0)) as private_income
+  from public.tvde_private_jobs p group by 1
+), exp as (
+  select x.tvde_shift_id, sum(coalesce(x.amount,0)) as expenses
+  from public.service_expenses x where x.tvde_shift_id is not null group by 1
+)
 select
   date_trunc('week', s.shift_date)::date as week_start,
   (date_trunc('week', s.shift_date)::date + 6) as week_end,
   s.vehicle_id,
   s.driver_id,
-  sum(coalesce(s.total_earnings, 0))  as gross_income,
-  sum(coalesce(s.total_expenses, 0))  as expenses,
-  sum(coalesce(s.total_earnings,0) - coalesce(s.total_expenses,0)) as net_profit
-from public.driver_shifts s
+  sum(coalesce(earn.gross,0) + coalesce(priv.private_income,0)) as gross_income,
+  sum(coalesce(exp.expenses,0) + coalesce(earn.deductions,0))   as expenses,
+  sum(coalesce(earn.gross,0) + coalesce(priv.private_income,0)
+      - coalesce(exp.expenses,0) - coalesce(earn.deductions,0)) as net_profit
+from public.tvde_shifts s
+left join earn on earn.tvde_shift_id = s.id
+left join priv on priv.tvde_shift_id = s.id
+left join exp  on exp.tvde_shift_id  = s.id
 group by 1,2,3,4;
 grant select on public.v_weekly_vehicle_result to authenticated;
 
