@@ -43,6 +43,8 @@ function OCList() {
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
 
+  const fromProposal = !!editing?.id && !!editing?.proposal_id;
+
   const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form };
@@ -158,6 +160,29 @@ function OCList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing?.id ? `Editar OC ${editing?.oc_code ?? ""}` : "Nova OC"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {fromProposal && (
+              <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
+                <div className="font-semibold">Dados da proposta {editing?.proposals?.code ?? ""}</div>
+                <div><b>Cliente:</b> {editing?.clients?.name ?? "—"} {editing?.clients?.phone ? `· ${editing.clients.phone}` : ""}</div>
+                <div><b>Serviço:</b> {editing?.proposals?.title ?? editing?.service_type ?? "—"} ({editing?.proposals?.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"})</div>
+                <div><b>Data / hora:</b> {editing?.service_date ?? "—"} {editing?.start_time ?? ""}</div>
+                <div><b>Trajeto:</b> {editing?.origin ?? "—"} → {editing?.destination ?? "—"}</div>
+                <div><b>Passageiros:</b> {editing?.passengers ?? editing?.proposals?.passengers ?? "—"} · <b>Valor:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
+                {editing?.proposals?.payment_terms && <div><b>Pagamento:</b> {editing.proposals.payment_terms}</div>}
+                {(editing?.proposals?.descriptive || editing?.proposals?.description) && <div><b>Descritivo:</b> {editing.proposals.descriptive ?? editing.proposals.description}</div>}
+                {Array.isArray(editing?.proposals?.itinerary) && editing.proposals.itinerary.length > 0 && (
+                  <div>
+                    <b>Roteiro:</b>
+                    <ul className="list-disc pl-5">
+                      {editing.proposals.itinerary.map((d: any, i: number) => (
+                        <li key={i}>{d.date ?? `Dia ${i + 1}`} — {d.title ?? d.description ?? ""}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            {!fromProposal && (<>
             <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div className="col-span-2"><Label>Cliente</Label>
@@ -184,6 +209,7 @@ function OCList() {
                 <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            </>)}
             <div><Label>Veículo</Label>
               <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
