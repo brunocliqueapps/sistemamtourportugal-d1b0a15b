@@ -6,12 +6,6 @@ import { VehicleDrivers } from "@/components/VehicleDrivers";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
-const clientes: CrudField[] = [
-  { key: "name", label: "Nome", required: true },
-  { key: "nif", label: "NIF" }, { key: "email", label: "Email", type: "email" }, { key: "phone", label: "Telefone", type: "phone" },
-  { key: "city", label: "Cidade" }, { key: "country", label: "País" }, { key: "address", label: "Morada" },
-  { key: "notes", label: "Notas", type: "textarea" },
-];
 const motoristas: CrudField[] = [
   { key: "full_name", label: "Nome", required: true },
   { key: "phone", label: "Telefone" }, { key: "email", label: "Email", type: "email" },
@@ -104,9 +98,8 @@ function Cadastros() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Cadastros" description="Clientes, motoristas, veículos, fornecedores, parceiros e mais." />
-      <Tabs defaultValue="clients">
+      <Tabs defaultValue="drivers">
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="drivers">Motoristas</TabsTrigger>
           <TabsTrigger value="vehicles">Veículos</TabsTrigger>
           <TabsTrigger value="employees">Funcionários</TabsTrigger>
@@ -117,7 +110,6 @@ function Cadastros() {
         </TabsList>
 
         <div className="mt-6">
-          <TabsContent value="clients"><EntityCrud table="clients" title="Clientes" fields={clientes} columns={["name","nif","email","phone"]} /></TabsContent>
           <TabsContent value="drivers"><EntityCrud table="drivers" title="Motoristas" fields={motoristas} columns={["full_name","phone","contract_type","commission_pct","license_expiry"]} /></TabsContent>
           <TabsContent value="vehicles" className="space-y-8">
             <EntityCrud table="vehicles" title="Veículos" fields={veiculos} columns={["plate","brand","model","usage_type","seats"]} />
