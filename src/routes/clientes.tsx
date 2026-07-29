@@ -74,8 +74,15 @@ function Clientes() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: ["clients"] }); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      if (e?.code === "23503" || /foreign key/i.test(e?.message ?? "")) {
+        toast.error("Este cliente tem propostas/serviços associados. Aplique a migração supabase-migration-v14-delete-cascade.sql para permitir a remoção em cascata.");
+        return;
+      }
+      toast.error(e.message);
+    },
   });
+
 
   const filtered = clients.filter((c: any) => {
     const q = search.toLowerCase();
