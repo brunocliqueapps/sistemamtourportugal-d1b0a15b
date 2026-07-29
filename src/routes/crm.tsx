@@ -134,6 +134,7 @@ function CRM() {
         arrival_date: l.arrival_date || null, arrival_time: l.arrival_time || null, arrival_place: l.arrival_place || null,
         departure_date: l.departure_date || null, departure_time: l.departure_time || null, departure_place: l.departure_place || null,
         passengers: l.passengers ?? null, lead_id: l.id,
+        client_number: l.client_number || undefined,
       });
       if (error) throw error;
       await supabase.from("leads").update({ status: "fechado" }).eq("id", l.id);
@@ -173,7 +174,7 @@ function CRM() {
                 <Card key={l.id} className="p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground">{l.code}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{l.client_number ?? "—"}</div>
                       <div className="font-medium truncate">{l.name}</div>
                       <div className="text-xs text-muted-foreground">{l.origin || "Sem origem"}</div>
                       {l.phone && <div className="text-xs">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</div>}
@@ -223,7 +224,6 @@ function CRM() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
                 <TableHead>Nº cliente</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
@@ -237,7 +237,6 @@ function CRM() {
             <TableBody>
               {leads.filter((l: any) => showArchivedList ? l.archived : true).map((l: any) => (
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
-                  <TableCell className="font-mono text-xs">{l.code}</TableCell>
                   <TableCell className="font-mono text-xs">{l.client_number ?? "—"}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
                   <TableCell className="text-sm">{l.email}</TableCell>
@@ -377,7 +376,7 @@ function CRM() {
         title="Lead"
         record={viewing}
         fields={[
-          { key: "code", label: "Código" }, { key: "client_number", label: "Nº de cliente" },
+          { key: "client_number", label: "Nº de cliente" },
           { key: "name", label: "Nome" },
           { key: "email", label: "Email" },
           { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
