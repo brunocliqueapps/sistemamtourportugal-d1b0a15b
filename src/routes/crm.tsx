@@ -144,7 +144,9 @@ function CRM() {
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(l: any) {
     setEditing(l);
-    setForm({ name: l.name ?? "", email: l.email ?? "", phone: l.phone ?? "", origin: l.origin ?? "", status: l.status ?? "novo", notes: l.notes ?? "", lost_reason: l.lost_reason ?? "" });
+    const f: any = {};
+    for (const k of FORM_KEYS) f[k] = l[k] ?? (empty as any)[k];
+    setForm(f);
     setOpen(true);
   }
 
