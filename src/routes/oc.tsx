@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/oc")({ component: OCList });
 
-const OP_FALLBACK = ["agendado","em_execucao","finalizado","no_show","cancelado","reagendado"];
+const OP_FALLBACK = ["para_atendimento","em_atendimento","atendimento_finalizado"];
 const FIN_FALLBACK = ["nao_faturado","faturado","pago"];
 const OPTYPE_FALLBACK = ["privado","tvde","interno"];
 
@@ -29,10 +29,10 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name), drivers(full_name), vehicles(plate)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), drivers(full_name), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,operation_type,itinerary,total_value,notes)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate").order("plate")).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts","oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_financial_status").eq("active",true).order("sort")).data ?? [] });
@@ -54,7 +54,7 @@ function OCList() {
         if (error) throw error;
       } else {
         if (!payload.operation_type) payload.operation_type = "privado";
-        if (!payload.status) payload.status = "agendado";
+        if (!payload.status) payload.status = "para_atendimento";
         if (!payload.financial_status) payload.financial_status = "nao_faturado";
         const { error } = await supabase.from("service_orders").insert(payload);
         if (error) throw error;
@@ -82,7 +82,7 @@ function OCList() {
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
       driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
       client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
-      status: s.status ?? "agendado",
+      status: s.status ?? "para_atendimento",
       financial_status: s.financial_status ?? "nao_faturado",
     });
   }
@@ -94,13 +94,13 @@ function OCList() {
       service_date: new Date().toISOString().slice(0,10), start_time: "",
       origin: "", destination: "", passengers: "", sale_value: 0,
       driver_id: "", vehicle_id: "", client_id: "",
-      operation_type: "privado", status: "agendado", financial_status: "nao_faturado",
+      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
     });
   }
 
   const concluir = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("service_orders").update({ status: "finalizado" }).eq("id", id);
+      const { error } = await supabase.from("service_orders").update({ status: "atendimento_finalizado" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido concluído"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
@@ -124,7 +124,7 @@ function OCList() {
           </TableRow></TableHeader>
           <TableBody>
             {data.map((s: any) => {
-              const canConcluir = !["finalizado","cancelado","no_show"].includes(s.status);
+              const canConcluir = s.status !== "atendimento_finalizado";
               return (
               <TableRow key={s.id}>
                 <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code}</Link></TableCell>
@@ -133,7 +133,7 @@ function OCList() {
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
                 <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
-                <TableCell>{s.vehicles?.plate ?? "—"}</TableCell>
+                <TableCell>{s.vehicles?.plate ?? "—"}{s.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{s.vehicles.owner_company}</div> : null}</TableCell>
                 <TableCell><Badge variant="outline">{opLabel(s.status)}</Badge></TableCell>
                 <TableCell><Badge variant={s.financial_status === "pago" ? "default" : "outline"}>{finLabel(s.financial_status ?? "nao_faturado")}</Badge></TableCell>
                 <TableCell className="text-right">€ {Number(s.sale_value||0).toFixed(2)}</TableCell>
@@ -187,11 +187,11 @@ function OCList() {
             <div><Label>Veículo</Label>
               <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}</SelectContent>
+                <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}{v.owner_company ? ` — ${v.owner_company}` : ""}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Estado operacional</Label>
-              <Select value={form.status ?? "agendado"} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <Select value={form.status ?? "para_atendimento"} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{operational.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
@@ -222,7 +222,7 @@ function OCList() {
           { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
           { key: "passengers", label: "Passageiros" },
           { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
-          { key: "vehicles", label: "Veículo", format: (v) => v?.plate ?? "—" },
+          { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
           { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "nao_faturado") },
