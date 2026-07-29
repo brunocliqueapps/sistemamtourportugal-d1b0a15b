@@ -27,7 +27,22 @@ export function PhoneCountrySelect({ value, onChange }: { value?: string; onChan
           }}
         >
           <CommandInput placeholder="Procurar país ou indicativo..." />
-          <CommandList className="max-h-64">
+          <CommandList
+            className="max-h-64 overflow-y-auto overscroll-contain"
+            onWheelCapture={(e) => {
+              e.stopPropagation();
+              const el = e.currentTarget;
+              const max = el.scrollHeight - el.clientHeight;
+              if (max <= 0) return;
+              const next = Math.min(Math.max(el.scrollTop + e.deltaY, 0), max);
+              if (next !== el.scrollTop) {
+                el.scrollTop = next;
+                e.preventDefault();
+              }
+            }}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+
             <CommandEmpty>Sem resultados</CommandEmpty>
             <CommandGroup>
               {PHONE_OPTIONS.map((p) => (
