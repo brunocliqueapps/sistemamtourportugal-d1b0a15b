@@ -21,7 +21,7 @@ const groups: Group[] = [
   { label: "Comercial", items: [
     { to: "/crm", label: "CRM · Leads", icon: Users, module: "crm" },
     { to: "/clientes", label: "Clientes", icon: Users, module: "cadastros" },
-    { to: "/propostas", label: "Propostas/Roteiro", icon: FileText, module: "propostas" },
+    { to: "/propostas", label: "Proposta/Roteiro", icon: FileText, module: "propostas" },
   ]},
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
