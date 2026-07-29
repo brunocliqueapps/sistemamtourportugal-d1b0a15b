@@ -199,14 +199,14 @@ create policy "fc_auth_all" on public.fixed_costs for all to authenticated using
 -- ---------------------------------------------------------------------
 -- 9. TURNOS — KM inicial herdado e edição de hora de fim só admin
 -- ---------------------------------------------------------------------
-alter table public.driver_shifts add column if not exists end_time_edited_by uuid references auth.users(id);
-alter table public.driver_shifts add column if not exists end_time_edited_at timestamptz;
+alter table public.tvde_shifts add column if not exists end_time_edited_by uuid references auth.users(id);
+alter table public.tvde_shifts add column if not exists end_time_edited_at timestamptz;
 
 create or replace function public.last_end_km(_vehicle uuid, _before date)
 returns numeric language sql stable security definer set search_path = public as $$
   select coalesce(
-    (select end_km from public.driver_shifts
-      where vehicle_id = _vehicle and end_km is not null and shift_date < _before
+    (select km_final from public.tvde_shifts
+      where vehicle_id = _vehicle and km_final is not null and shift_date < _before
       order by shift_date desc limit 1), 0);
 $$;
 grant execute on function public.last_end_km(uuid, date) to authenticated;
