@@ -88,7 +88,7 @@ function OCDetail() {
       await supabase.from("cash_movements").insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
-        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${so?.oc_code}`,
+        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${so?.oc_code?.replace('OC', 'OS')}`,
         created_by: user!.id,
       });
     },
