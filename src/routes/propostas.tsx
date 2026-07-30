@@ -134,7 +134,7 @@ function Propostas() {
       });
       if (soErr) throw soErr;
     },
-    onSuccess: () => { toast.success("Proposta convertida em OC/Voucher/Serviço"); qc.invalidateQueries(); setApproveOpen(null); },
+    onSuccess: () => { toast.success("Proposta convertida em OS/Voucher/Serviço"); qc.invalidateQueries(); setApproveOpen(null); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -286,7 +286,7 @@ function Propostas() {
 
       <Dialog open={!!approveOpen} onOpenChange={(v) => !v && setApproveOpen(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Aprovar e converter em OC</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Aprovar e converter em OS</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>Data do serviço</Label><Input type="date" value={srv.service_date} onChange={(e) => setSrv({ ...srv, service_date: e.target.value })} /></div>
             <div><Label>Horário</Label><Input type="time" value={srv.start_time} onChange={(e) => setSrv({ ...srv, start_time: e.target.value })} /></div>

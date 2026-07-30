@@ -62,7 +62,7 @@ function OCList() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { toast.success(editing?.id ? "OC atualizada" : "OC criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
+    onSuccess: () => { toast.success(editing?.id ? "OS atualizada" : "OS criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -71,7 +71,7 @@ function OCList() {
       const { error } = await supabase.from("service_orders").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("OC removida"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
+    onSuccess: () => { toast.success("OS removida"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -111,13 +111,13 @@ function OCList() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-4">
-      <PageHeader title="Ordens de Serviço (OC)" description="OCs geradas pelas propostas aprovadas ou criadas manualmente." actions={
-        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OC</Button>
+      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelas propostas aprovadas ou criadas manualmente." actions={
+        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
       <Card>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>OC</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
+            <TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
             <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
@@ -129,7 +129,7 @@ function OCList() {
               const canConcluir = s.status !== "atendimento_finalizado";
               return (
               <TableRow key={s.id}>
-                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code}</Link></TableCell>
+                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code?.replace('OC', 'OS')}</Link></TableCell>
                 <TableCell className="font-mono text-xs">{s.voucher_code}</TableCell>
                 <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
@@ -147,18 +147,18 @@ function OCList() {
                   )}
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OC?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OS?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             );})}
-            {data.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhuma OC ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
+            {data.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editing?.id ? `Editar OC ${editing?.oc_code ?? ""}` : "Nova OC"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing?.id ? `Editar OS ${editing?.oc_code ?? ""}` : "Nova OS"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fromProposal && (
               <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
@@ -183,7 +183,7 @@ function OCList() {
               </div>
             )}
             {!fromProposal && (<>
-            <div><Label>Nº OC</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
+            <div><Label>Nº OS</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div className="col-span-2"><Label>Cliente</Label>
               <Select value={form.client_id ?? ""} onValueChange={(v) => setForm({ ...form, client_id: v })}>
@@ -240,9 +240,9 @@ function OCList() {
         open={!!viewing}
         onClose={() => setViewing(null)}
         title="Ordem de Serviço"
-        record={viewing}
+        record={viewing ? { ...viewing, oc_code: viewing.oc_code?.replace('OC', 'OS') } : null}
         fields={[
-          { key: "oc_code", label: "OC" }, { key: "voucher_code", label: "Voucher" },
+          { key: "oc_code", label: "OS" }, { key: "voucher_code", label: "Voucher" },
           { key: "service_date", label: "Data" }, { key: "start_time", label: "Horário" },
           { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
           { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
