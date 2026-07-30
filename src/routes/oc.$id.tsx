@@ -68,7 +68,7 @@ function OCDetail() {
         await supabase.from("cash_movements").insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
-          description: `Recebimento OC ${so?.oc_code}`, created_by: user!.id,
+          description: `Recebimento OS ${so?.oc_code}`, created_by: user!.id,
         });
       }
     },
@@ -88,7 +88,7 @@ function OCDetail() {
       await supabase.from("cash_movements").insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
-        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OC ${so?.oc_code}`,
+        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${so?.oc_code}`,
         created_by: user!.id,
       });
     },
@@ -100,7 +100,7 @@ function OCDetail() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title={`OC ${so.oc_code}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
+      <PageHeader title={`OS ${so.oc_code}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
         <Link to="/oc" className="text-sm text-primary underline">← Voltar</Link>
       } />
 
