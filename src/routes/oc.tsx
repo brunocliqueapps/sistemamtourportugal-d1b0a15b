@@ -29,9 +29,8 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), drivers(full_name), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
@@ -82,7 +81,7 @@ function OCList() {
       service_date: s.service_date ?? "", start_time: s.start_time ?? "",
       origin: s.origin ?? "", destination: s.destination ?? "",
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
-      driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
+      vehicle_id: s.vehicle_id ?? "",
       client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "para_atendimento",
       financial_status: s.financial_status ?? "nao_faturado",
@@ -95,7 +94,7 @@ function OCList() {
       oc_code: "", voucher_code: "",
       service_date: new Date().toISOString().slice(0,10), start_time: "",
       origin: "", destination: "", passengers: "", sale_value: 0,
-      driver_id: "", vehicle_id: "", client_id: "",
+      vehicle_id: "", client_id: "",
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
     });
   }
@@ -119,7 +118,7 @@ function OCList() {
           <TableHeader><TableRow>
             <TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
-            <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
+            <TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -134,7 +133,7 @@ function OCList() {
                 <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
-                <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
+                
                 <TableCell>{s.vehicles?.plate ?? "—"}{s.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{s.vehicles.owner_company}</div> : null}</TableCell>
                 <TableCell><Badge variant="outline">{opLabel(s.status)}</Badge></TableCell>
                 <TableCell><Badge variant={s.financial_status === "pago" ? "default" : "outline"}>{finLabel(s.financial_status ?? "nao_faturado")}</Badge></TableCell>
@@ -203,12 +202,6 @@ function OCList() {
             <div><Label>Destino</Label><Input value={form.destination ?? ""} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
             <div><Label>Passageiros</Label><Input type="number" value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
             <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={form.sale_value ?? 0} onChange={(e) => setForm({ ...form, sale_value: e.target.value })} /></div>
-            <div><Label>Motorista</Label>
-              <Select value={form.driver_id ?? ""} onValueChange={(v) => setForm({ ...form, driver_id: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
             </>)}
             <div><Label>Veículo</Label>
               <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
@@ -247,7 +240,7 @@ function OCList() {
           { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
           { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
           { key: "passengers", label: "Passageiros" },
-          { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
+          
           { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
