@@ -100,7 +100,7 @@ function OCDetail() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title={`OS ${so.oc_code}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
+      <PageHeader title={`OS ${so.oc_code?.replace('OC', 'OS')}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
         <Link to="/oc" className="text-sm text-primary underline">← Voltar</Link>
       } />
 
