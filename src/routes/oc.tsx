@@ -240,7 +240,7 @@ function OCList() {
         open={!!viewing}
         onClose={() => setViewing(null)}
         title="Ordem de Serviço"
-        record={viewing}
+        record={viewing ? { ...viewing, oc_code: viewing.oc_code?.replace('OC', 'OS') } : null}
         fields={[
           { key: "oc_code", label: "OS" }, { key: "voucher_code", label: "Voucher" },
           { key: "service_date", label: "Data" }, { key: "start_time", label: "Horário" },
