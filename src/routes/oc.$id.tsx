@@ -68,7 +68,7 @@ function OCDetail() {
         await supabase.from("cash_movements").insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
-          description: `Recebimento OS ${so?.oc_code}`, created_by: user!.id,
+          description: `Recebimento OS ${so?.oc_code?.replace('OC', 'OS')}`, created_by: user!.id,
         });
       }
     },
