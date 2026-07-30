@@ -80,15 +80,26 @@ function Agenda() {
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Por período</SelectItem>
-                {Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - 2 + i)).map((y) => <SelectItem key={y} value={y}>Ano {y}</SelectItem>)}
+                {Array.from({ length: 6 }, (_, i) => String(2026 + i)).map((y) => <SelectItem key={y} value={y}>Ano {y}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={range} onValueChange={(v) => setRange(v as any)}>
+            <Select value={month} onValueChange={setMonth} disabled={year === "all"}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os meses</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {new Date(2026, Number(m) - 1, 1).toLocaleDateString("pt-PT", { month: "long" })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={range} onValueChange={(v) => setRange(v as any)} disabled={year !== "all"}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="day">Dia</SelectItem>
-                <SelectItem value="week">Semana</SelectItem>
                 <SelectItem value="month">Mês</SelectItem>
+                <SelectItem value="week">Semana</SelectItem>
+                <SelectItem value="day">Dia</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
