@@ -31,24 +31,29 @@ function paymentBadge(sale: number, received: number) {
 
 function Agenda() {
   const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
-  const [range, setRange] = useState<"day" | "week" | "month">("week");
+  const [range, setRange] = useState<"month" | "week" | "day">("month");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [vehicleFilter, setVehicleFilter] = useState<string>("all");
   const [driverFilter, setDriverFilter] = useState<string>("all");
   const [year, setYear] = useState<string>("all");
+  const [month, setMonth] = useState<string>("all");
   const days = range === "day" ? 0 : range === "week" ? 6 : 30;
   const to = new Date(new Date(from).getTime() + days * 86400000).toISOString().slice(0, 10);
+
+  const lastDay = (y: string, m: string) => new Date(Number(y), Number(m), 0).getDate();
+  const periodFrom = year === "all" ? from : month === "all" ? `${year}-01-01` : `${year}-${month}-01`;
+  const periodTo = year === "all" ? to : month === "all" ? `${year}-12-31` : `${year}-${month}-${String(lastDay(year, month)).padStart(2, "0")}`;
 
   const { data: vehicles = [] } = useQuery({ queryKey: ["agenda-vehicles"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,owner_company").order("plate")).data ?? [] });
   const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
 
   const { data } = useQuery({
-    queryKey: ["agenda", from, range, statusFilter, vehicleFilter, driverFilter, year],
+    queryKey: ["agenda", periodFrom, periodTo, statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
         .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company)")
-        .gte("service_date", year === "all" ? from : `${year}-01-01`)
-        .lte("service_date", year === "all" ? to : `${year}-12-31`)
+        .gte("service_date", periodFrom)
+        .lte("service_date", periodTo)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
