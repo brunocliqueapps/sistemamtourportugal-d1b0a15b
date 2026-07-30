@@ -29,9 +29,8 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), drivers(full_name), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
@@ -82,7 +81,7 @@ function OCList() {
       service_date: s.service_date ?? "", start_time: s.start_time ?? "",
       origin: s.origin ?? "", destination: s.destination ?? "",
       passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
-      driver_id: s.driver_id ?? "", vehicle_id: s.vehicle_id ?? "",
+      vehicle_id: s.vehicle_id ?? "",
       client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "para_atendimento",
       financial_status: s.financial_status ?? "nao_faturado",
@@ -95,7 +94,7 @@ function OCList() {
       oc_code: "", voucher_code: "",
       service_date: new Date().toISOString().slice(0,10), start_time: "",
       origin: "", destination: "", passengers: "", sale_value: 0,
-      driver_id: "", vehicle_id: "", client_id: "",
+      vehicle_id: "", client_id: "",
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
     });
   }

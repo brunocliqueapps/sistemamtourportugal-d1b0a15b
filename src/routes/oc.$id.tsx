@@ -24,9 +24,8 @@ function OCDetail() {
 
   const { data: so } = useQuery({
     queryKey: ["so", id],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone), drivers(id,full_name), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle()).data,
   });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers-mini"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").eq("active", true)).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini2"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").eq("active", true)).data ?? [] });
   const { data: pmethods = [] } = useQuery({ queryKey: ["pm"], queryFn: async () => (await supabase.from("payment_methods").select("id,name").eq("active", true)).data ?? [] });
   const { data: closing } = useQuery({ queryKey: ["closing", id], queryFn: async () => (await supabase.from("service_closings").select("*").eq("service_order_id", id).maybeSingle()).data });
