@@ -129,7 +129,7 @@ function OCList() {
               const canConcluir = s.status !== "atendimento_finalizado";
               return (
               <TableRow key={s.id}>
-                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code}</Link></TableCell>
+                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code?.replace('OC', 'OS')}</Link></TableCell>
                 <TableCell className="font-mono text-xs">{s.voucher_code}</TableCell>
                 <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
