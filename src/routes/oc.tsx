@@ -119,7 +119,7 @@ function OCList() {
           <TableHeader><TableRow>
             <TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
-            <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
+            <TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -134,7 +134,7 @@ function OCList() {
                 <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
-                <TableCell>{s.drivers?.full_name ?? "—"}</TableCell>
+                
                 <TableCell>{s.vehicles?.plate ?? "—"}{s.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{s.vehicles.owner_company}</div> : null}</TableCell>
                 <TableCell><Badge variant="outline">{opLabel(s.status)}</Badge></TableCell>
                 <TableCell><Badge variant={s.financial_status === "pago" ? "default" : "outline"}>{finLabel(s.financial_status ?? "nao_faturado")}</Badge></TableCell>
@@ -203,12 +203,6 @@ function OCList() {
             <div><Label>Destino</Label><Input value={form.destination ?? ""} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
             <div><Label>Passageiros</Label><Input type="number" value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
             <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={form.sale_value ?? 0} onChange={(e) => setForm({ ...form, sale_value: e.target.value })} /></div>
-            <div><Label>Motorista</Label>
-              <Select value={form.driver_id ?? ""} onValueChange={(v) => setForm({ ...form, driver_id: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
             </>)}
             <div><Label>Veículo</Label>
               <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
@@ -247,7 +241,7 @@ function OCList() {
           { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
           { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
           { key: "passengers", label: "Passageiros" },
-          { key: "drivers", label: "Motorista", format: (v) => v?.full_name ?? "—" },
+          
           { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },

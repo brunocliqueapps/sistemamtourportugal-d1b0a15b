@@ -121,12 +121,6 @@ function OCDetail() {
           <div><div className="text-xs text-muted-foreground">Valor</div><div className="font-semibold">€ {Number(so.sale_value||0).toFixed(2)}</div></div>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <div><Label>Motorista</Label>
-            <Select value={so.driver_id ?? ""} onValueChange={(v) => patchSo.mutate({ driver_id: v })}>
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
           <div><Label>Veículo</Label>
             <Select value={so.vehicle_id ?? ""} onValueChange={(v) => patchSo.mutate({ vehicle_id: v })}>
               <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
