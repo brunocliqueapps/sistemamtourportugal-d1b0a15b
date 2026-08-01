@@ -61,6 +61,14 @@ export function QuickViewDialog({ open, onClose, title, record, fields, hideKeys
             </div>
           ))}
         </div>
+        {record.created_at && (
+          <div className="mt-2 border-t pt-3 text-xs text-muted-foreground">
+            Registado em {fmtValue(record.created_at)}
+            {record.updated_at && record.updated_at !== record.created_at && (
+              <> · Última atualização: {fmtValue(record.updated_at)}</>
+            )}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Fechar</Button>
         </DialogFooter>
