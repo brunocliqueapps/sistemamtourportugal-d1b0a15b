@@ -135,7 +135,7 @@ export function VehicleDrivers() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={save.isPending}>Atribuir</Button>
+            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={save.isPending}>{editId ? "Guardar" : "Atribuir"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
