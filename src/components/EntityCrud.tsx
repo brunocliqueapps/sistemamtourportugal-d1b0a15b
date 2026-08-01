@@ -58,9 +58,11 @@ interface Props {
   fields: CrudField[];
   columns?: string[];        // colunas visíveis (subset de field.key)
   orderBy?: string;
+  /** Botões extra ao lado de "Novo" */
+  extraActions?: ReactNode;
 }
 
-export function EntityCrud({ table, title, fields, columns, orderBy = "created_at" }: Props) {
+export function EntityCrud({ table, title, fields, columns, orderBy = "created_at", extraActions }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -72,6 +74,35 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
     queryKey: [table, "list"],
     queryFn: async () => (await supabase.from(table).select("*").order(orderBy, { ascending: false })).data ?? [],
   });
+
+  // Opções dinâmicas (ex.: regiões)
+  const remoteFields = fields.filter((f) => f.optionsFrom);
+  const { data: remoteOptions = {} } = useQuery({
+    queryKey: ["crud-remote-options", table, remoteFields.map((f) => f.optionsFrom!.table).join(",")],
+    enabled: remoteFields.length > 0,
+    queryFn: async () => {
+      const out: Record<string, { value: string; label: string }[]> = {};
+      for (const f of remoteFields) {
+        const cfg = f.optionsFrom!;
+        const valueKey = cfg.value ?? "id";
+        const labelKey = cfg.label ?? "name";
+        const { data } = await supabase.from(cfg.table).select("*").order(cfg.orderBy ?? labelKey);
+        out[f.key] = (data ?? []).map((r: any) => ({ value: String(r[valueKey]), label: String(r[labelKey] ?? "") }));
+      }
+      return out;
+    },
+  });
+  const optionsFor = (f: CrudField) => (f.optionsFrom ? (remoteOptions as any)[f.key] ?? [] : f.options ?? []);
+
+  function renderCell(row: any, key: string) {
+    const f = fields.find((x) => x.key === key);
+    const v = row[key];
+    if (typeof v === "boolean") return v ? "Sim" : "Não";
+    if (f?.type === "select") return optionsFor(f).find((o: any) => o.value === String(v))?.label ?? (v ?? "—");
+    return v ?? "—";
+  }
+
+
 
   const save = useMutation({
     mutationFn: async () => {
