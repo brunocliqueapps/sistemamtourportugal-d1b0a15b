@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntityCrud, type CrudField } from "@/components/EntityCrud";
 import { VehicleDrivers } from "@/components/VehicleDrivers";
+import { RegionsDialog } from "@/components/RegionsDialog";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
