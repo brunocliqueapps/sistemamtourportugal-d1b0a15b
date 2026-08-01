@@ -155,9 +155,12 @@ function Propostas() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  function openNew() { setEditing(null); setForm(empty); setOpen(true); }
+  function openNew() { setEditing(null); setForm(empty); setPctApproval(40); setPctFinal(60); setOpen(true); }
   function openEdit(p: any) {
     setEditing(p);
+    const m = String(p.payment_terms ?? "").match(/(\d+)\s*%[^\d]+(\d+)\s*%/);
+    setPctApproval(m ? Number(m[1]) : 40);
+    setPctFinal(m ? Number(m[2]) : 60);
     setForm({
       client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
       proposal_kind: p.proposal_kind ?? "roteiro_personalizado", responsible: p.responsible ?? "",
@@ -167,11 +170,12 @@ function Propostas() {
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
       region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
       itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
-
+      descriptive_service: p.private_service_text ?? "",
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
     });
     setOpen(true);
   }
+
 
   const selectedClient: any = clients.find((c: any) => c.id === form.client_id);
   const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
