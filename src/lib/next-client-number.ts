@@ -8,7 +8,7 @@ function toNum(v?: string | null) {
 }
 
 export function formatClientNumber(n: number) {
-  return `C${String(n).padStart(5, "0")}`;
+  return `C${String(n).padStart(2, "0")}`;
 }
 
 /** Próximo nº de cliente da sequência partilhada leads + clientes. */
