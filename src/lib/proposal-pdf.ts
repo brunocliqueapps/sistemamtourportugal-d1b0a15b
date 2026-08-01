@@ -5,14 +5,16 @@ import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } 
 
 async function header(doc: jsPDF, docTitle: string, code?: string) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
+  const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
   let y = 40;
-  doc.setFont("helvetica", "bold").setFontSize(16);
-  doc.text(company?.name ?? "Mtour Portugal", 40, y);
+  doc.setFont("helvetica", "bold").setFontSize(13);
+  const title = [c.legal_name ?? c.name ?? "Mtour Portugal", c.trade_name ? `"${c.trade_name}"` : null].filter(Boolean).join(" ");
+  doc.text(title, 40, y);
   doc.setFont("helvetica", "normal").setFontSize(9);
   y += 16;
-  [company?.address, [company?.postal_code, company?.city].filter(Boolean).join(" "),
-   company?.nif ? `NIF: ${company.nif}` : null, company?.phone, company?.email]
+  [c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
+   c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email, c.doc_header_extra]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
 
   doc.setFont("helvetica", "bold").setFontSize(14);
@@ -24,6 +26,7 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   doc.setDrawColor(200); doc.line(40, y, W - 40, y);
   return y + 16;
 }
+
 
 async function loadProposal(id: string) {
   const { data } = await supabase
