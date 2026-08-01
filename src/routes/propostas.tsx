@@ -229,7 +229,7 @@ function Propostas() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar Proposta" : "Roteiro Personalizado"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Cliente</Label>
                 <Select value={form.client_id} onValueChange={pickClient}>
                   <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
@@ -237,12 +237,6 @@ function Propostas() {
                 </Select>
               </div>
               <div><Label>Nº Cliente</Label><Input value={selectedClient?.client_number ?? ""} readOnly /></div>
-              <div><Label>Estado</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{statuses.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
             </div>
 
 
