@@ -105,9 +105,9 @@ export function VehicleDrivers() {
         </Table>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Atribuir motorista ao veículo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editId ? "Editar atribuição" : "Atribuir motorista ao veículo"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Veículo</Label>
