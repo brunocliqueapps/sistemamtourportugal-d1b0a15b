@@ -56,6 +56,9 @@ function Propostas() {
     queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [],
   });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at", { ascending: false })).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*").order("name")).data ?? [] });
+  const { data: tourRoutes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*").order("name")).data ?? [] });
+
   const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts", "proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "proposal_status").eq("active", true).order("sort")).data ?? [] });
   const statuses = statusOpts.length ? statusOpts : ["rascunho", "enviada", "aprovada", "convertida", "rejeitada"].map((c) => ({ code: c, label: c }));
 
