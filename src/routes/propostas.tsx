@@ -336,15 +336,13 @@ function Propostas() {
             <div>
               <Label>Condições de pagamento</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm flex-1">Aprovação da Proposta</span>
-                  <Input className="w-20" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex items-center gap-1">
+                  <Input className="w-16" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
+                  <span className="text-sm">% na Aprovação da Proposta</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm flex-1">Final do Serviço</span>
-                  <Input className="w-20" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex items-center gap-1">
+                  <Input className="w-16" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
+                  <span className="text-sm">% no Final do Serviço</span>
                 </div>
               </div>
             </div>
