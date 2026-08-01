@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { toast } from "sonner";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
@@ -155,9 +155,18 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filtrar…"
+              className="pl-8"
+            />
+          </div>
           {extraActions}
           <Button onClick={openNew} className="gradient-gold text-gold-foreground">
             <Plus className="h-4 w-4 mr-1" /> Novo
@@ -176,8 +185,8 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
           </TableHeader>
           <TableBody>
             {isLoading && <TableRow><TableCell colSpan={cols.length + 1} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
-            {!isLoading && rows.length === 0 && <TableRow><TableCell colSpan={cols.length + 1} className="text-center text-muted-foreground py-8">Sem registos.</TableCell></TableRow>}
-            {rows.map((r: any) => (
+            {!isLoading && filteredRows.length === 0 && <TableRow><TableCell colSpan={cols.length + 1} className="text-center text-muted-foreground py-8">{term ? "Sem resultados para o filtro." : "Sem registos."}</TableCell></TableRow>}
+            {filteredRows.map((r: any) => (
               <TableRow key={r.id}>
                 {cols.map((c) => (
                   <TableCell key={c}>
@@ -191,6 +200,10 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
                 </TableCell>
               </TableRow>
             ))}
+          </TableBody>
+        </Table>
+      </Card>
+
           </TableBody>
         </Table>
       </Card>
