@@ -93,7 +93,7 @@ function Voucher() {
 
             {Array.isArray(p.itinerary) && p.itinerary.length > 0 && (
               <Table>
-                <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Programa</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {p.itinerary.map((d: any, i: number) => (
                     <TableRow key={i}><TableCell className="font-mono text-xs">{d.date}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
@@ -102,7 +102,6 @@ function Voucher() {
               </Table>
             )}
 
-            {p.descriptive && <div className="text-sm whitespace-pre-wrap rounded-md border p-3">{p.descriptive}</div>}
 
             <div className="flex justify-end">
               <Button className="gradient-gold text-gold-foreground" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
