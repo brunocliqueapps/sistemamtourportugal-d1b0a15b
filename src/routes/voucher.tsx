@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown } from "lucide-react";
+import { FileDown, Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
