@@ -388,9 +388,15 @@ function Propostas() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            {editing?.id && (
+              <Button variant="outline" onClick={() => generateProposalPdf(editing.id).catch((e: any) => toast.error(e.message))}>
+                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+              </Button>
+            )}
             <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!form.client_id || save.isPending}>
               {editing ? "Atualizar proposta" : "Gerar proposta"}
             </Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
