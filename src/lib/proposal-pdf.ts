@@ -70,7 +70,7 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
   return (doc as any).lastAutoTable.finalY + 18;
 }
 
-function itineraryBlock(doc: jsPDF, p: any, y: number) {
+function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
   const days: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
   if (!days.length) return y;
   doc.setFont("helvetica", "bold").setFontSize(11);
@@ -78,7 +78,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number) {
   y += 6;
   autoTable(doc, {
     startY: y,
-    head: [["Data", "Programa"]],
+    head: [["Data", columnLabel]],
     body: days.map((d) => [d.date, d.text || "—"]),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
