@@ -204,10 +204,6 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         </Table>
       </Card>
 
-          </TableBody>
-        </Table>
-      </Card>
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} · {title}</DialogTitle></DialogHeader>
