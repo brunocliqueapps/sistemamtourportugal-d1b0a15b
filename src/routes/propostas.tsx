@@ -55,7 +55,7 @@ function Propostas() {
     queryKey: ["clients-full-mini"],
     queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [],
   });
-  const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at", { ascending: false })).data ?? [] });
+  const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("*").order("created_at", { ascending: false })).data ?? [] });
   const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*").order("name")).data ?? [] });
   const { data: tourRoutes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*").order("name")).data ?? [] });
 
@@ -66,11 +66,14 @@ function Propostas() {
 
   function pickClient(id: string) {
     const c: any = clients.find((x: any) => x.id === id);
+    // O lead de origem costuma ter os dados de passageiros/viagem preenchidos
+    const l: any = c?.lead_id ? (leads as any[]).find((x: any) => x.id === c.lead_id) : null;
+    const pick = (k: string) => c?.[k] ?? l?.[k] ?? null;
     setForm((f: any) => ({
       ...f, client_id: id,
-      passengers: c?.passengers ?? f.passengers,
-      arrival_date: c?.arrival_date ?? f.arrival_date, arrival_time: c?.arrival_time ?? f.arrival_time, arrival_place: c?.arrival_place ?? f.arrival_place,
-      departure_date: c?.departure_date ?? f.departure_date, departure_time: c?.departure_time ?? f.departure_time, departure_place: c?.departure_place ?? f.departure_place,
+      passengers: Number(pick("passengers")) || Number(f.passengers) || 1,
+      arrival_date: pick("arrival_date") ?? f.arrival_date, arrival_time: pick("arrival_time") ?? f.arrival_time, arrival_place: pick("arrival_place") ?? f.arrival_place,
+      departure_date: pick("departure_date") ?? f.departure_date, departure_time: pick("departure_time") ?? f.departure_time, departure_place: pick("departure_place") ?? f.departure_place,
       responsible: f.responsible || c?.name || "",
     }));
   }
