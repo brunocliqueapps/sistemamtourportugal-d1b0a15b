@@ -91,9 +91,10 @@ function Propostas() {
         days_count: n || null,
         payment_terms: form.payment_terms || suggestPaymentTerms(n || 1),
       };
-      ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end"].forEach((k) => {
+      ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end", "region_id", "tour_route_id"].forEach((k) => {
         if (!payload[k]) payload[k] = null;
       });
+
       if (editing?.id) {
         const { error } = await supabase.from("proposals").update(payload).eq("id", editing.id);
         if (error) throw error;
