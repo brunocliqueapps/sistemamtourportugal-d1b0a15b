@@ -39,6 +39,11 @@ function Voucher() {
     enabled: !!clientId,
     queryFn: async () => (await supabase.from("proposals").select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
   });
+  const { data: validated = [], refetch: refetchValidated } = useQuery({
+    queryKey: ["proposals-voucher-validated"],
+    queryFn: async () => (await supabase.from("proposals").select("id,code,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
+  });
+
 
   const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
