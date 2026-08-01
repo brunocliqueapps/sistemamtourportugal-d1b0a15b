@@ -29,7 +29,7 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
@@ -49,6 +49,7 @@ function OCList() {
       const payload: any = { ...form };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (payload.sale_value != null) payload.sale_value = Number(payload.sale_value);
+      if (payload.amount_received != null) payload.amount_received = Number(payload.amount_received) || 0;
       if (payload.passengers != null) payload.passengers = Number(payload.passengers) || null;
       if (editing?.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
@@ -84,7 +85,8 @@ function OCList() {
       vehicle_id: s.vehicle_id ?? "",
       client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "para_atendimento",
-      financial_status: s.financial_status ?? "nao_faturado",
+      financial_status: s.financial_status ?? "pagar_empresa",
+      amount_received: s.amount_received ?? 0,
     });
   }
 
@@ -95,7 +97,7 @@ function OCList() {
       service_date: new Date().toISOString().slice(0,10), start_time: "",
       origin: "", destination: "", passengers: "", sale_value: 0,
       vehicle_id: "", client_id: "",
-      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
+      operation_type: "privado", status: "para_atendimento", financial_status: "pagar_empresa", amount_received: 0,
     });
   }
 
