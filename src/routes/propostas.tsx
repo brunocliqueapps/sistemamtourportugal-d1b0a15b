@@ -183,7 +183,7 @@ function Propostas() {
       departure_date: p.departure_date ?? "", departure_time: p.departure_time ?? "", departure_place: p.departure_place ?? "",
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
       region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
-      itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
+      itinerary: buildDays(p.itinerary_start ?? "", p.itinerary_end ?? "", Array.isArray(p.itinerary) ? p.itinerary : []),
       title: p.title ?? "",
       descriptive_service: p.private_service_text ?? "",
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,

@@ -100,10 +100,22 @@ function Orcamento() {
     if (status === "recusado") { patch.budget_refused_at = now; patch.budget_refusal_reason = refusal; patch.status = "rejeitada"; }
     const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
     if (error) return toast.error(error.message);
+    if (status === "aprovado") {
+      // Lança automaticamente na conta corrente como entrada
+      const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
+      const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
+        .filter(Boolean).join(" · ");
+      const mvPayload: any = { movement_date: now.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
+      const { error: mvErr } = existing
+        ? await supabase.from("cash_movements").update(mvPayload).eq("id", existing.id)
+        : await supabase.from("cash_movements").insert(mvPayload);
+      if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
+    }
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
-    toast.success(status === "aprovado" ? "Orçamento aprovado" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
+    toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
   }
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
