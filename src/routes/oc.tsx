@@ -14,6 +14,7 @@ import { Pencil, Trash2, Eye, CheckCircle2, Plus } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/oc")({ component: OCList });
 
@@ -26,13 +27,14 @@ function OCList() {
   const [editing, setEditing] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
+  const [search, setSearch] = useState("");
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
     queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name,client_number,email").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts","oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_financial_status").eq("active",true).order("sort")).data ?? [] });
   const { data: opTypeOpts = [] } = useQuery({ queryKey: ["status-opts","operation_type"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","operation_type").eq("active",true).order("sort")).data ?? [] });
@@ -41,6 +43,11 @@ function OCList() {
   const opTypes = opTypeOpts.length ? opTypeOpts : OPTYPE_FALLBACK.map((c) => ({ code: c, label: c }));
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
+
+  const q = search.trim().toLowerCase();
+  const rows = !q ? (data as any[]) : (data as any[]).filter((s: any) =>
+    [s.clients?.client_number, s.clients?.name, s.clients?.email, s.oc_code, s.voucher_code]
+      .some((v: any) => String(v ?? "").toLowerCase().includes(q)));
 
   const fromProposal = !!editing?.id && !!editing?.proposal_id;
 
@@ -115,10 +122,13 @@ function OCList() {
       <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelas propostas aprovadas ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
+      <Card className="p-3">
+        <Input placeholder="Filtrar por nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </Card>
       <Card>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
+            <TableHead>Nº Cliente</TableHead><TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
             <TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
@@ -126,12 +136,13 @@ function OCList() {
             <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {data.map((s: any) => {
+            {rows.map((s: any) => {
               const canConcluir = s.status !== "atendimento_finalizado";
               return (
               <TableRow key={s.id}>
-                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{s.oc_code?.replace('OC', 'OS')}</Link></TableCell>
-                <TableCell className="font-mono text-xs">{s.voucher_code}</TableCell>
+                <TableCell className="font-mono text-xs">{shortCode(s.clients?.client_number)}</TableCell>
+                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{shortCode(s.oc_code)}</Link></TableCell>
+                <TableCell className="font-mono text-xs">{shortCode(s.voucher_code)}</TableCell>
                 <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
                 <TableCell>{s.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
@@ -152,7 +163,7 @@ function OCList() {
                 </TableCell>
               </TableRow>
             );})}
-            {data.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
+            {rows.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
@@ -164,10 +175,10 @@ function OCList() {
             <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
               <div className="font-semibold">
                 Cliente: {editing?.clients?.name ?? clients.find((c: any) => c.id === form.client_id)?.name ?? "—"}
-                {editing?.clients?.client_number ? ` · Nº ${editing.clients.client_number}` : ""}
+                {editing?.clients?.client_number ? ` · Nº ${shortCode(editing.clients.client_number)}` : ""}
               </div>
               {editing?.clients?.phone && <div><b>Contacto:</b> {editing.clients.phone}{editing?.clients?.email ? ` · ${editing.clients.email}` : ""}</div>}
-              <div><b>Proposta:</b> {editing?.proposals?.code ?? "—"} · <b>Orçamento:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
+              <div><b>Proposta:</b> {shortCode(editing?.proposals?.code)} · <b>Orçamento:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
               <div><b>Data / hora:</b> {editing?.service_date ?? form.service_date ?? "—"} {editing?.start_time ?? ""}</div>
               <div><b>Trajeto:</b> {editing?.origin ?? "—"} → {editing?.destination ?? "—"}</div>
               <div><b>Passageiros:</b> {editing?.passengers ?? editing?.proposals?.passengers ?? "—"}</div>
@@ -229,7 +240,7 @@ function OCList() {
         open={!!viewing}
         onClose={() => setViewing(null)}
         title="Ordem de Serviço"
-        record={viewing ? { ...viewing, oc_code: viewing.oc_code?.replace('OC', 'OS') } : null}
+        record={viewing ? { ...viewing, oc_code: shortCode(viewing.oc_code), voucher_code: shortCode(viewing.voucher_code) } : null}
         fields={[
           { key: "oc_code", label: "OS" }, { key: "voucher_code", label: "Voucher" },
           { key: "service_date", label: "Data" }, { key: "start_time", label: "Horário" },

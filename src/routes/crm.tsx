@@ -17,6 +17,7 @@ import { useNextClientNumber } from "@/lib/next-client-number";
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { shortCode } from "@/lib/codes";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/crm")({ component: CRM });
@@ -203,7 +204,7 @@ function CRM() {
 
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-mono text-muted-foreground">{l.client_number ?? "—"}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{shortCode(l.client_number)}</div>
                       <div className="font-medium truncate">{l.name}</div>
                       <div className="text-xs text-muted-foreground">{l.origin || "Sem origem"}</div>
                       {l.phone && <div className="text-xs">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</div>}
@@ -278,7 +279,7 @@ function CRM() {
             <TableBody>
               {pageRows.map((l: any) => (
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
-                  <TableCell className="font-mono text-xs">{l.client_number ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{shortCode(l.client_number)}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
                   <TableCell className="text-sm">{l.email}</TableCell>
                   <TableCell className="text-sm">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</TableCell>
@@ -334,7 +335,7 @@ function CRM() {
           <DialogHeader><DialogTitle>{editing ? "Editar Lead" : "Novo Lead"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {editing?.client_number ? (
-              <div className="text-xs text-muted-foreground">Nº de cliente: <span className="font-mono">{editing.client_number}</span></div>
+              <div className="text-xs text-muted-foreground">Nº de cliente: <span className="font-mono">{shortCode(editing.client_number)}</span></div>
             ) : nextNumber ? (
               <div className="text-xs text-muted-foreground">Nº de cliente a atribuir: <span className="font-mono font-semibold text-foreground">{nextNumber}</span></div>
             ) : null}
@@ -429,7 +430,7 @@ function CRM() {
         title="Lead"
         record={viewing}
         fields={[
-          { key: "client_number", label: "Nº de cliente" },
+          { key: "client_number", label: "Nº de cliente", format: (v: any) => shortCode(v) },
           { key: "name", label: "Nome" },
           { key: "email", label: "Email" },
           { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
