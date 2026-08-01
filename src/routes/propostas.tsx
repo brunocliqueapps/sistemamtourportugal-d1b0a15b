@@ -254,8 +254,22 @@ function Propostas() {
                 </div>
                 <div><Label>Início</Label><Input type="date" value={form.itinerary_start} onChange={(e) => setRange({ itinerary_start: e.target.value })} /></div>
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
+                <div className="sm:col-span-2"><Label>Região</Label>
+                  <Select value={form.region_id} onValueChange={(v) => setForm({ ...form, region_id: v, tour_route_id: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
+                    <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2"><Label>Roteiro</Label>
+                  <Select value={form.tour_route_id} onValueChange={(v) => setForm({ ...form, tour_route_id: v })} disabled={!form.region_id}>
+                    <SelectTrigger><SelectValue placeholder={form.region_id ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
+                    <SelectContent>{regionRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
+
+
 
               {(form.itinerary ?? []).length > 0 && (
                 <div className="mt-3 space-y-2">
