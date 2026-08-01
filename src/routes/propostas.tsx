@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { buildDays, daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateProposalPdf } from "@/lib/proposal-pdf";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/propostas")({ component: Propostas });
 
@@ -30,7 +31,7 @@ const empty: any = {
   itinerary_start: "", itinerary_end: "", itinerary: [] as ItineraryDay[],
   region_id: "", tour_route_id: "",
 
-  descriptive: "", descriptive_service: "", payment_terms: "", total_value: 0,
+  title: "", descriptive: "", descriptive_service: "", payment_terms: "", total_value: 0,
 };
 
 const KINDS = [
@@ -47,6 +48,7 @@ function Propostas() {
   const [approveOpen, setApproveOpen] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
+  const [search, setSearch] = useState("");
   const [pctApproval, setPctApproval] = useState<any>(40);
   const [pctFinal, setPctFinal] = useState<any>(60);
   const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
@@ -61,6 +63,7 @@ function Propostas() {
   });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("*").order("created_at", { ascending: false })).data ?? [] });
   const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*").order("name")).data ?? [] });
+  const { data: services = [] } = useQuery({ queryKey: ["products_services", "mini"], queryFn: async () => (await supabase.from("products_services").select("id,name").eq("active", true).order("name")).data ?? [] });
   const { data: tourRoutes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*").order("name")).data ?? [] });
 
   const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts", "proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "proposal_status").eq("active", true).order("sort")).data ?? [] });
@@ -170,6 +173,7 @@ function Propostas() {
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
       region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
       itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
+      title: p.title ?? "",
       descriptive_service: p.private_service_text ?? "",
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
     });
@@ -178,6 +182,11 @@ function Propostas() {
 
 
   const selectedClient: any = clients.find((c: any) => c.id === form.client_id);
+  const q = search.trim().toLowerCase();
+  const filteredProps = q
+    ? (props as any[]).filter((p: any) => [p.code, p.clients?.client_number, p.clients?.name, p.leads?.name, p.clients?.email]
+        .some((v: any) => String(v ?? "").toLowerCase().includes(q)))
+    : (props as any[]);
   const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
 
 
@@ -187,25 +196,29 @@ function Propostas() {
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Roteiro Personalizado</Button>
       } />
 
+      <Card className="p-3 mb-4">
+        <Input placeholder="Filtrar por nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </Card>
+
       <Card>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead>
+            <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Tipo</TableHead>
             <TableHead>Dias</TableHead><TableHead className="text-right">Valor</TableHead>
-            <TableHead>Estado</TableHead><TableHead className="text-right">Ações</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {props.map((p: any) => {
+            {filteredProps.map((p: any) => {
               const approved = ["aprovada", "convertida"].includes(p.status) || !!p.budget_approved_at;
               const locked = approved && !isAdmin;
               return (
               <TableRow key={p.id}>
-                <TableCell className="font-mono text-xs">{p.code ?? p.clients?.client_number ?? "—"}</TableCell>
+                <TableCell className="font-mono text-xs">{shortCode(p.code ?? p.clients?.client_number)}</TableCell>
                 <TableCell className="font-medium">{p.clients?.name ?? p.leads?.name ?? "—"}</TableCell>
+                <TableCell>{p.title ?? "—"}</TableCell>
                 <TableCell>{KINDS.find((k) => k.code === p.proposal_kind)?.label ?? "—"}</TableCell>
                 <TableCell>{p.days_count ?? "—"}</TableCell>
                 <TableCell className="text-right">€ {Number(p.total_value).toFixed(2)}</TableCell>
-                <TableCell><Badge variant={p.status === "convertida" ? "default" : "outline"}>{p.status}</Badge></TableCell>
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
                   {p.status !== "convertida" && !locked && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
@@ -236,7 +249,12 @@ function Propostas() {
                   <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.client_number ? `${c.client_number} · ` : ""}{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Nº Cliente</Label><Input value={selectedClient?.client_number ?? ""} readOnly /></div>
+              <div><Label>Serviço</Label>
+                <Select value={form.title ?? ""} onValueChange={(v) => setForm({ ...form, title: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
+                  <SelectContent>{services.map((s: any) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
 
 
@@ -389,7 +407,8 @@ function Propostas() {
         title="Proposta"
         record={viewing}
         fields={[
-          { key: "code", label: "Nº Cliente / Proposta" },
+          { key: "code", label: "Nº Cliente / Proposta", format: (v: any) => shortCode(v) },
+          { key: "title", label: "Serviço" },
           { key: "clients", label: "Cliente", format: (v, r) => v?.name ?? r?.leads?.name ?? "—" },
           { key: "responsible", label: "Responsável" },
           { key: "passengers", label: "Nº de pessoas" },
@@ -401,7 +420,6 @@ function Propostas() {
           { key: "descriptive", label: "Descritivo" },
           { key: "payment_terms", label: "Condições de pagamento" },
           { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
-          { key: "status", label: "Estado", format: (v) => statuses.find((s: any) => s.code === v)?.label ?? v },
         ]}
       />
     </div>
