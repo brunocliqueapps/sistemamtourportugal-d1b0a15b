@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Check, Pencil, Trash2, Eye, FileDown } from "lucide-react";
+import { Plus, Check, Pencil, Trash2, Eye, FileDown, Lock } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
 import { buildDays, daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateProposalPdf } from "@/lib/proposal-pdf";
 
@@ -39,6 +40,7 @@ const KINDS = [
 
 function Propostas() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -183,7 +185,10 @@ function Propostas() {
             <TableHead>Estado</TableHead><TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {props.map((p: any) => (
+            {props.map((p: any) => {
+              const approved = ["aprovada", "convertida"].includes(p.status) || !!p.budget_approved_at;
+              const locked = approved && !isAdmin;
+              return (
               <TableRow key={p.id}>
                 <TableCell className="font-mono text-xs">{p.code ?? p.clients?.client_number ?? "—"}</TableCell>
                 <TableCell className="font-medium">{p.clients?.name ?? p.leads?.name ?? "—"}</TableCell>
@@ -192,16 +197,20 @@ function Propostas() {
                 <TableCell className="text-right">€ {Number(p.total_value).toFixed(2)}</TableCell>
                 <TableCell><Badge variant={p.status === "convertida" ? "default" : "outline"}>{p.status}</Badge></TableCell>
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
-                  {p.status !== "convertida" && (
+                  {p.status !== "convertida" && !locked && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
                   )}
                   <Button size="icon" variant="ghost" title="PDF da proposta" onClick={() => generateProposalPdf(p.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  {locked ? (
+                    <Badge variant="outline" className="ml-1"><Lock className="h-3 w-3 mr-1" /> Só admin</Badge>
+                  ) : (<>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </>)}
                 </TableCell>
               </TableRow>
-            ))}
+            );})}
           </TableBody>
         </Table>
       </Card>
@@ -280,17 +289,51 @@ function Propostas() {
 
 
               {(form.itinerary ?? []).length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {(form.itinerary as ItineraryDay[]).map((d, i) => (
-                    <div key={d.date} className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 items-start">
-                      <Input type="date" value={d.date} onChange={(e) => {
-                        const list = [...form.itinerary]; list[i] = { ...list[i], date: e.target.value }; setForm({ ...form, itinerary: list });
-                      }} />
-                      <Textarea rows={2} placeholder={`Dia ${i + 1} — programa`} value={d.text} onChange={(e) => {
-                        const list = [...form.itinerary]; list[i] = { ...list[i], text: e.target.value }; setForm({ ...form, itinerary: list });
-                      }} />
-                    </div>
-                  ))}
+                <div className="mt-3 space-y-3">
+                  {(form.itinerary as ItineraryDay[]).map((d, i) => {
+                    const patch = (v: Partial<ItineraryDay>) => {
+                      const list = [...(form.itinerary as ItineraryDay[])];
+                      list[i] = { ...list[i], ...v };
+                      setForm({ ...form, itinerary: list });
+                    };
+                    const dayRoutes = (tourRoutes as any[]).filter((r) => r.region_id === (d.region_id || form.region_id));
+                    return (
+                      <div key={d.date} className="rounded-md border p-3 space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div><Label className="text-xs">Dia {i + 1} — data</Label>
+                            <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
+                          </div>
+                          <div><Label className="text-xs">Região</Label>
+                            <Select value={d.region_id || form.region_id || ""} onValueChange={(v) => patch({ region_id: v, tour_route_id: "" })}>
+                              <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
+                              <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div><Label className="text-xs">Opção</Label>
+                            <Select value={d.mode ?? "sugestao"} onValueChange={(v) => patch({ mode: v as any, tour_route_id: v === "personalizado" ? "" : d.tour_route_id })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="sugestao">Sugestões Mtour</SelectItem>
+                                <SelectItem value="personalizado">Roteiro Personalizado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {(d.mode ?? "sugestao") === "sugestao" && (
+                          <div><Label className="text-xs">Roteiro sugerido</Label>
+                            <Select value={d.tour_route_id ?? ""} onValueChange={(v) => {
+                              const r = (tourRoutes as any[]).find((x) => x.id === v);
+                              patch({ tour_route_id: v, text: d.text || r?.name || "" });
+                            }} disabled={!(d.region_id || form.region_id)}>
+                              <SelectTrigger><SelectValue placeholder={(d.region_id || form.region_id) ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
+                              <SelectContent>{dayRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <Textarea rows={2} placeholder="Serviço contratado / programa do dia" value={d.text} onChange={(e) => patch({ text: e.target.value })} />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
