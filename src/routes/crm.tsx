@@ -276,7 +276,7 @@ function CRM() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.filter((l: any) => showArchivedList ? l.archived : true).map((l: any) => (
+              {pageRows.map((l: any) => (
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
                   <TableCell className="font-mono text-xs">{l.client_number ?? "—"}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
