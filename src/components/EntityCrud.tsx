@@ -21,7 +21,10 @@ export interface CrudField {
   required?: boolean;
   step?: string;
   options?: { value: string; label: string }[];
+  /** Carrega as opções do select a partir de uma tabela do Supabase */
+  optionsFrom?: { table: string; value?: string; label?: string; orderBy?: string };
 }
+
 
 const EXPIRY_META: Record<string, { primaryKey: string; entityLabel: string; category: string }> = {
   drivers:   { primaryKey: "full_name", entityLabel: "Motorista",   category: "licenca" },
