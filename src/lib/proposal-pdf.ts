@@ -141,10 +141,13 @@ export async function generateBudgetPdf(id: string) {
 
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Condições de pagamento", 40, y); y += 6;
+  const stages: any[] = Array.isArray(p.payment_stages) && p.payment_stages.length
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    : paymentSchedule(days || 1, p.total_value);
   autoTable(doc, {
     startY: y,
     head: [["Etapa", "%", "Valor (€)"]],
-    body: paymentSchedule(days || 1, p.total_value).map((s) => [s.label, `${s.pct}%`, s.value.toFixed(2)]),
+    body: stages.map((s) => [s.label, `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
     styles: { fontSize: 9 }, headStyles: { fillColor: [176, 141, 68] }, margin: { left: 40, right: 40 },
   });
   y = (doc as any).lastAutoTable.finalY + 16;
@@ -169,3 +172,33 @@ export async function generateVoucherPdf(id: string) {
   y = itineraryBlock(doc, p, y, "Serviço contratado");
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
 }
+
+export async function generateServiceOrderPdf(id: string) {
+  const { data } = await supabase
+    .from("service_orders")
+    .select("*, clients(*), vehicles(plate,brand,model,owner_company), proposals(code,title,descriptive,payment_terms,itinerary,itinerary_start,itinerary_end,proposal_kind,private_service_text,passengers,total_value)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) throw new Error("Ordem de serviço não encontrada");
+  const s: any = data;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  let y = await header(doc, "ORDEM DE SERVIÇO", s.oc_code ?? s.voucher_code);
+  y = clientBlock(doc, { clients: s.clients, passengers: s.passengers ?? s.proposals?.passengers, responsible: s.responsible }, y);
+  autoTable(doc, {
+    startY: y,
+    head: [["Data", "Hora", "Origem", "Destino", "Veículo"]],
+    body: [[
+      s.service_date ?? "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
+      s.vehicles ? `${s.vehicles.plate}${s.vehicles.owner_company ? " — " + s.vehicles.owner_company : ""}` : "—",
+    ]],
+    styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 18;
+  if (s.proposals) y = itineraryBlock(doc, s.proposals, y, "Serviço contratado");
+  doc.setFont("helvetica", "bold").setFontSize(12);
+  doc.text(`Valor: € ${Number(s.sale_value ?? s.proposals?.total_value ?? 0).toFixed(2)}`, 40, y); y += 16;
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  if (s.payment_terms ?? s.proposals?.payment_terms) doc.text(String(s.payment_terms ?? s.proposals?.payment_terms), 40, y);
+  doc.save(`OS-${s.oc_code ?? s.id}.pdf`);
+}
+
