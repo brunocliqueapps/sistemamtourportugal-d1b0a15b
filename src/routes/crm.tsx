@@ -230,14 +230,26 @@ function CRM() {
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">Lista de leads</h3>
-            <Badge variant="secondary">{leads.length}</Badge>
+            <Badge variant="secondary">{filtered.length}</Badge>
             <Badge variant="outline">Arquivados: {leads.filter((l: any) => l.archived).length}</Badge>
           </div>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
-            Mostrar apenas arquivados
-          </label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Nº cliente, nome ou email"
+                className="pl-8 h-9 w-full sm:w-72"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showArchivedList} onCheckedChange={(v) => { setShowArchivedList(v); setPage(1); }} />
+              Mostrar apenas arquivados
+            </label>
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
