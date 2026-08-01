@@ -86,13 +86,12 @@ const produtos: CrudField[] = [
   { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
 const roteiros: CrudField[] = [
+  { key: "region_id", label: "Região", type: "select", required: true, optionsFrom: { table: "regions", value: "id", label: "name" } },
   { key: "name", label: "Nome do roteiro", required: true },
-  { key: "region", label: "Região" },
-  { key: "duration_hours", label: "Duração (h)", type: "number", step: "0.5" },
-  { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" },
   { key: "description", label: "Descrição", type: "textarea" },
   { key: "active", label: "Ativo", type: "checkbox" },
 ];
+
 
 function Cadastros() {
   return (
