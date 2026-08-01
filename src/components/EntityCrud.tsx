@@ -68,6 +68,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
   const [editing, setEditing] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [search, setSearch] = useState("");
   const cols = columns ?? fields.slice(0, 4).map((f) => f.key);
 
   const { data: rows = [], isLoading } = useQuery({
@@ -143,6 +144,14 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   function openNew() { setEditing(null); setForm({}); setOpen(true); }
   function openEdit(row: any) { setEditing(row); setForm(row); setOpen(true); }
+
+  const term = search.trim().toLowerCase();
+  const filteredRows = term
+    ? (rows as any[]).filter((r) =>
+        cols.some((c) => String(renderCell(r, c) ?? "").toLowerCase().includes(term)) ||
+        fields.some((f) => String(r[f.key] ?? "").toLowerCase().includes(term)),
+      )
+    : (rows as any[]);
 
   return (
     <div className="space-y-4">
