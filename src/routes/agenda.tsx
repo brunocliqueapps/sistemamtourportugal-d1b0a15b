@@ -153,8 +153,9 @@ function Agenda() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="whitespace-nowrap">Data</TableHead>
                   <TableHead className="whitespace-nowrap">Horário</TableHead>
-                  <TableHead>OC / Voucher</TableHead>
+                  <TableHead>OS / Voucher</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Telefone</TableHead>
@@ -169,11 +170,13 @@ function Agenda() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((s: any) => {
+                {t.list.map((s: any) => {
                   const pay = paymentBadge(Number(s.sale_value || 0), Number(s.amount_received || 0));
                   return (
                     <TableRow key={s.id}>
+                      <TableCell className="whitespace-nowrap text-xs">{s.service_date}</TableCell>
                       <TableCell className="font-mono">{s.start_time?.slice(0, 5) ?? "—"}</TableCell>
+
                       <TableCell>
                         <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-medium">
                           {s.oc_code}
