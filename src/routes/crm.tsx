@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye, Search } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
 import { useNextClientNumber } from "@/lib/next-client-number";
