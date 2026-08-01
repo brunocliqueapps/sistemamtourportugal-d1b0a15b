@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Archive, ArchiveRestore, Eye, Search } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
 import { useNextClientNumber } from "@/lib/next-client-number";
@@ -56,6 +56,11 @@ function CRM() {
   const [showArchivedList, setShowArchivedList] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
   const nextNumber = useNextClientNumber();
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
 
 
 
@@ -148,6 +153,17 @@ function CRM() {
     setOpen(true);
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = (leads as any[]).filter((l: any) => {
+    if (showArchivedList && !l.archived) return false;
+    if (!q) return true;
+    return [l.client_number, l.name, l.email].some((v) => String(v ?? "").toLowerCase().includes(q));
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="CRM Comercial" description="Funil de leads e negócios." actions={
@@ -156,14 +172,35 @@ function CRM() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cols.map((c) => (
-          <Card key={c.key} className="p-4">
+          <Card
+            key={c.key}
+            className={`p-4 transition-colors ${dragOverCol === c.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverCol(c.key); }}
+            onDragLeave={() => setDragOverCol((prev) => (prev === c.key ? null : prev))}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData("text/plain") || dragId;
+              setDragOverCol(null); setDragId(null);
+              if (!id) return;
+              const l = leads.find((x: any) => x.id === id);
+              if (!l || l.status === c.key) return;
+              update.mutate({ id, patch: { status: c.key } });
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{c.label}</h3>
               <Badge variant="secondary">{leads.filter((l: any) => l.status === c.key && !l.archived).length}</Badge>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-h-16">
               {leads.filter((l: any) => l.status === c.key && !l.archived).map((l: any) => (
-                <Card key={l.id} className="p-3">
+                <Card
+                  key={l.id}
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.setData("text/plain", l.id); e.dataTransfer.effectAllowed = "move"; setDragId(l.id); }}
+                  onDragEnd={() => { setDragId(null); setDragOverCol(null); }}
+                  className={`p-3 cursor-grab active:cursor-grabbing ${dragId === l.id ? "opacity-50" : ""}`}
+                >
+
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-xs font-mono text-muted-foreground">{l.client_number ?? "—"}</div>
@@ -204,14 +241,26 @@ function CRM() {
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">Lista de leads</h3>
-            <Badge variant="secondary">{leads.length}</Badge>
+            <Badge variant="secondary">{filtered.length}</Badge>
             <Badge variant="outline">Arquivados: {leads.filter((l: any) => l.archived).length}</Badge>
           </div>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
-            Mostrar apenas arquivados
-          </label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Nº cliente, nome ou email"
+                className="pl-8 h-9 w-full sm:w-72"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showArchivedList} onCheckedChange={(v) => { setShowArchivedList(v); setPage(1); }} />
+              Mostrar apenas arquivados
+            </label>
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -227,7 +276,7 @@ function CRM() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.filter((l: any) => showArchivedList ? l.archived : true).map((l: any) => (
+              {pageRows.map((l: any) => (
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
                   <TableCell className="font-mono text-xs">{l.client_number ?? "—"}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
@@ -258,12 +307,25 @@ function CRM() {
                   </TableCell>
                 </TableRow>
               ))}
-              {leads.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum lead cadastrado</TableCell></TableRow>
+              {pageRows.length === 0 && (
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum lead encontrado</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap mt-3">
+          <div className="text-xs text-muted-foreground">
+            {filtered.length > 0
+              ? `A mostrar ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} de ${filtered.length}`
+              : "Sem resultados"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+            <span className="text-xs text-muted-foreground">Página {safePage} de {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
+          </div>
+        </div>
+
       </Card>
 
 
