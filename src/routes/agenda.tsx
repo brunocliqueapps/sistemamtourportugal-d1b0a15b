@@ -51,7 +51,7 @@ function Agenda() {
     queryKey: ["agenda", periodFrom, periodTo, statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
-        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company)")
+        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(code,title,itinerary_start,itinerary_end)")
         .gte("service_date", periodFrom)
         .lte("service_date", periodTo)
         .order("service_date").order("start_time");
@@ -63,10 +63,23 @@ function Agenda() {
     },
   });
 
-  const grouped = (data ?? []).reduce<Record<string, any[]>>((acc, s: any) => {
-    (acc[s.service_date] = acc[s.service_date] ?? []).push(s);
+  // Agrupado por viagem (proposta) e não por Ordem de Serviço
+  const trips = Object.values((data ?? []).reduce<Record<string, { key: string; label: string; period: string; client: string; list: any[] }>>((acc, s: any) => {
+    const key = s.proposal_id ?? `os-${s.id}`;
+    if (!acc[key]) {
+      const start = s.proposals?.itinerary_start ?? s.service_date;
+      const end = s.proposals?.itinerary_end ?? s.service_date;
+      acc[key] = {
+        key,
+        label: s.proposals?.code ? `Viagem ${s.proposals.code}${s.proposals.title ? ` · ${s.proposals.title}` : ""}` : `Serviço avulso ${s.oc_code ?? ""}`,
+        period: start === end ? String(start) : `${start} → ${end}`,
+        client: s.clients?.name ?? "—",
+        list: [],
+      };
+    }
+    acc[key].list.push(s);
     return acc;
-  }, {});
+  }, {})).sort((a, b) => (a.period > b.period ? 1 : -1));
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
