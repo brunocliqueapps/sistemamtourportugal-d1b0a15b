@@ -169,9 +169,13 @@ function Orcamento() {
               const pr: any = props.find((x: any) => x.id === v);
               setValue(String(pr?.total_value ?? 0));
               setTerms(pr?.payment_terms ?? suggestPaymentTerms(pr?.days_count ?? 1));
+              setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
+                ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
+                : DEFAULT_STAGES);
               setReceipt(pr?.budget_receipt_info ?? "");
               setRefusal(pr?.budget_refusal_reason ?? "");
             }}>
+
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
               <SelectContent>
                 {filteredProps.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.clients?.name ?? "—"}</SelectItem>)}
