@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileDown, Check, Clock, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
+import { daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 
@@ -33,6 +33,9 @@ export const Route = createFileRoute("/orcamento")({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+type Stage = { label: string; pct: any };
+const DEFAULT_STAGES: Stage[] = [{ label: "Aprovação da Proposta", pct: 40 }, { label: "Final do Serviço", pct: 60 }];
+
 function Orcamento() {
   const [selected, setSelected] = useState<string>("");
   const [value, setValue] = useState<string>("");
@@ -40,6 +43,8 @@ function Orcamento() {
   const [receipt, setReceipt] = useState<string>("");
   const [refusal, setRefusal] = useState<string>("");
   const [search, setSearch] = useState<string>("");
+  const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
+
 
   const { data: props = [], refetch } = useQuery({
     queryKey: ["proposals-orcamento"],
@@ -79,15 +84,30 @@ function Orcamento() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.length, (props as any[]).filter((x: any) => x.budget_status === "analise").length]);
 
+  const stageTerms = () => stages.filter((s) => s.label.trim()).map((s) => `${s.label} ${Number(s.pct || 0)}%`).join(" · ");
+
   async function save() {
     if (!p) return;
     const { error } = await supabase.from("proposals")
-      .update({ total_value: total, payment_terms: terms || p.payment_terms || suggestPaymentTerms(days || 1) })
+      .update({
+        total_value: total,
+        payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
+        payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
+      })
       .eq("id", p.id);
     if (error) return toast.error(error.message);
     toast.success("Orçamento atualizado");
     refetch();
   }
+
+  async function validate() {
+    if (!p) return;
+    const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento validado");
+    refetch();
+  }
+
 
   async function setBudgetStatus(status: "aprovado" | "analise" | "recusado") {
     if (!p) return;
@@ -149,9 +169,13 @@ function Orcamento() {
               const pr: any = props.find((x: any) => x.id === v);
               setValue(String(pr?.total_value ?? 0));
               setTerms(pr?.payment_terms ?? suggestPaymentTerms(pr?.days_count ?? 1));
+              setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
+                ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
+                : DEFAULT_STAGES);
               setReceipt(pr?.budget_receipt_info ?? "");
               setRefusal(pr?.budget_refusal_reason ?? "");
             }}>
+
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
               <SelectContent>
                 {filteredProps.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.clients?.name ?? "—"}</SelectItem>)}
@@ -203,25 +227,37 @@ function Orcamento() {
               </Table>
             )}
 
-            <div><Label>Condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+            <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
 
-            <Table>
-              <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead>%</TableHead><TableHead className="text-right">Valor (€)</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {paymentSchedule(days || 1, total).map((s) => (
-                  <TableRow key={s.label}>
-                    <TableCell>{s.label}</TableCell><TableCell>{s.pct}%</TableCell>
-                    <TableCell className="text-right">{s.value.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
+              {stages.map((s, i) => {
+                const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
+                return (
+                  <div key={i} className="flex flex-wrap items-center gap-2">
+                    <Input className="w-20" type="number" min={0} max={100} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
+                    <span className="text-sm">%</span>
+                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" value={s.label} onChange={(e) => patch({ label: e.target.value })} />
+                    <span className="text-sm w-24 text-right">€ {(total * Number(s.pct || 0) / 100).toFixed(2)}</span>
+                    <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                  </div>
+                );
+              })}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
+                <div className="text-xs text-muted-foreground">
+                  Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 Estado do orçamento
                 <Badge variant={p.budget_status === "aprovado" ? "default" : "outline"}>{p.budget_status ?? "rascunho"}</Badge>
+                {p.budget_validated_at && <Badge variant="default">Validado</Badge>}
               </div>
+
               {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
               {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
               {p.budget_analysis_at && p.budget_status === "analise" && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")} — bilhete diário de acompanhamento até aprovar ou recusar.</div>}
@@ -238,13 +274,40 @@ function Orcamento() {
 
             <div className="flex flex-wrap gap-2 justify-end">
               <Button variant="outline" onClick={save}>Guardar</Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => { await save(); generateBudgetPdf(p.id).catch((e) => toast.error(e.message)); }}>
-                <FileDown className="h-4 w-4 mr-1" /> Gerar PDF do orçamento
+              <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
+                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+              </Button>
+              <Button className="gradient-gold text-gold-foreground" onClick={async () => { await save(); await validate(); }}>
+                <Check className="h-4 w-4 mr-1" /> Validar Orçamento
               </Button>
             </div>
           </>
         )}
       </Card>
+
+      <Card className="p-4">
+        <div className="font-semibold text-sm mb-2">Orçamentos validados</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {(props as any[]).filter((x: any) => x.budget_validated_at).map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{new Date(x.budget_validated_at).toLocaleString("pt-PT")}</TableCell>
+                <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!(props as any[]).some((x: any) => x.budget_validated_at) && (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
+
   );
 }

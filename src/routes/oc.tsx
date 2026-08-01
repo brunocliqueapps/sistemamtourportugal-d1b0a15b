@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, CheckCircle2, Plus } from "lucide-react";
+import { Pencil, Trash2, Eye, CheckCircle2, Plus, FileDown } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
+import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
 
 export const Route = createFileRoute("/oc")({ component: OCList });
 
@@ -157,6 +158,7 @@ function OCList() {
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Concluir
                     </Button>
                   )}
+                  <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateServiceOrderPdf(s.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OS?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
@@ -231,6 +233,11 @@ function OCList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            {editing?.id && (
+              <Button variant="outline" onClick={() => generateServiceOrderPdf(editing.id).catch((e: any) => toast.error(e.message))}>
+                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+              </Button>
+            )}
             <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>{editing?.id ? "Atualizar" : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
