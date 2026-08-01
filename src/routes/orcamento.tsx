@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateBudgetPdf } from "@/lib/proposal-pdf";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/orcamento")({
   component: Orcamento,
@@ -38,6 +39,7 @@ function Orcamento() {
   const [terms, setTerms] = useState<string>("");
   const [receipt, setReceipt] = useState<string>("");
   const [refusal, setRefusal] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
 
   const { data: props = [], refetch } = useQuery({
     queryKey: ["proposals-orcamento"],
@@ -50,6 +52,9 @@ function Orcamento() {
     queryFn: async () => (await supabase.from("proposal_followups").select("*, proposals(code, clients(name))").eq("done", false).order("due_date")).data ?? [],
   });
 
+  const q = search.trim().toLowerCase();
+  const filteredProps = useMemo(() => !q ? (props as any[]) : (props as any[]).filter((x: any) =>
+    [x.code, x.clients?.client_number, x.clients?.name, x.clients?.email].some((v: any) => String(v ?? "").toLowerCase().includes(q))), [props, q]);
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
   const days = p ? (p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1) : 1;
   const total = Number(value || p?.total_value || 0);
@@ -110,7 +115,7 @@ function Orcamento() {
           <div className="space-y-1 text-sm">
             {followups.map((f: any) => (
               <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-1">
-                <span>{f.due_date} · {f.proposals?.code ?? "—"} · {f.proposals?.clients?.name ?? "—"}</span>
+                <span>{f.due_date} · {shortCode(f.proposals?.code)} · {f.proposals?.clients?.name ?? "—"}</span>
                 <Button size="sm" variant="outline" onClick={async () => {
                   await supabase.from("proposal_followups").update({ done: true }).eq("id", f.id);
                   refetchFollowups();
@@ -123,6 +128,9 @@ function Orcamento() {
 
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-3"><Label>Filtrar</Label>
+            <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <div className="sm:col-span-2"><Label>Proposta</Label>
             <Select value={selected} onValueChange={(v) => {
               setSelected(v);
@@ -134,7 +142,7 @@ function Orcamento() {
             }}>
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
               <SelectContent>
-                {props.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.code ?? "—"} · {x.clients?.name ?? "—"}</SelectItem>)}
+                {filteredProps.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.clients?.name ?? "—"}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -144,7 +152,7 @@ function Orcamento() {
         {p && (
           <>
             <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>Nº Cliente: <span className="font-medium">{p.clients?.client_number ?? "—"}</span></div>
+              <div>Nº Cliente: <span className="font-medium">{shortCode(p.clients?.client_number)}</span></div>
               <div>Cliente: <span className="font-medium">{p.clients?.name ?? "—"}</span></div>
               <div>NIF/Passaporte: <span className="font-medium">{p.clients?.nif ?? "—"}</span></div>
               <div>Telefone: <span className="font-medium">{[p.clients?.phone_country, p.clients?.phone].filter(Boolean).join(" ") || "—"}</span></div>

@@ -66,8 +66,6 @@ function Propostas() {
   const { data: services = [] } = useQuery({ queryKey: ["products_services", "mini"], queryFn: async () => (await supabase.from("products_services").select("id,name").eq("active", true).order("name")).data ?? [] });
   const { data: tourRoutes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*").order("name")).data ?? [] });
 
-  const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts", "proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "proposal_status").eq("active", true).order("sort")).data ?? [] });
-  const statuses = statusOpts.length ? statusOpts : ["rascunho", "enviada", "aprovada", "convertida", "rejeitada"].map((c) => ({ code: c, label: c }));
 
   const days = daysBetween(form.itinerary_start, form.itinerary_end);
 

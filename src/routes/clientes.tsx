@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, History, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { shortCode } from "@/lib/codes";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
 import { useNextClientNumber } from "@/lib/next-client-number";
@@ -127,7 +128,7 @@ function Clientes() {
             {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {filtered.map((c: any) => (
               <TableRow key={c.id}>
-                <TableCell className="font-mono text-xs">{c.client_number ?? "—"}</TableCell>
+                <TableCell className="font-mono text-xs">{shortCode(c.client_number)}</TableCell>
                 <TableCell className="font-medium">{c.name}</TableCell>
                 <TableCell>{c.nif ?? "—"}</TableCell>
                 <TableCell>{c.email ?? "—"}</TableCell>
@@ -159,7 +160,7 @@ function Clientes() {
           <div className="space-y-4">
             {editing?.client_number ? (
               <div className="text-xs text-muted-foreground">
-                Nº de cliente: <span className="font-mono font-semibold">{editing.client_number}</span> (fixo — todos os serviços começam por este número)
+                Nº de cliente: <span className="font-mono font-semibold">{shortCode(editing.client_number)}</span> (fixo — todos os serviços começam por este número)
               </div>
             ) : nextNumber ? (
               <div className="text-xs text-muted-foreground">
@@ -245,7 +246,7 @@ function Clientes() {
         title="Cliente"
         record={viewing}
         fields={[
-          { key: "client_number", label: "Nº Cliente" },
+          { key: "client_number", label: "Nº Cliente", format: (v: any) => shortCode(v) },
           { key: "name", label: "Nome" }, { key: "nif", label: "NIF / Passaporte" },
           { key: "email", label: "Email" }, { key: "phone_country", label: "Indicativo" },
           { key: "phone", label: "Telefone" }, { key: "origin", label: "Origem" },
@@ -328,8 +329,8 @@ function ClientHistoryDialog({ client, onClose }: { client: any | null; onClose:
                   {orders.map((o: any) => (
                     <TableRow key={o.id}>
                       <TableCell>{dt(o.service_date)}</TableCell>
-                      <TableCell className="font-mono text-xs">{o.oc_code ?? "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">{o.voucher_code ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{shortCode(o.oc_code)}</TableCell>
+                      <TableCell className="font-mono text-xs">{shortCode(o.voucher_code)}</TableCell>
                       <TableCell>{o.drivers?.full_name ?? "—"}</TableCell>
                       <TableCell>{o.vehicles?.plate ?? "—"}</TableCell>
                       <TableCell>{o.operation_type ?? "—"}</TableCell>

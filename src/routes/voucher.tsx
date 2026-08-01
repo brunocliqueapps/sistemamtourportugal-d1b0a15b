@@ -12,6 +12,7 @@ import { FileDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
@@ -58,20 +59,20 @@ function Voucher() {
           <div><Label>Cliente</Label>
             <Select value={clientId} onValueChange={(v) => { setClientId(v); setProposalId(""); }}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${x.client_number} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div><Label>Proposta / Roteiro</Label>
             <Select value={proposalId} onValueChange={setProposalId} disabled={!clientId}>
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-              <SelectContent>{props.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.code ?? "—"} · {x.title ?? ""}</SelectItem>)}</SelectContent>
+              <SelectContent>{props.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>
 
         {c && (
           <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>Nº Cliente: <span className="font-medium">{c.client_number ?? "—"}</span></div>
+            <div>Nº Cliente: <span className="font-medium">{shortCode(c.client_number)}</span></div>
             <div>Nome: <span className="font-medium">{c.name}</span></div>
             <div>NIF/Passaporte: <span className="font-medium">{c.nif ?? "—"}</span></div>
             <div>Telefone: <span className="font-medium">{[c.phone_country, c.phone].filter(Boolean).join(" ") || "—"}</span></div>
