@@ -74,7 +74,7 @@ export function VehicleDrivers() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Motoristas atribuídos</h2>
-        <Button onClick={() => setOpen(true)} className="gradient-gold text-gold-foreground">
+        <Button onClick={openNew} className="gradient-gold text-gold-foreground">
           <UserPlus className="h-4 w-4 mr-1" /> Atribuir motorista
         </Button>
       </div>
@@ -83,7 +83,7 @@ export function VehicleDrivers() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Veículo</TableHead><TableHead>Utilização</TableHead>
-            <TableHead>Empresa</TableHead><TableHead>Motorista</TableHead>
+            <TableHead>Motorista</TableHead>
             <TableHead>Principal</TableHead><TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -91,15 +91,16 @@ export function VehicleDrivers() {
               <TableRow key={l.id}>
                 <TableCell className="font-mono">{l.vehicles?.plate} · {l.vehicles?.brand} {l.vehicles?.model}</TableCell>
                 <TableCell><Badge variant="outline">{l.vehicles?.usage_type === "aluguel" ? "Aluguel" : "Uso próprio"}</Badge></TableCell>
-                <TableCell>{l.vehicles?.owner_company ?? "—"}</TableCell>
                 <TableCell>{l.drivers?.full_name ?? "—"}</TableCell>
                 <TableCell>{l.is_primary ? "Sim" : "Não"}</TableCell>
                 <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(l)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover atribuição?")) del.mutate(l.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
-            {links.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Sem motoristas atribuídos.</TableCell></TableRow>}
+            {links.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Sem motoristas atribuídos.</TableCell></TableRow>}
+
           </TableBody>
         </Table>
       </Card>
