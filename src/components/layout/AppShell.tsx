@@ -26,7 +26,7 @@ const groups: Group[] = [
   ]},
   { label: "Operação", items: [
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
-    { to: "/voucher", label: "Voucher", icon: FileText, module: "propostas" },
+    { to: "/voucher", label: "Voucher", icon: FileText, module: "voucher" },
     { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
   ]},
   { label: "Logística", items: [

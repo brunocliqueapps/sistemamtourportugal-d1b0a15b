@@ -1,4 +1,11 @@
-export type ItineraryDay = { date: string; text: string };
+export type ItineraryDay = {
+  date: string;
+  text: string;
+  /** "sugestao" = roteiro sugerido Mtour · "personalizado" = descrição livre */
+  mode?: "sugestao" | "personalizado";
+  region_id?: string;
+  tour_route_id?: string;
+};
 
 export function daysBetween(start?: string | null, end?: string | null): number {
   if (!start || !end) return 0;
@@ -16,7 +23,14 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
     const d = new Date(start as string);
     d.setDate(d.getDate() + i);
     const iso = d.toISOString().slice(0, 10);
-    out.push({ date: iso, text: existing.find((e) => e.date === iso)?.text ?? existing[i]?.text ?? "" });
+    const prev = existing.find((e) => e.date === iso) ?? existing[i];
+    out.push({
+      date: iso,
+      text: prev?.text ?? "",
+      mode: prev?.mode ?? "sugestao",
+      region_id: prev?.region_id ?? "",
+      tour_route_id: prev?.tour_route_id ?? "",
+    });
   }
   return out;
 }
