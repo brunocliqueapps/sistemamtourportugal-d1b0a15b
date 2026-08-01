@@ -151,7 +151,9 @@ function Propostas() {
       arrival_date: p.arrival_date ?? "", arrival_time: p.arrival_time ?? "", arrival_place: p.arrival_place ?? "",
       departure_date: p.departure_date ?? "", departure_time: p.departure_time ?? "", departure_place: p.departure_place ?? "",
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
+      region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
       itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
+
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
     });
     setOpen(true);
