@@ -172,7 +172,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
               <TableRow key={r.id}>
                 {cols.map((c) => (
                   <TableCell key={c}>
-                    {typeof r[c] === "boolean" ? (r[c] ? "Sim" : "Não") : (r[c] ?? "—")}
+                    {renderCell(r, c)}
                   </TableCell>
                 ))}
                 <TableCell className="text-right">
