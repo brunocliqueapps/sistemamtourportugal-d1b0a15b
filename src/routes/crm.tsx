@@ -161,14 +161,35 @@ function CRM() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cols.map((c) => (
-          <Card key={c.key} className="p-4">
+          <Card
+            key={c.key}
+            className={`p-4 transition-colors ${dragOverCol === c.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverCol(c.key); }}
+            onDragLeave={() => setDragOverCol((prev) => (prev === c.key ? null : prev))}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData("text/plain") || dragId;
+              setDragOverCol(null); setDragId(null);
+              if (!id) return;
+              const l = leads.find((x: any) => x.id === id);
+              if (!l || l.status === c.key) return;
+              update.mutate({ id, patch: { status: c.key } });
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{c.label}</h3>
               <Badge variant="secondary">{leads.filter((l: any) => l.status === c.key && !l.archived).length}</Badge>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-h-16">
               {leads.filter((l: any) => l.status === c.key && !l.archived).map((l: any) => (
-                <Card key={l.id} className="p-3">
+                <Card
+                  key={l.id}
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.setData("text/plain", l.id); e.dataTransfer.effectAllowed = "move"; setDragId(l.id); }}
+                  onDragEnd={() => { setDragId(null); setDragOverCol(null); }}
+                  className={`p-3 cursor-grab active:cursor-grabbing ${dragId === l.id ? "opacity-50" : ""}`}
+                >
+
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-xs font-mono text-muted-foreground">{l.client_number ?? "—"}</div>
