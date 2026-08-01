@@ -27,6 +27,8 @@ const empty: any = {
   arrival_date: "", arrival_time: "", arrival_place: "",
   departure_date: "", departure_time: "", departure_place: "",
   itinerary_start: "", itinerary_end: "", itinerary: [] as ItineraryDay[],
+  region_id: "", tour_route_id: "",
+
   descriptive: "", payment_terms: "", total_value: 0,
 };
 
@@ -54,6 +56,9 @@ function Propostas() {
     queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [],
   });
   const { data: leads = [] } = useQuery({ queryKey: ["leads-mini"], queryFn: async () => (await supabase.from("leads").select("id,name").order("created_at", { ascending: false })).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*").order("name")).data ?? [] });
+  const { data: tourRoutes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*").order("name")).data ?? [] });
+
   const { data: statusOpts = [] } = useQuery({ queryKey: ["status-opts", "proposal_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "proposal_status").eq("active", true).order("sort")).data ?? [] });
   const statuses = statusOpts.length ? statusOpts : ["rascunho", "enviada", "aprovada", "convertida", "rejeitada"].map((c) => ({ code: c, label: c }));
 
@@ -89,9 +94,10 @@ function Propostas() {
         days_count: n || null,
         payment_terms: form.payment_terms || suggestPaymentTerms(n || 1),
       };
-      ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end"].forEach((k) => {
+      ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end", "region_id", "tour_route_id"].forEach((k) => {
         if (!payload[k]) payload[k] = null;
       });
+
       if (editing?.id) {
         const { error } = await supabase.from("proposals").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -148,13 +154,17 @@ function Propostas() {
       arrival_date: p.arrival_date ?? "", arrival_time: p.arrival_time ?? "", arrival_place: p.arrival_place ?? "",
       departure_date: p.departure_date ?? "", departure_time: p.departure_time ?? "", departure_place: p.departure_place ?? "",
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
+      region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
       itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
+
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
     });
     setOpen(true);
   }
 
   const selectedClient: any = clients.find((c: any) => c.id === form.client_id);
+  const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -249,8 +259,22 @@ function Propostas() {
                 </div>
                 <div><Label>Início</Label><Input type="date" value={form.itinerary_start} onChange={(e) => setRange({ itinerary_start: e.target.value })} /></div>
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
+                <div className="sm:col-span-2"><Label>Região</Label>
+                  <Select value={form.region_id} onValueChange={(v) => setForm({ ...form, region_id: v, tour_route_id: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
+                    <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2"><Label>Roteiro</Label>
+                  <Select value={form.tour_route_id} onValueChange={(v) => setForm({ ...form, tour_route_id: v })} disabled={!form.region_id}>
+                    <SelectTrigger><SelectValue placeholder={form.region_id ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
+                    <SelectContent>{regionRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
+
+
 
               {(form.itinerary ?? []).length > 0 && (
                 <div className="mt-3 space-y-2">

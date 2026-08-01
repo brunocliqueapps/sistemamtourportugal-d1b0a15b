@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntityCrud, type CrudField } from "@/components/EntityCrud";
 import { VehicleDrivers } from "@/components/VehicleDrivers";
+import { RegionsDialog } from "@/components/RegionsDialog";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
@@ -86,13 +87,12 @@ const produtos: CrudField[] = [
   { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" }, { key: "active", label: "Ativo", type: "checkbox" },
 ];
 const roteiros: CrudField[] = [
+  { key: "region_id", label: "Região", type: "select", required: true, optionsFrom: { table: "regions", value: "id", label: "name" } },
   { key: "name", label: "Nome do roteiro", required: true },
-  { key: "region", label: "Região" },
-  { key: "duration_hours", label: "Duração (h)", type: "number", step: "0.5" },
-  { key: "default_price", label: "Preço padrão (€)", type: "number", step: "0.01" },
   { key: "description", label: "Descrição", type: "textarea" },
   { key: "active", label: "Ativo", type: "checkbox" },
 ];
+
 
 function Cadastros() {
   return (
@@ -119,7 +119,7 @@ function Cadastros() {
           <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["company_name","contact_person","products_services","phone"]} /></TabsContent>
           <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","partner_type","contact_person","phone"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
-          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["name","region","duration_hours","default_price"]} /></TabsContent>
+          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["region_id","name","description","active"]} extraActions={<RegionsDialog />} /></TabsContent>
         </div>
       </Tabs>
       <p className="text-xs text-muted-foreground mt-4">Hotéis, restaurantes e agências passaram a ser geridos em <b>Parceiros</b> (por tipo). Centros de custo, contas bancárias, formas de pagamento e taxas de IVA estão em <b>Configurações</b>.</p>

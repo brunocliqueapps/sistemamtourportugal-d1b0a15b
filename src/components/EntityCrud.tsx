@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,10 @@ export interface CrudField {
   required?: boolean;
   step?: string;
   options?: { value: string; label: string }[];
+  /** Carrega as opções do select a partir de uma tabela do Supabase */
+  optionsFrom?: { table: string; value?: string; label?: string; orderBy?: string };
 }
+
 
 const EXPIRY_META: Record<string, { primaryKey: string; entityLabel: string; category: string }> = {
   drivers:   { primaryKey: "full_name", entityLabel: "Motorista",   category: "licenca" },
@@ -55,9 +58,11 @@ interface Props {
   fields: CrudField[];
   columns?: string[];        // colunas visíveis (subset de field.key)
   orderBy?: string;
+  /** Botões extra ao lado de "Novo" */
+  extraActions?: ReactNode;
 }
 
-export function EntityCrud({ table, title, fields, columns, orderBy = "created_at" }: Props) {
+export function EntityCrud({ table, title, fields, columns, orderBy = "created_at", extraActions }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -69,6 +74,35 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
     queryKey: [table, "list"],
     queryFn: async () => (await supabase.from(table).select("*").order(orderBy, { ascending: false })).data ?? [],
   });
+
+  // Opções dinâmicas (ex.: regiões)
+  const remoteFields = fields.filter((f) => f.optionsFrom);
+  const { data: remoteOptions = {} } = useQuery({
+    queryKey: ["crud-remote-options", table, remoteFields.map((f) => f.optionsFrom!.table).join(",")],
+    enabled: remoteFields.length > 0,
+    queryFn: async () => {
+      const out: Record<string, { value: string; label: string }[]> = {};
+      for (const f of remoteFields) {
+        const cfg = f.optionsFrom!;
+        const valueKey = cfg.value ?? "id";
+        const labelKey = cfg.label ?? "name";
+        const { data } = await supabase.from(cfg.table).select("*").order(cfg.orderBy ?? labelKey);
+        out[f.key] = (data ?? []).map((r: any) => ({ value: String(r[valueKey]), label: String(r[labelKey] ?? "") }));
+      }
+      return out;
+    },
+  });
+  const optionsFor = (f: CrudField) => (f.optionsFrom ? (remoteOptions as any)[f.key] ?? [] : f.options ?? []);
+
+  function renderCell(row: any, key: string) {
+    const f = fields.find((x) => x.key === key);
+    const v = row[key];
+    if (typeof v === "boolean") return v ? "Sim" : "Não";
+    if (f?.type === "select") return optionsFor(f).find((o: any) => o.value === String(v))?.label ?? (v ?? "—");
+    return v ?? "—";
+  }
+
+
 
   const save = useMutation({
     mutationFn: async () => {
@@ -114,9 +148,13 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <Button onClick={openNew} className="gradient-gold text-gold-foreground">
-          <Plus className="h-4 w-4 mr-1" /> Novo
-        </Button>
+        <div className="flex items-center gap-2">
+          {extraActions}
+          <Button onClick={openNew} className="gradient-gold text-gold-foreground">
+            <Plus className="h-4 w-4 mr-1" /> Novo
+          </Button>
+        </div>
+
       </div>
 
       <Card>
@@ -134,7 +172,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
               <TableRow key={r.id}>
                 {cols.map((c) => (
                   <TableCell key={c}>
-                    {typeof r[c] === "boolean" ? (r[c] ? "Sim" : "Não") : (r[c] ?? "—")}
+                    {renderCell(r, c)}
                   </TableCell>
                 ))}
                 <TableCell className="text-right">
@@ -163,7 +201,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
                   <Select value={form[f.key] ?? ""} onValueChange={(v) => setForm({ ...form, [f.key]: v })}>
                     <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                     <SelectContent>
-                      {(f.options ?? []).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                      {optionsFor(f).map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 ) : f.type === "textarea" ? (
