@@ -30,7 +30,7 @@ const empty: any = {
   itinerary_start: "", itinerary_end: "", itinerary: [] as ItineraryDay[],
   region_id: "", tour_route_id: "",
 
-  descriptive: "", payment_terms: "", total_value: 0,
+  descriptive: "", descriptive_service: "", payment_terms: "", total_value: 0,
 };
 
 const KINDS = [
