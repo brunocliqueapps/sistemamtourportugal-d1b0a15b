@@ -84,15 +84,30 @@ function Orcamento() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.length, (props as any[]).filter((x: any) => x.budget_status === "analise").length]);
 
+  const stageTerms = () => stages.filter((s) => s.label.trim()).map((s) => `${s.label} ${Number(s.pct || 0)}%`).join(" · ");
+
   async function save() {
     if (!p) return;
     const { error } = await supabase.from("proposals")
-      .update({ total_value: total, payment_terms: terms || p.payment_terms || suggestPaymentTerms(days || 1) })
+      .update({
+        total_value: total,
+        payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
+        payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
+      })
       .eq("id", p.id);
     if (error) return toast.error(error.message);
     toast.success("Orçamento atualizado");
     refetch();
   }
+
+  async function validate() {
+    if (!p) return;
+    const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento validado");
+    refetch();
+  }
+
 
   async function setBudgetStatus(status: "aprovado" | "analise" | "recusado") {
     if (!p) return;
