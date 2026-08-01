@@ -297,7 +297,7 @@ function Propostas() {
                       list[i] = { ...list[i], ...v };
                       setForm({ ...form, itinerary: list });
                     };
-                    const dayRoutes = (tourRoutes as any[]).filter((r) => r.region_id === (d.region_id || form.region_id));
+                    const selectedRoute = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id);
                     const custom = (d.mode ?? "sugestao") === "personalizado";
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
@@ -307,16 +307,15 @@ function Propostas() {
                           </div>
                           <div><Label className="text-xs">Roteiro do dia</Label>
                             <Select
-                              value={custom ? "outros" : (d.tour_route_id ?? "")}
+                              value={custom ? "outros" : (d.tour_route_id || form.tour_route_id || "")}
                               onValueChange={(v) => {
                                 if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
-                                const r = (tourRoutes as any[]).find((x) => x.id === v);
-                                patch({ mode: "sugestao", region_id: d.region_id || form.region_id, tour_route_id: v, text: r?.name ?? d.text });
+                                patch({ mode: "sugestao", region_id: form.region_id, tour_route_id: v, text: selectedRoute?.name ?? d.text });
                               }}
                             >
-                              <SelectTrigger><SelectValue placeholder="Selecionar roteiro sugerido" /></SelectTrigger>
+                              <SelectTrigger><SelectValue placeholder={selectedRoute ? selectedRoute.name : "Escolha o roteiro acima"} /></SelectTrigger>
                               <SelectContent>
-                                {dayRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                                {selectedRoute && <SelectItem value={selectedRoute.id}>{selectedRoute.name}</SelectItem>}
                                 <SelectItem value="outros">Outros (personalizar)</SelectItem>
                               </SelectContent>
                             </Select>
