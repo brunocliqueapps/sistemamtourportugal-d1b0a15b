@@ -307,12 +307,25 @@ function CRM() {
                   </TableCell>
                 </TableRow>
               ))}
-              {leads.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum lead cadastrado</TableCell></TableRow>
+              {pageRows.length === 0 && (
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum lead encontrado</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap mt-3">
+          <div className="text-xs text-muted-foreground">
+            {filtered.length > 0
+              ? `A mostrar ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} de ${filtered.length}`
+              : "Sem resultados"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+            <span className="text-xs text-muted-foreground">Página {safePage} de {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
+          </div>
+        </div>
+
       </Card>
 
 
