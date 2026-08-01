@@ -153,6 +153,17 @@ function CRM() {
     setOpen(true);
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = (leads as any[]).filter((l: any) => {
+    if (showArchivedList && !l.archived) return false;
+    if (!q) return true;
+    return [l.client_number, l.name, l.email].some((v) => String(v ?? "").toLowerCase().includes(q));
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="CRM Comercial" description="Funil de leads e negócios." actions={
