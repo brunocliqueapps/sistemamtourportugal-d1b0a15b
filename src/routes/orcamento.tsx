@@ -227,25 +227,37 @@ function Orcamento() {
               </Table>
             )}
 
-            <div><Label>Condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+            <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
 
-            <Table>
-              <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead>%</TableHead><TableHead className="text-right">Valor (€)</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {paymentSchedule(days || 1, total).map((s) => (
-                  <TableRow key={s.label}>
-                    <TableCell>{s.label}</TableCell><TableCell>{s.pct}%</TableCell>
-                    <TableCell className="text-right">{s.value.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
+              {stages.map((s, i) => {
+                const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
+                return (
+                  <div key={i} className="flex flex-wrap items-center gap-2">
+                    <Input className="w-20" type="number" min={0} max={100} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
+                    <span className="text-sm">%</span>
+                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" value={s.label} onChange={(e) => patch({ label: e.target.value })} />
+                    <span className="text-sm w-24 text-right">€ {(total * Number(s.pct || 0) / 100).toFixed(2)}</span>
+                    <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                  </div>
+                );
+              })}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
+                <div className="text-xs text-muted-foreground">
+                  Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 Estado do orçamento
                 <Badge variant={p.budget_status === "aprovado" ? "default" : "outline"}>{p.budget_status ?? "rascunho"}</Badge>
+                {p.budget_validated_at && <Badge variant="default">Validado</Badge>}
               </div>
+
               {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
               {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
               {p.budget_analysis_at && p.budget_status === "analise" && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")} — bilhete diário de acompanhamento até aprovar ou recusar.</div>}
