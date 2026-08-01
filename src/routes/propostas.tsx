@@ -250,6 +250,7 @@ function Propostas() {
                 <div>Contacto emergência: <span className="text-foreground">{selectedClient.emergency_contact ?? "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[form.arrival_date, form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[form.departure_date, form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
+                <div className="col-span-2 sm:col-span-3 border-t pt-2">Notas do cliente: <span className="text-foreground whitespace-pre-wrap">{selectedClient.notes?.trim() || (leads as any[]).find((l: any) => l.id === (selectedClient.lead_id ?? form.lead_id))?.notes?.trim() || "—"}</span></div>
               </div>
             )}
 
