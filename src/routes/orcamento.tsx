@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileDown, Check, Clock, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
+import { daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 
