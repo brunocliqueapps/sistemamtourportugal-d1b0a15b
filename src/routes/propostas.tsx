@@ -229,7 +229,7 @@ function Propostas() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar Proposta" : "Roteiro Personalizado"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Cliente</Label>
                 <Select value={form.client_id} onValueChange={pickClient}>
                   <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
@@ -237,12 +237,6 @@ function Propostas() {
                 </Select>
               </div>
               <div><Label>Nº Cliente</Label><Input value={selectedClient?.client_number ?? ""} readOnly /></div>
-              <div><Label>Estado</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{statuses.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
             </div>
 
 
@@ -303,7 +297,7 @@ function Propostas() {
                       list[i] = { ...list[i], ...v };
                       setForm({ ...form, itinerary: list });
                     };
-                    const dayRoutes = (tourRoutes as any[]).filter((r) => r.region_id === (d.region_id || form.region_id));
+                    const selectedRoute = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id);
                     const custom = (d.mode ?? "sugestao") === "personalizado";
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
@@ -313,16 +307,15 @@ function Propostas() {
                           </div>
                           <div><Label className="text-xs">Roteiro do dia</Label>
                             <Select
-                              value={custom ? "outros" : (d.tour_route_id ?? "")}
+                              value={custom ? "outros" : (d.tour_route_id || form.tour_route_id || "")}
                               onValueChange={(v) => {
                                 if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
-                                const r = (tourRoutes as any[]).find((x) => x.id === v);
-                                patch({ mode: "sugestao", region_id: d.region_id || form.region_id, tour_route_id: v, text: r?.name ?? d.text });
+                                patch({ mode: "sugestao", region_id: form.region_id, tour_route_id: v, text: selectedRoute?.name ?? d.text });
                               }}
                             >
-                              <SelectTrigger><SelectValue placeholder="Selecionar roteiro sugerido" /></SelectTrigger>
+                              <SelectTrigger><SelectValue placeholder={selectedRoute ? selectedRoute.name : "Escolha o roteiro acima"} /></SelectTrigger>
                               <SelectContent>
-                                {dayRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                                {selectedRoute && <SelectItem value={selectedRoute.id}>{selectedRoute.name}</SelectItem>}
                                 <SelectItem value="outros">Outros (personalizar)</SelectItem>
                               </SelectContent>
                             </Select>
@@ -343,15 +336,13 @@ function Propostas() {
             <div>
               <Label>Condições de pagamento</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm flex-1">Aprovação da Proposta</span>
-                  <Input className="w-20" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex items-center gap-1">
+                  <Input className="w-16" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
+                  <span className="text-sm">% na Aprovação da Proposta</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm flex-1">Final do Serviço</span>
-                  <Input className="w-20" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex items-center gap-1">
+                  <Input className="w-16" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
+                  <span className="text-sm">% no Final do Serviço</span>
                 </div>
               </div>
             </div>
