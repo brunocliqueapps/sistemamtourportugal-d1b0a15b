@@ -957,13 +957,13 @@ alter table public.service_orders
 
 -- Backfill: mover estados financeiros antigos
 update public.service_orders
-  set financial_status = status
-  where status in ('faturado','pago')
+  set financial_status = status::text
+  where status::text in ('faturado','pago')
     and (financial_status is null or financial_status = 'nao_faturado');
 
 update public.service_orders
   set status = 'finalizado'
-  where status in ('faturado','pago');
+  where status::text in ('faturado','pago');
 
 -- 2) Tabela de estados configuráveis pelo Admin
 create table if not exists public.status_options (
