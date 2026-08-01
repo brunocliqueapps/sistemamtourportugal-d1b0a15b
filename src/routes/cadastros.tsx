@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntityCrud, type CrudField } from "@/components/EntityCrud";
-import { VehicleDrivers } from "@/components/VehicleDrivers";
+
 import { RegionsDialog } from "@/components/RegionsDialog";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
@@ -111,9 +111,8 @@ function Cadastros() {
 
         <div className="mt-6">
           <TabsContent value="drivers"><EntityCrud table="drivers" title="Motoristas" fields={motoristas} columns={["full_name","phone","contract_type","commission_pct","license_expiry"]} /></TabsContent>
-          <TabsContent value="vehicles" className="space-y-8">
+          <TabsContent value="vehicles">
             <EntityCrud table="vehicles" title="Veículos" fields={veiculos} columns={["plate","brand","model","usage_type","seats"]} />
-            <VehicleDrivers />
           </TabsContent>
           <TabsContent value="employees"><EntityCrud table="employees" title="Funcionários" fields={funcionarios} columns={["full_name","role","phone","salary","active"]} /></TabsContent>
           <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["company_name","contact_person","products_services","phone"]} /></TabsContent>
