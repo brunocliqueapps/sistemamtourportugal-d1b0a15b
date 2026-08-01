@@ -140,16 +140,16 @@ function Agenda() {
         }
       />
 
-      {Object.keys(grouped).length === 0 && (
-        <Card className="p-8 text-center text-muted-foreground">Sem serviços neste período.</Card>
+      {trips.length === 0 && (
+        <Card className="p-8 text-center text-muted-foreground">Sem viagens neste período.</Card>
       )}
 
-      {Object.entries(grouped).map(([date, list]) => (
-        <div key={date}>
-          <h3 className="font-semibold mb-3">
-            {new Date(date).toLocaleDateString("pt-PT", { weekday: "long", day: "2-digit", month: "long" })}
-          </h3>
+      {trips.map((t) => (
+        <div key={t.key}>
+          <h3 className="font-semibold mb-1">{t.label}</h3>
+          <p className="text-sm text-muted-foreground mb-3">{t.client} · {t.period}</p>
           <Card className="overflow-x-auto">
+
             <Table>
               <TableHeader>
                 <TableRow>
