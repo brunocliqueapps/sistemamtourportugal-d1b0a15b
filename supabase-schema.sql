@@ -1,7 +1,7 @@
 -- =====================================================================
--- MTOUR PORTUGAL — SCHEMA COMPLETO (v5 consolidado)
+-- MTOUR PORTUGAL — SCHEMA COMPLETO (v22 consolidado)
 -- Cole este ficheiro inteiro no SQL Editor do Supabase e execute.
--- Este ficheiro substitui: supabase-schema.sql + migrações v3, v4 e v5.
+-- Este ficheiro substitui todas as migrações (v3 a v22).
 -- É idempotente e faz reset dos objetos v1 antigos.
 -- =====================================================================
 
@@ -875,6 +875,1235 @@ insert into public.user_roles (user_id, role)
   select id, 'admin'::app_role from auth.users where lower(email)='sistemamtour@gmail.com'
   on conflict do nothing;
 
+
 -- =====================================================================
--- FIM DO SCHEMA CONSOLIDADO (v5)
+-- BLOCO V6 (supabase-migration-v6.sql)
+-- =====================================================================
+
+-- V6: Roteiros (tour routes) + proposal type/roteiro linkage
+-- Idempotente. Cole no SQL Editor do Supabase.
+
+create table if not exists public.tour_routes (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  region text,          -- Lisboa, Porto, etc.
+  description text,
+  default_price numeric(12,2),
+  duration_hours numeric(6,2),
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+grant select, insert, update, delete on public.tour_routes to authenticated;
+grant all on public.tour_routes to service_role;
+alter table public.tour_routes enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='tour_routes' and policyname='tr read') then
+    create policy "tr read" on public.tour_routes for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='tour_routes' and policyname='tr write') then
+    create policy "tr write" on public.tour_routes for insert to authenticated with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='tour_routes' and policyname='tr upd') then
+    create policy "tr upd" on public.tour_routes for update to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='tour_routes' and policyname='tr del') then
+    create policy "tr del" on public.tour_routes for delete to authenticated using (public.is_admin(auth.uid()));
+  end if;
+end $$;
+
+-- Ligar propostas a roteiros
+alter table public.proposals
+  add column if not exists proposal_type text default 'servico',   -- 'servico' | 'roteiro' | 'transfer' | 'outro'
+  add column if not exists tour_route_id uuid references public.tour_routes(id),
+  add column if not exists tour_route_custom text;
+
+-- Seeds (não duplica pelo nome)
+insert into public.tour_routes (name, region) values
+  ('City Tour por Lisboa', 'Lisboa'),
+  ('Bate-Volta a partir de Lisboa: Sintra, Azenhas do Mar, Cabo da Roca e Cascais', 'Lisboa'),
+  ('Bate-Volta a partir de Lisboa: Fátima, Nazaré e Óbidos', 'Lisboa'),
+  ('Bate-Volta a partir de Lisboa: Évora + Vinícola + Freeport', 'Lisboa'),
+  ('Roteiros Personalizados em Lisboa', 'Lisboa'),
+  ('Bate-Volta a partir do Porto: Braga e Guimarães', 'Porto'),
+  ('Bate-Volta a partir do Porto: Região do Douro', 'Porto'),
+  ('Bate-Volta a partir do Porto: Coimbra e Aveiro', 'Porto'),
+  ('Bate-Volta a partir do Porto: Santiago de Compostela e a Catedral (Espanha)', 'Porto')
+on conflict do nothing;
+
+
+-- =====================================================================
+-- BLOCO V7 (supabase-migration-v7.sql)
+-- =====================================================================
+
+-- v7: Arquivar leads (retirar do pipeline mantendo na lista)
+alter table public.leads
+  add column if not exists archived boolean not null default false;
+
+create index if not exists idx_leads_archived on public.leads(archived);
+
+
+-- =====================================================================
+-- BLOCO V8 (supabase-migration-v8.sql)
+-- =====================================================================
+
+-- V8: Status configuráveis + Split operacional/financeiro nas OCs
+-- Idempotente. Cole no SQL Editor do Supabase.
+
+-- 1) Separar estado operacional e financeiro nas OCs
+alter table public.service_orders
+  add column if not exists financial_status text default 'nao_faturado';
+
+-- Backfill: mover estados financeiros antigos
+update public.service_orders
+  set financial_status = status
+  where status in ('faturado','pago')
+    and (financial_status is null or financial_status = 'nao_faturado');
+
+update public.service_orders
+  set status = 'finalizado'
+  where status in ('faturado','pago');
+
+-- 2) Tabela de estados configuráveis pelo Admin
+create table if not exists public.status_options (
+  id uuid primary key default gen_random_uuid(),
+  domain text not null,     -- 'proposal_status' | 'oc_operational_status' | 'oc_financial_status'
+  code text not null,
+  label text not null,
+  sort int not null default 0,
+  active boolean not null default true,
+  created_at timestamptz default now(),
+  unique (domain, code)
+);
+
+grant select on public.status_options to anon;
+grant select, insert, update, delete on public.status_options to authenticated;
+grant all on public.status_options to service_role;
+
+alter table public.status_options enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='status_options' and policyname='status read') then
+    create policy "status read" on public.status_options for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='status_options' and policyname='status ins') then
+    create policy "status ins" on public.status_options for insert to authenticated with check (public.is_admin(auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where tablename='status_options' and policyname='status upd') then
+    create policy "status upd" on public.status_options for update to authenticated using (public.is_admin(auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where tablename='status_options' and policyname='status del') then
+    create policy "status del" on public.status_options for delete to authenticated using (public.is_admin(auth.uid()));
+  end if;
+end $$;
+
+-- Seeds
+insert into public.status_options (domain, code, label, sort) values
+  ('proposal_status','rascunho','Rascunho',10),
+  ('proposal_status','enviada','Enviada',20),
+  ('proposal_status','aprovada','Aprovada',30),
+  ('proposal_status','convertida','Convertida',40),
+  ('proposal_status','rejeitada','Rejeitada',50),
+  ('oc_operational_status','agendado','Agendado',10),
+  ('oc_operational_status','em_execucao','Em execução',20),
+  ('oc_operational_status','finalizado','Finalizado',30),
+  ('oc_operational_status','no_show','No-show',40),
+  ('oc_operational_status','cancelado','Cancelado',50),
+  ('oc_operational_status','reagendado','Reagendado',60),
+  ('oc_financial_status','nao_faturado','Não faturado',10),
+  ('oc_financial_status','faturado','Faturado',20),
+  ('oc_financial_status','pago','Pago',30)
+on conflict (domain, code) do nothing;
+
+
+-- =====================================================================
+-- BLOCO V9 (supabase-migration-v9.sql)
+-- =====================================================================
+
+-- V9: Tipo de proposta/operação gerido em Configurações (Admin)
+-- Idempotente. Cole no SQL Editor do Supabase.
+
+insert into public.status_options (domain, code, label, sort) values
+  ('operation_type','privado','Privado',10),
+  ('operation_type','tvde','TVDE',20),
+  ('operation_type','interno','Interno',30),
+  ('operation_type','servico','Serviço',40),
+  ('operation_type','roteiro','Roteiro',50),
+  ('operation_type','transfer','Transfer',60),
+  ('operation_type','outro','Outro',99)
+on conflict (domain, code) do nothing;
+
+
+-- =====================================================================
+-- BLOCO V10 (supabase-migration-v10-sync-financeiro.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v10 — Sincronização automática do Financeiro
+-- Cole no SQL Editor do Supabase e execute uma vez.
+-- Objetivo: lançar em cash_movements todos os valores já
+-- registados no sistema (OCs finalizadas, despesas de serviço,
+-- turnos TVDE fechados) que ainda não têm o movimento espelho.
+-- Também instala triggers para manter a sincronia automática.
+-- Idempotente: pode ser executado várias vezes.
+-- ============================================================
+
+BEGIN;
+
+-- ------------------------------------------------------------
+-- 1) BACKFILL: Recebimentos de Ordens de Serviço finalizadas
+-- ------------------------------------------------------------
+INSERT INTO public.cash_movements (kind, amount, service_order_id, description, movement_date, created_at)
+SELECT 'entrada',
+       COALESCE(sc.amount_received, so.amount_received, so.sale_value, 0),
+       so.id,
+       'Recebimento OC ' || COALESCE(so.oc_code, ''),
+       COALESCE(sc.closed_at::date, so.service_date, CURRENT_DATE),
+       now()
+FROM public.service_orders so
+LEFT JOIN public.service_closings sc ON sc.service_order_id = so.id
+WHERE so.status = 'finalizado'
+  AND COALESCE(sc.amount_received, so.amount_received, so.sale_value, 0) > 0
+  AND NOT EXISTS (
+    SELECT 1 FROM public.cash_movements cm
+     WHERE cm.service_order_id = so.id
+       AND cm.kind = 'entrada'
+       AND cm.service_expense_id IS NULL
+  );
+
+-- ------------------------------------------------------------
+-- 2) BACKFILL: Despesas de serviço já registadas
+-- ------------------------------------------------------------
+INSERT INTO public.cash_movements (kind, amount, service_order_id, tvde_shift_id, service_expense_id,
+                                   payment_method_id, description, movement_date, created_at)
+SELECT 'saida',
+       se.amount,
+       se.service_order_id,
+       se.tvde_shift_id,
+       se.id,
+       se.payment_method_id,
+       'Despesa (' || se.category || ')' ||
+         COALESCE(' · ' || NULLIF(se.description, ''), '') ||
+         COALESCE(' · OC ' || so.oc_code, ''),
+       COALESCE(se.created_at::date, CURRENT_DATE),
+       now()
+FROM public.service_expenses se
+LEFT JOIN public.service_orders so ON so.id = se.service_order_id
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.cash_movements cm WHERE cm.service_expense_id = se.id
+);
+
+-- ------------------------------------------------------------
+-- 3) BACKFILL: Turnos TVDE fechados
+--    Entrada = líquido plataformas (bruto+gorj+bónus - comissões - retenções)
+--    Saída  = comissão devida ao motorista (% extraída das notas)
+-- ------------------------------------------------------------
+WITH tvde_agg AS (
+  SELECT ts.id AS shift_id,
+         ts.shift_date,
+         ts.notes,
+         COALESCE(SUM(te.gross + COALESCE(te.tips,0) + COALESCE(te.bonus,0)
+                    - COALESCE(te.commissions,0) - COALESCE(te.other_deductions,0)), 0) AS net_plat,
+         (regexp_match(COALESCE(ts.notes,''), 'Motorista %:\s*([0-9]+(?:\.[0-9]+)?)'))[1] AS pct_txt
+    FROM public.tvde_shifts ts
+    LEFT JOIN public.tvde_earnings te ON te.tvde_shift_id = ts.id
+   WHERE ts.closed_at IS NOT NULL
+     AND ts.operation_type = 'tvde'
+   GROUP BY ts.id
+)
+INSERT INTO public.cash_movements (kind, amount, tvde_shift_id, description, movement_date, created_at)
+SELECT 'entrada', ROUND(net_plat::numeric, 2), shift_id,
+       'TVDE · líquido plataformas (' || shift_date || ')',
+       shift_date, now()
+  FROM tvde_agg
+ WHERE net_plat > 0
+   AND NOT EXISTS (
+     SELECT 1 FROM public.cash_movements cm
+      WHERE cm.tvde_shift_id = tvde_agg.shift_id
+        AND cm.kind = 'entrada'
+        AND cm.service_expense_id IS NULL
+   );
+
+WITH tvde_agg AS (
+  SELECT ts.id AS shift_id,
+         ts.shift_date,
+         ts.notes,
+         COALESCE(SUM(te.gross + COALESCE(te.tips,0) + COALESCE(te.bonus,0)
+                    - COALESCE(te.commissions,0) - COALESCE(te.other_deductions,0)), 0) AS net_plat,
+         COALESCE(((regexp_match(COALESCE(ts.notes,''), 'Motorista %:\s*([0-9]+(?:\.[0-9]+)?)'))[1])::numeric, 0) AS pct
+    FROM public.tvde_shifts ts
+    LEFT JOIN public.tvde_earnings te ON te.tvde_shift_id = ts.id
+   WHERE ts.closed_at IS NOT NULL
+     AND ts.operation_type = 'tvde'
+   GROUP BY ts.id
+)
+INSERT INTO public.cash_movements (kind, amount, tvde_shift_id, description, movement_date, created_at)
+SELECT 'saida',
+       ROUND(((net_plat * pct) / 100)::numeric, 2),
+       shift_id,
+       'TVDE · comissão motorista ' || pct || '% (' || shift_date || ')',
+       shift_date, now()
+  FROM tvde_agg
+ WHERE pct > 0 AND net_plat > 0
+   AND NOT EXISTS (
+     SELECT 1 FROM public.cash_movements cm
+      WHERE cm.tvde_shift_id = tvde_agg.shift_id
+        AND cm.kind = 'saida'
+        AND cm.service_expense_id IS NULL
+        AND cm.description LIKE 'TVDE · comissão motorista%'
+   );
+
+-- ------------------------------------------------------------
+-- 4) TRIGGER: manter service_expenses ↔ cash_movements sincronizado
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.fn_sync_expense_to_cash()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NOT EXISTS (SELECT 1 FROM public.cash_movements WHERE service_expense_id = NEW.id) THEN
+      INSERT INTO public.cash_movements (kind, amount, service_order_id, tvde_shift_id,
+                                         service_expense_id, payment_method_id, description,
+                                         movement_date, created_by)
+      VALUES ('saida', NEW.amount, NEW.service_order_id, NEW.tvde_shift_id,
+              NEW.id, NEW.payment_method_id,
+              'Despesa (' || NEW.category || ')' || COALESCE(' · ' || NULLIF(NEW.description,''), ''),
+              COALESCE(NEW.created_at::date, CURRENT_DATE), NEW.paid_by);
+    END IF;
+  ELSIF TG_OP = 'UPDATE' THEN
+    UPDATE public.cash_movements
+       SET amount = NEW.amount,
+           payment_method_id = NEW.payment_method_id,
+           description = 'Despesa (' || NEW.category || ')' || COALESCE(' · ' || NULLIF(NEW.description,''), '')
+     WHERE service_expense_id = NEW.id;
+  ELSIF TG_OP = 'DELETE' THEN
+    DELETE FROM public.cash_movements WHERE service_expense_id = OLD.id;
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_sync_expense_to_cash ON public.service_expenses;
+CREATE TRIGGER trg_sync_expense_to_cash
+  AFTER INSERT OR UPDATE OR DELETE ON public.service_expenses
+  FOR EACH ROW EXECUTE FUNCTION public.fn_sync_expense_to_cash();
+
+-- ------------------------------------------------------------
+-- 5) TRIGGER: quando service_closings recebe amount_received,
+--    garante entrada em cash_movements.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.fn_sync_closing_to_cash()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE oc_txt text;
+BEGIN
+  IF COALESCE(NEW.amount_received, 0) <= 0 THEN RETURN NEW; END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.cash_movements
+     WHERE service_order_id = NEW.service_order_id
+       AND kind = 'entrada'
+       AND service_expense_id IS NULL
+  ) THEN RETURN NEW; END IF;
+  SELECT oc_code INTO oc_txt FROM public.service_orders WHERE id = NEW.service_order_id;
+  INSERT INTO public.cash_movements (kind, amount, service_order_id, payment_method_id, description,
+                                     movement_date, created_by)
+  VALUES ('entrada', NEW.amount_received, NEW.service_order_id, NEW.payment_method_id,
+          'Recebimento OC ' || COALESCE(oc_txt, ''),
+          COALESCE(NEW.closed_at::date, CURRENT_DATE), NEW.closed_by);
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_sync_closing_to_cash ON public.service_closings;
+CREATE TRIGGER trg_sync_closing_to_cash
+  AFTER INSERT OR UPDATE ON public.service_closings
+  FOR EACH ROW EXECUTE FUNCTION public.fn_sync_closing_to_cash();
+
+COMMIT;
+
+-- Verificação rápida:
+-- SELECT kind, COUNT(*), SUM(amount) FROM public.cash_movements GROUP BY kind;
+
+
+-- =====================================================================
+-- BLOCO V11 (supabase-migration-v11-leads.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v11 — Leads: temperatura, dados do cliente e viagem
+-- Idempotente. Cole no SQL Editor do Supabase e execute.
+-- ============================================================
+
+create sequence if not exists public.seq_lead_client start 1;
+
+alter table public.leads
+  add column if not exists temperature text default 'frio',
+  add column if not exists client_number text unique
+    default public.next_code('CLI', 'public.seq_lead_client'::regclass),
+  add column if not exists nif text,
+  add column if not exists birth_date date,
+  add column if not exists phone_country text default '+351',
+  add column if not exists emergency_contact text,
+  add column if not exists arrival_date date,
+  add column if not exists arrival_time time,
+  add column if not exists arrival_place text,
+  add column if not exists departure_date date,
+  add column if not exists departure_time time,
+  add column if not exists departure_place text,
+  add column if not exists passengers integer;
+
+-- Preenche número de cliente para leads antigos
+update public.leads
+   set client_number = public.next_code('CLI', 'public.seq_lead_client'::regclass)
+ where client_number is null;
+
+create index if not exists idx_leads_temperature on public.leads(temperature);
+create index if not exists idx_leads_origin on public.leads(origin);
+
+
+-- =====================================================================
+-- BLOCO V12 (supabase-migration-v12-clientes.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v12 — Clientes: paridade com Leads, número de cliente fixo
+-- e códigos de serviço prefixados pelo número do cliente.
+-- Idempotente. Cole no SQL Editor do Supabase e execute.
+-- ============================================================
+
+-- 1) Sequência e número de cliente (imutável) -----------------
+create sequence if not exists public.seq_client start 1;
+
+create or replace function public.next_client_number()
+returns text language sql volatile as $$
+  select 'C' || lpad(nextval('public.seq_client')::text, 5, '0')
+$$;
+
+alter table public.clients
+  add column if not exists client_number text unique default public.next_client_number(),
+  add column if not exists origin text,
+  add column if not exists birth_date date,
+  add column if not exists phone_country text default '+351',
+  add column if not exists emergency_contact text,
+  add column if not exists arrival_date date,
+  add column if not exists arrival_time time,
+  add column if not exists arrival_place text,
+  add column if not exists departure_date date,
+  add column if not exists departure_time time,
+  add column if not exists departure_place text,
+  add column if not exists passengers integer,
+  add column if not exists lead_id uuid references public.leads(id) on delete set null;
+
+-- Preenche clientes antigos
+update public.clients
+   set client_number = public.next_client_number()
+ where client_number is null;
+
+-- 2) Número de cliente nunca muda -----------------------------
+create or replace function public.tg_lock_client_number()
+returns trigger language plpgsql as $$
+begin
+  if new.client_number is distinct from old.client_number then
+    new.client_number := old.client_number;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tg_clients_lock_number on public.clients;
+create trigger tg_clients_lock_number
+  before update on public.clients
+  for each row execute function public.tg_lock_client_number();
+
+-- 3) Códigos de serviço iniciam pelo número do cliente --------
+create or replace function public.tg_service_codes_client_prefix()
+returns trigger language plpgsql as $$
+declare
+  cn text;
+begin
+  if new.client_id is null then
+    return new;
+  end if;
+
+  select client_number into cn from public.clients where id = new.client_id;
+  if cn is null then
+    return new;
+  end if;
+
+  if new.oc_code is null or left(new.oc_code, length(cn) + 1) <> cn || '-' then
+    new.oc_code := cn || '-' || coalesce(nullif(new.oc_code, ''),
+                     public.next_code('OC', 'public.seq_oc'::regclass));
+  end if;
+
+  if new.voucher_code is null or left(new.voucher_code, length(cn) + 1) <> cn || '-' then
+    new.voucher_code := cn || '-' || coalesce(nullif(new.voucher_code, ''),
+                          public.next_code('VCH', 'public.seq_voucher'::regclass));
+  end if;
+
+  if new.service_code is null or left(new.service_code, length(cn) + 1) <> cn || '-' then
+    new.service_code := cn || '-' || coalesce(nullif(new.service_code, ''),
+                          public.next_code('SVC', 'public.seq_service'::regclass));
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists tg_service_orders_client_prefix on public.service_orders;
+create trigger tg_service_orders_client_prefix
+  before insert on public.service_orders
+  for each row execute function public.tg_service_codes_client_prefix();
+
+-- 4) Índices --------------------------------------------------
+create index if not exists idx_clients_client_number on public.clients(client_number);
+create index if not exists idx_clients_origin on public.clients(origin);
+create index if not exists idx_clients_lead_id on public.clients(lead_id);
+
+-- 5) Grants (garantia) ---------------------------------------
+grant select, insert, update, delete on public.clients to authenticated;
+grant all on public.clients to service_role;
+
+
+-- =====================================================================
+-- BLOCO V13 (supabase-migration-v13-propostas.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v13 — Proposta/Roteiro Personalizado, Orçamento e Voucher
+-- Idempotente. Cole no SQL Editor do Supabase e execute.
+-- ============================================================
+
+-- 1) Novos campos na proposta ---------------------------------
+alter table public.proposals
+  add column if not exists proposal_kind text default 'roteiro_personalizado', -- roteiro_personalizado | servico_privado
+  add column if not exists responsible text,
+  add column if not exists passengers integer,
+  add column if not exists arrival_date date,
+  add column if not exists arrival_time time,
+  add column if not exists arrival_place text,
+  add column if not exists departure_date date,
+  add column if not exists departure_time time,
+  add column if not exists departure_place text,
+  add column if not exists itinerary_start date,
+  add column if not exists itinerary_end date,
+  add column if not exists days_count integer,
+  add column if not exists itinerary jsonb default '[]'::jsonb,
+  add column if not exists payment_terms text,
+  add column if not exists descriptive text,
+  add column if not exists client_number text;
+
+-- Título deixa de ser obrigatório (gerado automaticamente)
+alter table public.proposals alter column title drop not null;
+
+-- 2) Código da proposta = Nº do cliente + recorrência (.01 .02)
+create or replace function public.tg_proposal_client_code()
+returns trigger language plpgsql as $$
+declare
+  cn text;
+  n  integer;
+begin
+  if new.client_id is null then
+    return new;
+  end if;
+
+  select client_number into cn from public.clients where id = new.client_id;
+  if cn is null then
+    return new;
+  end if;
+
+  new.client_number := cn;
+
+  if new.code is null or left(new.code, length(cn) + 1) <> cn || '.' then
+    select count(*) + 1 into n
+      from public.proposals
+     where client_id = new.client_id
+       and (tg_op = 'INSERT' or id <> new.id);
+    new.code := cn || '.' || lpad(n::text, 2, '0');
+  end if;
+
+  if new.title is null or new.title = '' then
+    new.title := case when new.proposal_kind = 'servico_privado'
+                      then 'Serviço Privado ' || cn
+                      else 'Roteiro Personalizado ' || cn end;
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists tg_proposals_client_code on public.proposals;
+create trigger tg_proposals_client_code
+  before insert or update on public.proposals
+  for each row execute function public.tg_proposal_client_code();
+
+-- 3) Recorrência nos códigos da ordem de serviço --------------
+alter table public.service_orders
+  add column if not exists payment_terms text;
+
+-- 4) Índices e grants ----------------------------------------
+create index if not exists idx_proposals_client on public.proposals(client_id);
+create index if not exists idx_proposals_kind on public.proposals(proposal_kind);
+
+grant select, insert, update, delete on public.proposals to authenticated;
+grant all on public.proposals to service_role;
+
+
+-- =====================================================================
+-- BLOCO V14 (supabase-migration-v14-delete-cascade.sql)
+-- =====================================================================
+
+-- V14 — Permitir eliminar clientes (e leads) sem violar chaves estrangeiras
+-- Recria TODAS as foreign keys que apontam para public.clients com ON DELETE CASCADE.
+-- Assim, ao remover um cliente, propostas, ordens de serviço, faturas, movimentos
+-- e restantes registos dependentes são removidos automaticamente.
+
+DO $$
+DECLARE
+  r record;
+  cols text;
+  refcols text;
+BEGIN
+  FOR r IN
+    SELECT c.conname,
+           c.conrelid::regclass AS tbl,
+           c.oid
+    FROM pg_constraint c
+    WHERE c.confrelid = 'public.clients'::regclass
+      AND c.contype = 'f'
+      AND c.confdeltype <> 'c'
+  LOOP
+    SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY x.ord)
+      INTO cols
+    FROM unnest((SELECT conkey FROM pg_constraint WHERE oid = r.oid)) WITH ORDINALITY AS x(attnum, ord)
+    JOIN pg_attribute a ON a.attrelid = r.tbl::oid AND a.attnum = x.attnum;
+
+    SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY x.ord)
+      INTO refcols
+    FROM unnest((SELECT confkey FROM pg_constraint WHERE oid = r.oid)) WITH ORDINALITY AS x(attnum, ord)
+    JOIN pg_attribute a ON a.attrelid = 'public.clients'::regclass AND a.attnum = x.attnum;
+
+    EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', r.tbl, r.conname);
+    EXECUTE format(
+      'ALTER TABLE %s ADD CONSTRAINT %I FOREIGN KEY (%s) REFERENCES public.clients (%s) ON DELETE CASCADE',
+      r.tbl, r.conname, cols, refcols
+    );
+  END LOOP;
+END $$;
+
+-- Mesmo tratamento para leads (conversão/remoção de leads)
+DO $$
+DECLARE
+  r record;
+  cols text;
+  refcols text;
+BEGIN
+  IF to_regclass('public.leads') IS NULL THEN
+    RETURN;
+  END IF;
+
+  FOR r IN
+    SELECT c.conname, c.conrelid::regclass AS tbl, c.oid
+    FROM pg_constraint c
+    WHERE c.confrelid = 'public.leads'::regclass
+      AND c.contype = 'f'
+      AND c.confdeltype = 'a'
+  LOOP
+    SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY x.ord)
+      INTO cols
+    FROM unnest((SELECT conkey FROM pg_constraint WHERE oid = r.oid)) WITH ORDINALITY AS x(attnum, ord)
+    JOIN pg_attribute a ON a.attrelid = r.tbl::oid AND a.attnum = x.attnum;
+
+    SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY x.ord)
+      INTO refcols
+    FROM unnest((SELECT confkey FROM pg_constraint WHERE oid = r.oid)) WITH ORDINALITY AS x(attnum, ord)
+    JOIN pg_attribute a ON a.attrelid = 'public.leads'::regclass AND a.attnum = x.attnum;
+
+    EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', r.tbl, r.conname);
+    EXECUTE format(
+      'ALTER TABLE %s ADD CONSTRAINT %I FOREIGN KEY (%s) REFERENCES public.leads (%s) ON DELETE SET NULL',
+      r.tbl, r.conname, cols, refcols
+    );
+  END LOOP;
+END $$;
+
+
+-- =====================================================================
+-- BLOCO V15 (supabase-migration-v15-lead-client-number.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v15 — Numeração única Lead/Cliente
+-- O lead recebe já o próximo número de cliente (mesma sequência)
+-- e mantém esse número quando é convertido em cliente.
+-- Idempotente. Cole no SQL Editor do Supabase e execute.
+-- ============================================================
+
+-- 1) Garante a sequência e a função de numeração de cliente ----
+create sequence if not exists public.seq_client start 1;
+
+create or replace function public.next_client_number()
+returns text language sql volatile as $$
+  select 'C' || lpad(nextval('public.seq_client')::text, 5, '0')
+$$;
+
+-- 2) Alinha a sequência ao maior número já usado (clientes + leads)
+do $$
+declare mx bigint;
+begin
+  select coalesce(max(n), 0) into mx from (
+    select nullif(regexp_replace(client_number, '\D', '', 'g'), '')::bigint as n
+      from public.clients where client_number ~ '^C[0-9]+$'
+    union all
+    select nullif(regexp_replace(client_number, '\D', '', 'g'), '')::bigint
+      from public.leads where client_number ~ '^C[0-9]+$'
+  ) s;
+  perform setval('public.seq_client', greatest(mx, 1), mx > 0);
+end $$;
+
+-- 3) Leads passam a usar a MESMA sequência dos clientes --------
+alter table public.leads
+  alter column client_number set default public.next_client_number();
+
+-- Renumera leads com formato antigo (CLI-...) ou sem número
+update public.leads
+   set client_number = public.next_client_number()
+ where client_number is null
+    or client_number !~ '^C[0-9]+$';
+
+-- 4) Ao converter, o cliente herda o número do lead ------------
+create or replace function public.tg_client_number_from_lead()
+returns trigger language plpgsql as $$
+declare ln text;
+begin
+  if new.client_number is null and new.lead_id is not null then
+    select client_number into ln from public.leads where id = new.lead_id;
+    if ln is not null and not exists (select 1 from public.clients where client_number = ln) then
+      new.client_number := ln;
+    end if;
+  end if;
+  if new.client_number is null then
+    new.client_number := public.next_client_number();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tg_clients_number_from_lead on public.clients;
+create trigger tg_clients_number_from_lead
+  before insert on public.clients
+  for each row execute function public.tg_client_number_from_lead();
+
+create index if not exists idx_leads_client_number on public.leads(client_number);
+
+
+-- =====================================================================
+-- BLOCO V16 (supabase-migration-v16.sql)
+-- =====================================================================
+
+-- =====================================================================
+-- MTOUR PORTUGAL — Migration v16 (Fase 1)
+-- Reformulação: OS, Agenda, Logística, Cadastros, Financeiro, Comissões
+-- Idempotente: pode ser executada mais do que uma vez.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 1. MOTORISTAS
+-- ---------------------------------------------------------------------
+alter table public.drivers add column if not exists nif text;
+alter table public.drivers add column if not exists address text;
+alter table public.drivers add column if not exists criminal_record boolean default false;
+alter table public.drivers add column if not exists criminal_record_expiry date;
+alter table public.drivers add column if not exists id_document_type text;   -- cartao_cidadao | titulo_residencia | passaporte
+alter table public.drivers add column if not exists id_document_number text;
+alter table public.drivers add column if not exists id_document_expiry date;
+alter table public.drivers add column if not exists contract_type text default 'contratado'; -- contratado | funcionario_fixo
+alter table public.drivers add column if not exists commission_pct numeric(5,2) default 0;   -- 20 / 30 / 40 / 50
+
+-- ---------------------------------------------------------------------
+-- 2. FUNCIONÁRIOS
+-- ---------------------------------------------------------------------
+alter table public.employees add column if not exists nif text;
+alter table public.employees add column if not exists address text;
+alter table public.employees add column if not exists criminal_record boolean default false;
+alter table public.employees add column if not exists criminal_record_expiry date;
+alter table public.employees add column if not exists residence_permit_number text;
+alter table public.employees add column if not exists residence_permit_expiry date;
+alter table public.employees add column if not exists citizen_card_number text;
+alter table public.employees add column if not exists citizen_card_expiry date;
+alter table public.employees add column if not exists salary numeric(12,2) default 0;
+alter table public.employees add column if not exists salary_pay_day int default 1;
+
+-- ---------------------------------------------------------------------
+-- 3. VEÍCULOS + ATRIBUIÇÃO DE MOTORISTAS
+-- ---------------------------------------------------------------------
+alter table public.vehicles add column if not exists usage_type text default 'proprio'; -- proprio | aluguel
+alter table public.vehicles add column if not exists partner_id uuid references public.partners(id) on delete set null;
+alter table public.vehicles add column if not exists owner_company text;
+alter table public.vehicles add column if not exists rental_weekly_cost numeric(12,2) default 0;
+
+create table if not exists public.vehicle_drivers (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
+  driver_id  uuid not null references public.drivers(id)  on delete cascade,
+  is_primary boolean default false,
+  created_at timestamptz default now(),
+  unique (vehicle_id, driver_id)
+);
+grant select, insert, update, delete on public.vehicle_drivers to authenticated;
+grant all on public.vehicle_drivers to service_role;
+alter table public.vehicle_drivers enable row level security;
+drop policy if exists "vd_auth_all" on public.vehicle_drivers;
+create policy "vd_auth_all" on public.vehicle_drivers for all to authenticated using (true) with check (true);
+
+-- ---------------------------------------------------------------------
+-- 4. FORNECEDORES / PARCEIROS
+-- ---------------------------------------------------------------------
+alter table public.suppliers add column if not exists company_name text;
+alter table public.suppliers add column if not exists contact_person text;
+alter table public.suppliers add column if not exists products_services text;
+alter table public.suppliers add column if not exists phone_country text default 'PT';
+
+alter table public.partners add column if not exists partner_type text;      -- hotel | restaurante | agencia | outro
+alter table public.partners add column if not exists other_type_label text;
+alter table public.partners add column if not exists contact_person text;
+alter table public.partners add column if not exists phone_country text default 'PT';
+alter table public.partners add column if not exists address text;
+
+-- Migrar hotéis / restaurantes / agências para parceiros (uma só vez)
+do $$
+begin
+  if to_regclass('public.hotels') is not null then
+    insert into public.partners (name, partner_type, phone, email, address, contact_person, active)
+    select h.name, 'hotel', h.phone, h.email, h.address, h.contact_person, coalesce(h.active,true)
+    from public.hotels h
+    where not exists (select 1 from public.partners p where p.name = h.name and p.partner_type = 'hotel');
+  end if;
+  if to_regclass('public.restaurants') is not null then
+    insert into public.partners (name, partner_type, phone, email, address, active)
+    select r.name, 'restaurante', r.phone, r.email, r.address, coalesce(r.active,true)
+    from public.restaurants r
+    where not exists (select 1 from public.partners p where p.name = r.name and p.partner_type = 'restaurante');
+  end if;
+  if to_regclass('public.agencies') is not null then
+    insert into public.partners (name, partner_type, phone, email, nif, contact_person, commission_pct, active)
+    select a.name, 'agencia', a.phone, a.email, a.nif, a.contact_person, a.commission_pct, coalesce(a.active,true)
+    from public.agencies a
+    where not exists (select 1 from public.partners p where p.name = a.name and p.partner_type = 'agencia');
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 5. ESTADOS DA ORDEM DE SERVIÇO
+-- ---------------------------------------------------------------------
+delete from public.status_options where domain = 'oc_operational_status';
+insert into public.status_options (domain, code, label, sort, active) values
+  ('oc_operational_status','para_atendimento','Para Atendimento',1,true),
+  ('oc_operational_status','em_atendimento','Em Atendimento',2,true),
+  ('oc_operational_status','atendimento_finalizado','Atendimento Finalizado',3,true)
+on conflict do nothing;
+
+-- A coluna status é um enum antigo (service_status). Convertemos para texto
+-- para permitir os novos estados geridos em status_options.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'service_orders'
+      and column_name = 'status' and data_type = 'USER-DEFINED'
+  ) then
+    alter table public.service_orders alter column status drop default;
+    alter table public.service_orders alter column status type text using status::text;
+  end if;
+end $$;
+
+update public.service_orders set status = 'para_atendimento'
+  where status in ('agendado','confirmado','motorista_designado','reagendado');
+update public.service_orders set status = 'em_atendimento'
+  where status in ('em_execucao','em_deslocacao','cliente_a_bordo');
+update public.service_orders set status = 'atendimento_finalizado'
+  where status in ('finalizado','no_show','nao_realizado','cancelado');
+
+alter table public.service_orders alter column status set default 'para_atendimento';
+
+-- ---------------------------------------------------------------------
+-- 6. CATÁLOGO DE SERVIÇOS + ITENS DE PROPOSTA
+-- ---------------------------------------------------------------------
+insert into public.products_services (name, kind, active) values
+  ('Receptivo no Aeroporto','servico',true),
+  ('Receptivo + Roteiro Personalizado','servico',true),
+  ('Transfer Hotel / Aeroporto','servico',true),
+  ('Receptivo + Roteiro Personalizado + Transfer','servico',true),
+  ('Serviço Privado','servico',true),
+  ('Aluguel de carro','servico',true),
+  ('Diária de motorista privado','servico',true),
+  ('Diária de Guia de Turismo','servico',true),
+  ('Passagens Aéreas','servico',true),
+  ('Seguro Viagem','servico',true),
+  ('Elaboração de Roteiros','servico',true),
+  ('Compra de bilhetes','servico',true),
+  ('Reserva de Hotéis','servico',true)
+on conflict do nothing;
+
+create table if not exists public.proposal_items (
+  id uuid primary key default gen_random_uuid(),
+  proposal_id uuid not null references public.proposals(id) on delete cascade,
+  product_id uuid references public.products_services(id) on delete set null,
+  description text,
+  quantity numeric(10,2) not null default 1,
+  unit_price numeric(12,2) not null default 0,
+  total numeric(12,2) generated always as (quantity * unit_price) stored,
+  sort int default 0,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.proposal_items to authenticated;
+grant all on public.proposal_items to service_role;
+alter table public.proposal_items enable row level security;
+drop policy if exists "pi_auth_all" on public.proposal_items;
+create policy "pi_auth_all" on public.proposal_items for all to authenticated using (true) with check (true);
+
+-- ---------------------------------------------------------------------
+-- 7. DESPESAS COM / SEM FATURA
+-- ---------------------------------------------------------------------
+do $$
+declare t text;
+begin
+  foreach t in array array['service_expenses','tvde_expenses','cash_movements'] loop
+    if to_regclass('public.'||t) is not null then
+      execute format('alter table public.%I add column if not exists has_invoice boolean default false', t);
+      execute format('alter table public.%I add column if not exists invoice_number text', t);
+      execute format('alter table public.%I add column if not exists no_invoice_reason text', t);
+    end if;
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 8. CONTA CORRENTE — a pagar / a receber + custos fixos
+-- ---------------------------------------------------------------------
+alter table public.cash_movements add column if not exists direction text; -- a_pagar | a_receber | realizado
+alter table public.cash_movements add column if not exists due_date date;
+alter table public.cash_movements add column if not exists settled boolean default true;
+alter table public.cash_movements add column if not exists source text;    -- manual | custo_fixo | salario | tvde | privado
+
+update public.cash_movements
+  set direction = case when kind = 'entrada' then 'a_receber' else 'a_pagar' end
+  where direction is null;
+
+create table if not exists public.fixed_costs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  category text,
+  amount numeric(12,2) not null default 0,
+  recurrence text not null default 'mensal',  -- semanal | quinzenal | mensal | anual
+  start_date date not null default current_date,
+  end_date date,
+  due_day int default 1,
+  cost_center_id uuid references public.cost_centers(id) on delete set null,
+  supplier_id uuid references public.suppliers(id) on delete set null,
+  has_invoice boolean default false,
+  invoice_number text,
+  no_invoice_reason text,
+  active boolean default true,
+  notes text,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.fixed_costs to authenticated;
+grant all on public.fixed_costs to service_role;
+alter table public.fixed_costs enable row level security;
+drop policy if exists "fc_auth_all" on public.fixed_costs;
+create policy "fc_auth_all" on public.fixed_costs for all to authenticated using (true) with check (true);
+
+-- ---------------------------------------------------------------------
+-- 9. TURNOS — KM inicial herdado e edição de hora de fim só admin
+-- ---------------------------------------------------------------------
+alter table public.tvde_shifts add column if not exists end_time_edited_by uuid references auth.users(id);
+alter table public.tvde_shifts add column if not exists end_time_edited_at timestamptz;
+
+create or replace function public.last_end_km(_vehicle uuid, _before date)
+returns numeric language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select km_final from public.tvde_shifts
+      where vehicle_id = _vehicle and km_final is not null and shift_date < _before
+      order by shift_date desc limit 1), 0);
+$$;
+grant execute on function public.last_end_km(uuid, date) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 10. COMISSÕES SEMANAIS POR VEÍCULO
+-- ---------------------------------------------------------------------
+create table if not exists public.commission_settlements (
+  id uuid primary key default gen_random_uuid(),
+  week_start date not null,
+  week_end date not null,
+  vehicle_id uuid references public.vehicles(id) on delete set null,
+  driver_id uuid references public.drivers(id) on delete set null,
+  gross_income numeric(12,2) default 0,
+  expenses numeric(12,2) default 0,
+  net_profit numeric(12,2) default 0,
+  commission_pct numeric(5,2) default 0,
+  commission_amount numeric(12,2) default 0,
+  rental_cost numeric(12,2) default 0,
+  amount_due_driver numeric(12,2) default 0,
+  amount_due_company numeric(12,2) default 0,
+  paid boolean default false,
+  paid_at timestamptz,
+  notes text,
+  created_at timestamptz default now(),
+  unique (week_start, vehicle_id, driver_id)
+);
+grant select, insert, update, delete on public.commission_settlements to authenticated;
+grant all on public.commission_settlements to service_role;
+alter table public.commission_settlements enable row level security;
+drop policy if exists "cs_auth_all" on public.commission_settlements;
+create policy "cs_auth_all" on public.commission_settlements for all to authenticated using (true) with check (true);
+
+-- Resumo semanal por veículo (entradas − saídas)
+create or replace view public.v_weekly_vehicle_result as
+with earn as (
+  select e.tvde_shift_id,
+         sum(coalesce(e.gross,0)+coalesce(e.tips,0)+coalesce(e.bonus,0)) as gross,
+         sum(coalesce(e.commissions,0)+coalesce(e.other_deductions,0))   as deductions
+  from public.tvde_earnings e group by 1
+), priv as (
+  select p.tvde_shift_id, sum(coalesce(p.value,0)) as private_income
+  from public.tvde_private_jobs p group by 1
+), exp as (
+  select x.tvde_shift_id, sum(coalesce(x.amount,0)) as expenses
+  from public.service_expenses x where x.tvde_shift_id is not null group by 1
+)
+select
+  date_trunc('week', s.shift_date)::date as week_start,
+  (date_trunc('week', s.shift_date)::date + 6) as week_end,
+  s.vehicle_id,
+  s.driver_id,
+  sum(coalesce(earn.gross,0) + coalesce(priv.private_income,0)) as gross_income,
+  sum(coalesce(exp.expenses,0) + coalesce(earn.deductions,0))   as expenses,
+  sum(coalesce(earn.gross,0) + coalesce(priv.private_income,0)
+      - coalesce(exp.expenses,0) - coalesce(earn.deductions,0)) as net_profit
+from public.tvde_shifts s
+left join earn on earn.tvde_shift_id = s.id
+left join priv on priv.tvde_shift_id = s.id
+left join exp  on exp.tvde_shift_id  = s.id
+group by 1,2,3,4;
+grant select on public.v_weekly_vehicle_result to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 11. PERFIS DE UTILIZADOR
+-- ---------------------------------------------------------------------
+-- Executar esta linha SOZINHA (ALTER TYPE ... ADD VALUE não corre dentro de bloco):
+alter type public.app_role add value if not exists 'assistente';
+
+-- =====================================================================
+-- FIM v16
+-- =====================================================================
+
+
+-- =====================================================================
+-- BLOCO V17 (supabase-migration-v17-regioes.sql)
+-- =====================================================================
+
+-- V17: Regiões como primeiro ponto de conexão dos Roteiros
+-- Idempotente. Cole no SQL Editor do Supabase.
+
+create table if not exists public.regions (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+grant select, insert, update, delete on public.regions to authenticated;
+grant all on public.regions to service_role;
+alter table public.regions enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='regions' and policyname='rg read') then
+    create policy "rg read" on public.regions for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='regions' and policyname='rg write') then
+    create policy "rg write" on public.regions for insert to authenticated with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='regions' and policyname='rg upd') then
+    create policy "rg upd" on public.regions for update to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='regions' and policyname='rg del') then
+    create policy "rg del" on public.regions for delete to authenticated using (true);
+  end if;
+end $$;
+
+-- Semear regiões a partir dos roteiros existentes + regiões base
+insert into public.regions (name)
+select distinct region from public.tour_routes where region is not null and region <> ''
+on conflict (name) do nothing;
+
+insert into public.regions (name) values ('Lisboa'), ('Porto'), ('Algarve'), ('Madeira'), ('Açores')
+on conflict (name) do nothing;
+
+-- Roteiro associado à região
+alter table public.tour_routes
+  add column if not exists region_id uuid references public.regions(id) on delete set null;
+
+update public.tour_routes t
+   set region_id = r.id
+  from public.regions r
+ where t.region_id is null and t.region = r.name;
+
+create index if not exists idx_tour_routes_region on public.tour_routes(region_id);
+
+-- Proposta guarda a região escolhida
+alter table public.proposals
+  add column if not exists region_id uuid references public.regions(id) on delete set null;
+
+
+-- =====================================================================
+-- BLOCO V18 (supabase-migration-v18-orcamento-fluxo.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour Portugal — v18
+-- Aprovação de orçamento, bilhetes de acompanhamento,
+-- estados financeiros da OS e permissões de motorista.
+-- Idempotente: pode ser executado várias vezes.
+-- ============================================================
+
+-- 1) Orçamento / aprovação da proposta -----------------------
+alter table public.proposals
+  add column if not exists budget_status text default 'rascunho',
+  add column if not exists budget_approved_at timestamptz,
+  add column if not exists budget_receipt_info text,
+  add column if not exists budget_analysis_at timestamptz,
+  add column if not exists budget_refused_at timestamptz,
+  add column if not exists budget_refusal_reason text;
+
+-- 2) Bilhetes de acompanhamento (1 por dia até aprovar/recusar)
+create table if not exists public.proposal_followups (
+  id uuid primary key default gen_random_uuid(),
+  proposal_id uuid not null references public.proposals(id) on delete cascade,
+  due_date date not null,
+  done boolean not null default false,
+  note text,
+  created_at timestamptz default now(),
+  unique (proposal_id, due_date)
+);
+
+grant select, insert, update, delete on public.proposal_followups to authenticated;
+grant all on public.proposal_followups to service_role;
+alter table public.proposal_followups enable row level security;
+
+drop policy if exists "pf read" on public.proposal_followups;
+create policy "pf read" on public.proposal_followups for select to authenticated using (true);
+drop policy if exists "pf write" on public.proposal_followups;
+create policy "pf write" on public.proposal_followups for all to authenticated
+  using (true) with check (true);
+
+-- 3) Estados financeiros da Ordem de Serviço -----------------
+insert into public.status_options (domain, code, label, sort) values
+  ('oc_financial_status','pagar_empresa','Vai pagar a empresa',5),
+  ('oc_financial_status','receber_maos','Receber em mãos',6),
+  ('oc_financial_status','pago','Pago',30)
+on conflict do nothing;
+
+-- 4) Permissões: motorista só Voucher e TVDE -----------------
+insert into public.role_permissions (role, module) values
+  ('admin','voucher'),('comercial','voucher'),('administrativo','voucher'),('motorista','voucher'),
+  ('motorista','tvde')
+on conflict (role, module) do nothing;
+
+delete from public.role_permissions
+ where role = 'motorista' and module not in ('voucher','tvde');
+
+
+-- =====================================================================
+-- BLOCO V19 (supabase-migration-v19-proposta-simples.sql)
+-- =====================================================================
+
+-- V19: campo do serviço privado na proposta (idempotente)
+alter table public.proposals
+  add column if not exists private_service_text text;
+
+
+-- =====================================================================
+-- BLOCO V20 (supabase-migration-v20-client-number-curto.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour v20 — Número de cliente curto (C01, C02, C03…)
+-- Idempotente. Cole no SQL Editor do Supabase e execute.
+-- ============================================================
+
+-- 1) Nova formatação: 2 dígitos mínimos ----------------------
+create or replace function public.next_client_number()
+returns text language sql volatile as $$
+  select 'C' || lpad(nextval('public.seq_client')::text, 2, '0')
+$$;
+
+-- 2) Reformata números existentes (remove zeros à frente) ----
+update public.clients
+   set client_number = 'C' || lpad(regexp_replace(client_number, '\D', '', 'g')::bigint::text, 2, '0')
+ where client_number ~ '^C[0-9]+$';
+
+update public.leads
+   set client_number = 'C' || lpad(regexp_replace(client_number, '\D', '', 'g')::bigint::text, 2, '0')
+ where client_number ~ '^C[0-9]+$';
+
+-- 3) Realinha a sequência --------------------------------------
+do $$
+declare mx bigint;
+begin
+  select coalesce(max(n), 0) into mx from (
+    select nullif(regexp_replace(client_number, '\D', '', 'g'), '')::bigint as n
+      from public.clients where client_number ~ '^C[0-9]+$'
+    union all
+    select nullif(regexp_replace(client_number, '\D', '', 'g'), '')::bigint
+      from public.leads where client_number ~ '^C[0-9]+$'
+  ) s;
+  perform setval('public.seq_client', greatest(mx, 1), mx > 0);
+end $$;
+
+
+-- =====================================================================
+-- BLOCO V21 (supabase-migration-v21-cabecalho-documentos.sql)
+-- =====================================================================
+
+-- ============================================================
+-- Mtour Portugal — v21
+-- Cabeçalho dos documentos (Proposta / Orçamento / Voucher)
+-- e lançamento automático do orçamento aprovado na conta corrente.
+-- Idempotente.
+-- ============================================================
+
+-- 1) Cabeçalho comercial dos documentos ----------------------
+alter table public.company_settings
+  add column if not exists legal_name text,
+  add column if not exists trade_name text,
+  add column if not exists doc_header_extra text,
+  add column if not exists doc_footer text;
+
+update public.company_settings
+   set legal_name = coalesce(legal_name, 'Façanha Prospera Unipessoal Lda'),
+       trade_name = coalesce(trade_name, 'Mtour Portugal'),
+       address    = coalesce(address, 'Rua do Cabeço Marinho 35A'),
+       postal_code = coalesce(postal_code, '2755-157'),
+       city       = coalesce(city, 'Cascais'),
+       nif        = coalesce(nif, '518415686'),
+       phone      = coalesce(phone, '924060829'),
+       email      = coalesce(email, 'marcelo25022023@gmail.com')
+ where singleton is true;
+
+-- 2) Ligação do movimento de caixa à proposta/orçamento ------
+alter table public.cash_movements
+  add column if not exists proposal_id uuid references public.proposals(id) on delete set null;
+
+create unique index if not exists cash_movements_proposal_budget_uidx
+  on public.cash_movements (proposal_id)
+  where proposal_id is not null;
+
+
+-- =====================================================================
+-- BLOCO V22 (supabase-migration-v22-validacao-documentos.sql)
+-- =====================================================================
+
+-- v22 — Validação de orçamento/voucher + condições de pagamento personalizadas
+alter table public.proposals add column if not exists budget_validated_at timestamptz;
+alter table public.proposals add column if not exists voucher_validated_at timestamptz;
+alter table public.proposals add column if not exists payment_stages jsonb default '[]'::jsonb;
+
+create index if not exists idx_proposals_budget_validated on public.proposals (budget_validated_at);
+create index if not exists idx_proposals_voucher_validated on public.proposals (voucher_validated_at);
+
+-- =====================================================================
+-- FIM DO SCHEMA CONSOLIDADO (v22)
 -- =====================================================================
