@@ -1,18 +1,20 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
-import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
+import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
 
 async function header(doc: jsPDF, docTitle: string, code?: string) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
+  const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
   let y = 40;
-  doc.setFont("helvetica", "bold").setFontSize(16);
-  doc.text(company?.name ?? "Mtour Portugal", 40, y);
+  doc.setFont("helvetica", "bold").setFontSize(13);
+  const title = [c.legal_name ?? c.name ?? "Mtour Portugal", c.trade_name ? `"${c.trade_name}"` : null].filter(Boolean).join(" ");
+  doc.text(title, 40, y);
   doc.setFont("helvetica", "normal").setFontSize(9);
   y += 16;
-  [company?.address, [company?.postal_code, company?.city].filter(Boolean).join(" "),
-   company?.nif ? `NIF: ${company.nif}` : null, company?.phone, company?.email]
+  [c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
+   c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email, c.doc_header_extra]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
 
   doc.setFont("helvetica", "bold").setFontSize(14);
@@ -24,6 +26,7 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   doc.setDrawColor(200); doc.line(40, y, W - 40, y);
   return y + 16;
 }
+
 
 async function loadProposal(id: string) {
   const { data } = await supabase
@@ -71,15 +74,22 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
 }
 
 function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
-  const days: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
-  if (!days.length) return y;
+  const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
+  // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
+  const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
+  const list = days.length ? days : saved;
+  if (!list.length) return y;
+  const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text(p.proposal_kind === "servico_privado" ? "Serviço privado — descritivo diário" : "Roteiro personalizado", 40, y);
   y += 6;
   autoTable(doc, {
     startY: y,
     head: [["Data", columnLabel]],
-    body: days.map((d) => [d.date, d.text || "—"]),
+    body: list.map((d, i) => [
+      `Dia ${i + 1}\n${d.date ?? "—"}`,
+      (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—",
+    ]),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
     headStyles: { fillColor: [16, 33, 66] },
@@ -87,6 +97,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa")
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
+
 
 export async function generateProposalPdf(id: string) {
   const p = await loadProposal(id);

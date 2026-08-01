@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntityCrud, type CrudField } from "@/components/EntityCrud";
 import { VehicleDrivers } from "@/components/VehicleDrivers";
 import { RegionsDialog } from "@/components/RegionsDialog";
+import { DocumentHeaderSettings } from "@/components/DocumentHeaderSettings";
 
 export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
@@ -107,6 +108,7 @@ function Cadastros() {
           <TabsTrigger value="partners">Parceiros</TabsTrigger>
           <TabsTrigger value="products">Produtos/Serviços</TabsTrigger>
           <TabsTrigger value="routes">Roteiros</TabsTrigger>
+          <TabsTrigger value="doc-header">Proposta Comercial</TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
@@ -120,6 +122,7 @@ function Cadastros() {
           <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","partner_type","contact_person","phone"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
           <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["region_id","name","description","active"]} extraActions={<RegionsDialog />} /></TabsContent>
+          <TabsContent value="doc-header"><DocumentHeaderSettings /></TabsContent>
         </div>
       </Tabs>
       <p className="text-xs text-muted-foreground mt-4">Hotéis, restaurantes e agências passaram a ser geridos em <b>Parceiros</b> (por tipo). Centros de custo, contas bancárias, formas de pagamento e taxas de IVA estão em <b>Configurações</b>.</p>

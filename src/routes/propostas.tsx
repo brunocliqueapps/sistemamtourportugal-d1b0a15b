@@ -96,11 +96,24 @@ function Propostas() {
     mutationFn: async () => {
       const n = daysBetween(form.itinerary_start, form.itinerary_end);
       const pa = Number(pctApproval || 0), pf = Number(pctFinal || 0);
+      // Garante que todos os dias do período são gravados (mesmo os não editados)
+      const routeName = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id)?.name ?? "";
+      const itinerary = buildDays(form.itinerary_start, form.itinerary_end, (form.itinerary ?? []) as ItineraryDay[])
+        .map((d) => ({
+          ...d,
+          region_id: d.region_id || form.region_id || "",
+          tour_route_id: (d.mode ?? "sugestao") === "sugestao" ? (d.tour_route_id || form.tour_route_id || "") : "",
+          text: (d.text && String(d.text).trim())
+            || ((d.mode ?? "sugestao") === "sugestao" ? routeName : "")
+            || "",
+        }));
       const payload: any = {
         ...form,
+        itinerary,
         total_value: Number(form.total_value || 0),
         passengers: Number(form.passengers || 0) || null,
         days_count: n || null,
+
         payment_terms: `Aprovação da Proposta ${pa}% · Final do Serviço ${pf}%`,
         private_service_text: form.proposal_kind === "servico_privado" ? (form.descriptive_service || null) : null,
       };
@@ -170,7 +183,7 @@ function Propostas() {
       departure_date: p.departure_date ?? "", departure_time: p.departure_time ?? "", departure_place: p.departure_place ?? "",
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
       region_id: p.region_id ?? "", tour_route_id: p.tour_route_id ?? "",
-      itinerary: Array.isArray(p.itinerary) ? p.itinerary : [],
+      itinerary: buildDays(p.itinerary_start ?? "", p.itinerary_end ?? "", Array.isArray(p.itinerary) ? p.itinerary : []),
       title: p.title ?? "",
       descriptive_service: p.private_service_text ?? "",
       descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
