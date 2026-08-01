@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, Trash2 } from "lucide-react";
+import { UserPlus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export function VehicleDrivers() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [vehicleId, setVehicleId] = useState("");
   const [driverId, setDriverId] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
@@ -33,16 +34,28 @@ export function VehicleDrivers() {
       (await supabase.from("vehicle_drivers").select("*, vehicles(plate,brand,model,usage_type,owner_company), drivers(full_name)").order("created_at", { ascending: false })).data ?? [],
   });
 
+  const resetForm = () => { setEditId(null); setVehicleId(""); setDriverId(""); setIsPrimary(false); };
+
+  const openNew = () => { resetForm(); setOpen(true); };
+  const openEdit = (l: any) => {
+    setEditId(l.id); setVehicleId(l.vehicle_id); setDriverId(l.driver_id); setIsPrimary(!!l.is_primary); setOpen(true);
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       if (!vehicleId || !driverId) throw new Error("Escolhe veículo e motorista");
-      const { error } = await supabase.from("vehicle_drivers").insert({ vehicle_id: vehicleId, driver_id: driverId, is_primary: isPrimary });
-      if (error) throw error;
+      if (editId) {
+        const { error } = await supabase.from("vehicle_drivers").update({ vehicle_id: vehicleId, driver_id: driverId, is_primary: isPrimary }).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("vehicle_drivers").insert({ vehicle_id: vehicleId, driver_id: driverId, is_primary: isPrimary });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Motorista atribuído");
+      toast.success(editId ? "Atribuição atualizada" : "Motorista atribuído");
       qc.invalidateQueries({ queryKey: ["vehicle_drivers"] });
-      setOpen(false); setDriverId(""); setIsPrimary(false);
+      setOpen(false); resetForm();
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -55,6 +68,7 @@ export function VehicleDrivers() {
     onSuccess: () => { toast.success("Atribuição removida"); qc.invalidateQueries({ queryKey: ["vehicle_drivers"] }); },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <div className="space-y-4">
