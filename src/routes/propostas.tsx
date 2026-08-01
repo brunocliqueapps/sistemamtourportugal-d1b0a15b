@@ -133,12 +133,12 @@ function Propostas() {
       if (error) throw error;
       return data.id as string;
     },
-    onSuccess: async (id) => {
+    onSuccess: async () => {
       toast.success(editing ? "Proposta atualizada" : "Proposta gerada");
       qc.invalidateQueries({ queryKey: ["proposals"] });
       setOpen(false); setEditing(null); setForm(empty);
-      try { await generateProposalPdf(id); } catch { /* PDF opcional */ }
     },
+
     onError: (e: any) => toast.error(e.message),
   });
 
