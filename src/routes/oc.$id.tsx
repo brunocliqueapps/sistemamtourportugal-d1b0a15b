@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { shortCode } from "@/lib/codes";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/oc/$id")({ component: OCDetail });
@@ -67,7 +68,7 @@ function OCDetail() {
         await supabase.from("cash_movements").insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
-          description: `Recebimento OS ${so?.oc_code?.replace('OC', 'OS')}`, created_by: user!.id,
+          description: `Recebimento OS ${shortCode(so?.oc_code)}`, created_by: user!.id,
         });
       }
     },
@@ -87,7 +88,7 @@ function OCDetail() {
       await supabase.from("cash_movements").insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
-        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${so?.oc_code?.replace('OC', 'OS')}`,
+        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode(so?.oc_code)}`,
         created_by: user!.id,
       });
     },
@@ -99,7 +100,7 @@ function OCDetail() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title={`OS ${so.oc_code?.replace('OC', 'OS')}`} description={`Voucher ${so.voucher_code} · Serviço ${so.service_code}`} actions={
+      <PageHeader title={`OS ${shortCode(so.oc_code)}`} description={`Voucher ${shortCode(so.voucher_code)} · Serviço ${so.service_code}`} actions={
         <Link to="/oc" className="text-sm text-primary underline">← Voltar</Link>
       } />
 
