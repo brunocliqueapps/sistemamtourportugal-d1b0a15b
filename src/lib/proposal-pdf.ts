@@ -28,7 +28,7 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
 async function loadProposal(id: string) {
   const { data } = await supabase
     .from("proposals")
-    .select("*, clients(*)")
+    .select("*, clients(*), regions(name), tour_routes(name)")
     .eq("id", id)
     .maybeSingle();
   if (!data) throw new Error("Proposta não encontrada");
@@ -70,7 +70,7 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
   return (doc as any).lastAutoTable.finalY + 18;
 }
 
-function itineraryBlock(doc: jsPDF, p: any, y: number) {
+function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
   const days: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
   if (!days.length) return y;
   doc.setFont("helvetica", "bold").setFontSize(11);
@@ -78,7 +78,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number) {
   y += 6;
   autoTable(doc, {
     startY: y,
-    head: [["Data", "Programa"]],
+    head: [["Data", columnLabel]],
     body: days.map((d) => [d.date, d.text || "—"]),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
@@ -154,11 +154,7 @@ export async function generateVoucherPdf(id: string) {
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
   y += 8;
   y = travelBlock(doc, p, y);
-  y = itineraryBlock(doc, p, y);
-  if (p.descriptive) {
-    doc.setFont("helvetica", "bold").setFontSize(11); doc.text("Observações", 40, y); y += 14;
-    doc.setFont("helvetica", "normal").setFontSize(10);
-    doc.splitTextToSize(p.descriptive, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { doc.text(l, 40, y); y += 12; });
-  }
+  // O voucher é apenas para o cliente: sem valores nem observações de venda.
+  y = itineraryBlock(doc, p, y, "Serviço contratado");
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
 }

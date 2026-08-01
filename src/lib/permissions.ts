@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export type AppRole = "admin" | "comercial" | "administrativo" | "motorista";
 export type ModuleKey =
-  | "dashboard" | "agenda" | "crm" | "propostas" | "oc" | "operacao" | "tvde"
+  | "dashboard" | "agenda" | "crm" | "propostas" | "voucher" | "oc" | "operacao" | "tvde"
   | "financeiro" | "conta_corrente" | "fechamento" | "relatorios"
   | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas";
 

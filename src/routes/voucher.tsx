@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/voucher")({
 function Voucher() {
   const [clientId, setClientId] = useState("");
   const [proposalId, setProposalId] = useState("");
+  const [search, setSearch] = useState("");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [] });
   const { data: props = [] } = useQuery({
@@ -39,17 +41,24 @@ function Voucher() {
 
   const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
+  const filteredClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients as any[];
+    return (clients as any[]).filter((x: any) =>
+      [x.name, x.client_number, x.nif, x.email, x.phone].filter(Boolean).some((v: any) => String(v).toLowerCase().includes(q)));
+  }, [clients, search]);
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." />
 
       <Card className="p-4 space-y-4">
+        <div><Label>Buscar cliente</Label><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, nº cliente, NIF, email…" /></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Cliente</Label>
             <Select value={clientId} onValueChange={(v) => { setClientId(v); setProposalId(""); }}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>{clients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${x.client_number} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${x.client_number} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div><Label>Proposta / Roteiro</Label>
@@ -84,7 +93,7 @@ function Voucher() {
 
             {Array.isArray(p.itinerary) && p.itinerary.length > 0 && (
               <Table>
-                <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Programa</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {p.itinerary.map((d: any, i: number) => (
                     <TableRow key={i}><TableCell className="font-mono text-xs">{d.date}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
@@ -93,7 +102,6 @@ function Voucher() {
               </Table>
             )}
 
-            {p.descriptive && <div className="text-sm whitespace-pre-wrap rounded-md border p-3">{p.descriptive}</div>}
 
             <div className="flex justify-end">
               <Button className="gradient-gold text-gold-foreground" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>

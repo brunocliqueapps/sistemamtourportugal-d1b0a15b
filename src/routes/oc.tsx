@@ -29,7 +29,7 @@ function OCList() {
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
@@ -49,6 +49,7 @@ function OCList() {
       const payload: any = { ...form };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (payload.sale_value != null) payload.sale_value = Number(payload.sale_value);
+      if (payload.amount_received != null) payload.amount_received = Number(payload.amount_received) || 0;
       if (payload.passengers != null) payload.passengers = Number(payload.passengers) || null;
       if (editing?.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
@@ -84,7 +85,8 @@ function OCList() {
       vehicle_id: s.vehicle_id ?? "",
       client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
       status: s.status ?? "para_atendimento",
-      financial_status: s.financial_status ?? "nao_faturado",
+      financial_status: s.financial_status ?? "pagar_empresa",
+      amount_received: s.amount_received ?? 0,
     });
   }
 
@@ -95,7 +97,7 @@ function OCList() {
       service_date: new Date().toISOString().slice(0,10), start_time: "",
       origin: "", destination: "", passengers: "", sale_value: 0,
       vehicle_id: "", client_id: "",
-      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
+      operation_type: "privado", status: "para_atendimento", financial_status: "pagar_empresa", amount_received: 0,
     });
   }
 
@@ -159,49 +161,38 @@ function OCList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing?.id ? `Editar OS ${editing?.oc_code ?? ""}` : "Nova OS"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {fromProposal && (
-              <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
-                <div className="font-semibold">Dados da proposta {editing?.proposals?.code ?? ""}</div>
-                <div><b>Cliente:</b> {editing?.clients?.name ?? "—"} {editing?.clients?.phone ? `· ${editing.clients.phone}` : ""}</div>
-                <div><b>Serviço:</b> {editing?.proposals?.title ?? editing?.service_type ?? "—"} ({editing?.proposals?.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"})</div>
-                <div><b>Data / hora:</b> {editing?.service_date ?? "—"} {editing?.start_time ?? ""}</div>
-                <div><b>Trajeto:</b> {editing?.origin ?? "—"} → {editing?.destination ?? "—"}</div>
-                <div><b>Passageiros:</b> {editing?.passengers ?? editing?.proposals?.passengers ?? "—"} · <b>Valor:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
-                {editing?.proposals?.payment_terms && <div><b>Pagamento:</b> {editing.proposals.payment_terms}</div>}
-                {(editing?.proposals?.descriptive || editing?.proposals?.description) && <div><b>Descritivo:</b> {editing.proposals.descriptive ?? editing.proposals.description}</div>}
-                {Array.isArray(editing?.proposals?.itinerary) && editing.proposals.itinerary.length > 0 && (
-                  <div>
-                    <b>Roteiro:</b>
-                    <ul className="list-disc pl-5">
-                      {editing.proposals.itinerary.map((d: any, i: number) => (
-                        <li key={i}>{d.date ?? `Dia ${i + 1}`} — {d.title ?? d.description ?? ""}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+            <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
+              <div className="font-semibold">
+                Cliente: {editing?.clients?.name ?? clients.find((c: any) => c.id === form.client_id)?.name ?? "—"}
+                {editing?.clients?.client_number ? ` · Nº ${editing.clients.client_number}` : ""}
               </div>
-            )}
+              {editing?.clients?.phone && <div><b>Contacto:</b> {editing.clients.phone}{editing?.clients?.email ? ` · ${editing.clients.email}` : ""}</div>}
+              <div><b>Proposta:</b> {editing?.proposals?.code ?? "—"} · <b>Orçamento:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
+              <div><b>Data / hora:</b> {editing?.service_date ?? form.service_date ?? "—"} {editing?.start_time ?? ""}</div>
+              <div><b>Trajeto:</b> {editing?.origin ?? "—"} → {editing?.destination ?? "—"}</div>
+              <div><b>Passageiros:</b> {editing?.passengers ?? editing?.proposals?.passengers ?? "—"}</div>
+              {editing?.proposals?.payment_terms && <div><b>Pagamento:</b> {editing.proposals.payment_terms}</div>}
+              {(editing?.proposals?.descriptive || editing?.proposals?.description) && <div><b>Descritivo:</b> {editing.proposals.descriptive ?? editing.proposals.description}</div>}
+              {Array.isArray(editing?.proposals?.itinerary) && editing.proposals.itinerary.length > 0 && (
+                <div>
+                  <b>Serviço contratado:</b>
+                  <ul className="list-disc pl-5">
+                    {editing.proposals.itinerary.map((d: any, i: number) => (
+                      <li key={i}>{d.date ?? `Dia ${i + 1}`} — {d.text ?? d.title ?? d.description ?? ""}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
             {!fromProposal && (<>
             <div><Label>Nº OS</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
             <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
-            <div className="col-span-2"><Label>Cliente</Label>
+            <div className="col-span-1 sm:col-span-2"><Label>Cliente</Label>
               <Select value={form.client_id ?? ""} onValueChange={(v) => setForm({ ...form, client_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
                 <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Tipo de operação</Label>
-              <Select value={form.operation_type ?? "privado"} onValueChange={(v) => setForm({ ...form, operation_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{opTypes.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Data</Label><Input type="date" value={form.service_date ?? ""} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
-            <div><Label>Horário</Label><Input type="time" value={form.start_time ?? ""} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
-            <div><Label>Origem</Label><Input value={form.origin ?? ""} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
-            <div><Label>Destino</Label><Input value={form.destination ?? ""} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
-            <div><Label>Passageiros</Label><Input type="number" value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
-            <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={form.sale_value ?? 0} onChange={(e) => setForm({ ...form, sale_value: e.target.value })} /></div>
             </>)}
             <div><Label>Veículo</Label>
               <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
@@ -216,11 +207,16 @@ function OCList() {
               </Select>
             </div>
             <div><Label>Estado financeiro</Label>
-              <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => setForm({ ...form, financial_status: v })}>
+              <Select value={form.financial_status ?? "pagar_empresa"} onValueChange={(v) => setForm({ ...form, financial_status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{financial.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {(form.financial_status === "receber_maos" || form.financial_status === "pago") && (
+              <div><Label>Valor recebido (€)</Label>
+                <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
