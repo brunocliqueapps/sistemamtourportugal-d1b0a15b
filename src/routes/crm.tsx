@@ -56,6 +56,11 @@ function CRM() {
   const [showArchivedList, setShowArchivedList] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
   const nextNumber = useNextClientNumber();
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
 
 
 
