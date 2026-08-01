@@ -118,7 +118,7 @@ function Cadastros() {
           <TabsContent value="suppliers"><EntityCrud table="suppliers" title="Fornecedores" fields={fornecedores} columns={["company_name","contact_person","products_services","phone"]} /></TabsContent>
           <TabsContent value="partners"><EntityCrud table="partners" title="Parceiros" fields={parceiros} columns={["name","partner_type","contact_person","phone"]} /></TabsContent>
           <TabsContent value="products"><EntityCrud table="products_services" title="Produtos / Serviços" fields={produtos} columns={["name","kind","default_price","active"]} /></TabsContent>
-          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["name","region","duration_hours","default_price"]} /></TabsContent>
+          <TabsContent value="routes"><EntityCrud table="tour_routes" title="Roteiros" fields={roteiros} columns={["region_id","name","description","active"]} extraActions={<RegionsDialog />} /></TabsContent>
         </div>
       </Tabs>
       <p className="text-xs text-muted-foreground mt-4">Hotéis, restaurantes e agências passaram a ser geridos em <b>Parceiros</b> (por tipo). Centros de custo, contas bancárias, formas de pagamento e taxas de IVA estão em <b>Configurações</b>.</p>
