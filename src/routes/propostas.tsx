@@ -234,62 +234,52 @@ function Propostas() {
                 <div>NIF/Passaporte: <span className="text-foreground">{selectedClient.nif ?? "—"}</span></div>
                 <div>Telefone: <span className="text-foreground">{[selectedClient.phone_country, selectedClient.phone].filter(Boolean).join(" ") || "—"}</span></div>
                 <div>Email: <span className="text-foreground">{selectedClient.email ?? "—"}</span></div>
+                <div>Nº de passageiros: <span className="text-foreground">{form.passengers || "—"}</span></div>
+                <div>Responsável: <span className="text-foreground">{form.responsible || selectedClient.name || "—"}</span></div>
+                <div>Contacto emergência: <span className="text-foreground">{selectedClient.emergency_contact ?? "—"}</span></div>
+                <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[form.arrival_date, form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
+                <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[form.departure_date, form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div><Label>Nº de pessoas</Label><Input type="number" min={1} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
-              <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
-              <div><Label>Estado</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{statuses.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <div>
-              <div className="text-sm font-medium mb-2">Dados da viagem</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div><Label>Data chegada</Label><Input type="date" value={form.arrival_date} onChange={(e) => setForm({ ...form, arrival_date: e.target.value })} /></div>
-                <div><Label>Hora chegada</Label><Input type="time" value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} /></div>
-                <div><Label>Local chegada</Label><Input value={form.arrival_place} onChange={(e) => setForm({ ...form, arrival_place: e.target.value })} /></div>
-                <div><Label>Data saída</Label><Input type="date" value={form.departure_date} onChange={(e) => setForm({ ...form, departure_date: e.target.value })} /></div>
-                <div><Label>Hora saída</Label><Input type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
-                <div><Label>Local saída</Label><Input value={form.departure_place} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm font-medium mb-2">Tipo e programa</div>
+              <div className="text-sm font-medium mb-2">Tipo e Roteiro</div>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="sm:col-span-2"><Label>Opção</Label>
                   <Select value={form.proposal_kind} onValueChange={(v) => setForm({ ...form, proposal_kind: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{KINDS.map((k) => <SelectItem key={k.code} value={k.code}>{k.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      <SelectItem value="roteiro_personalizado">Sugestão Roteiro Mtour</SelectItem>
+                      <SelectItem value="servico_privado">Serviço Privado</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div><Label>Início</Label><Input type="date" value={form.itinerary_start} onChange={(e) => setRange({ itinerary_start: e.target.value })} /></div>
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
-                <div className="sm:col-span-2"><Label>Região</Label>
-                  <Select value={form.region_id} onValueChange={(v) => setForm({ ...form, region_id: v, tour_route_id: "" })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
-                    <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:col-span-2"><Label>Roteiro</Label>
-                  <Select value={form.tour_route_id} onValueChange={(v) => setForm({ ...form, tour_route_id: v })} disabled={!form.region_id}>
-                    <SelectTrigger><SelectValue placeholder={form.region_id ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
-                    <SelectContent>{regionRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+
+                {form.proposal_kind === "servico_privado" ? (
+                  <div className="sm:col-span-4"><Label>Serviço privado</Label>
+                    <Textarea rows={2} placeholder="Descreva o serviço privado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
+                  </div>
+                ) : (<>
+                  <div className="sm:col-span-2"><Label>Região</Label>
+                    <Select value={form.region_id} onValueChange={(v) => setForm({ ...form, region_id: v, tour_route_id: "" })}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
+                      <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2"><Label>Roteiro</Label>
+                    <Select value={form.tour_route_id} onValueChange={(v) => setForm({ ...form, tour_route_id: v })} disabled={!form.region_id}>
+                      <SelectTrigger><SelectValue placeholder={form.region_id ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
+                      <SelectContent>{regionRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </>)}
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
 
-
-
               {(form.itinerary ?? []).length > 0 && (
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 space-y-2">
                   {(form.itinerary as ItineraryDay[]).map((d, i) => {
                     const patch = (v: Partial<ItineraryDay>) => {
                       const list = [...(form.itinerary as ItineraryDay[])];
@@ -297,40 +287,33 @@ function Propostas() {
                       setForm({ ...form, itinerary: list });
                     };
                     const dayRoutes = (tourRoutes as any[]).filter((r) => r.region_id === (d.region_id || form.region_id));
+                    const custom = (d.mode ?? "sugestao") === "personalizado";
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div><Label className="text-xs">Dia {i + 1} — data</Label>
                             <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
                           </div>
-                          <div><Label className="text-xs">Região</Label>
-                            <Select value={d.region_id || form.region_id || ""} onValueChange={(v) => patch({ region_id: v, tour_route_id: "" })}>
-                              <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
-                              <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div><Label className="text-xs">Opção</Label>
-                            <Select value={d.mode ?? "sugestao"} onValueChange={(v) => patch({ mode: v as any, tour_route_id: v === "personalizado" ? "" : d.tour_route_id })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
+                          <div><Label className="text-xs">Roteiro do dia</Label>
+                            <Select
+                              value={custom ? "outros" : (d.tour_route_id ?? "")}
+                              onValueChange={(v) => {
+                                if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
+                                const r = (tourRoutes as any[]).find((x) => x.id === v);
+                                patch({ mode: "sugestao", region_id: d.region_id || form.region_id, tour_route_id: v, text: r?.name ?? d.text });
+                              }}
+                            >
+                              <SelectTrigger><SelectValue placeholder="Selecionar roteiro sugerido" /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="sugestao">Sugestões Mtour</SelectItem>
-                                <SelectItem value="personalizado">Roteiro Personalizado</SelectItem>
+                                {dayRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                                <SelectItem value="outros">Outros (personalizar)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                         </div>
-                        {(d.mode ?? "sugestao") === "sugestao" && (
-                          <div><Label className="text-xs">Roteiro sugerido</Label>
-                            <Select value={d.tour_route_id ?? ""} onValueChange={(v) => {
-                              const r = (tourRoutes as any[]).find((x) => x.id === v);
-                              patch({ tour_route_id: v, text: d.text || r?.name || "" });
-                            }} disabled={!(d.region_id || form.region_id)}>
-                              <SelectTrigger><SelectValue placeholder={(d.region_id || form.region_id) ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
-                              <SelectContent>{dayRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
+                        {custom && (
+                          <Textarea rows={2} placeholder="Descreva o programa deste dia" value={d.text} onChange={(e) => patch({ text: e.target.value })} />
                         )}
-                        <Textarea rows={2} placeholder="Serviço contratado / programa do dia" value={d.text} onChange={(e) => patch({ text: e.target.value })} />
                       </div>
                     );
                   })}
@@ -339,11 +322,31 @@ function Propostas() {
             </div>
 
             <div><Label>Descritivo à parte</Label><Textarea rows={3} value={form.descriptive} onChange={(e) => setForm({ ...form, descriptive: e.target.value })} /></div>
-            <div><Label>Condições de pagamento</Label>
-              <Textarea rows={2} value={form.payment_terms || suggestPaymentTerms(days || 1)} onChange={(e) => setForm({ ...form, payment_terms: e.target.value })} />
-              <p className="text-xs text-muted-foreground mt-1">Sugestão automática: {suggestPaymentTerms(days || 1)}</p>
+
+            <div>
+              <Label>Condições de pagamento</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm flex-1">Aprovação da Proposta</span>
+                  <Input className="w-20" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm flex-1">Final do Serviço</span>
+                  <Input className="w-20" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+              </div>
             </div>
-            <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} /></div>
+
+            <div>
+              <Label>Valor total (€)</Label>
+              <Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
+              <p className="text-xs text-muted-foreground mt-1">
+                Aprovação da Proposta {Number(pctApproval || 0)}% = € {(Number(form.total_value || 0) * Number(pctApproval || 0) / 100).toFixed(2)} · Final do Serviço {Number(pctFinal || 0)}% = € {(Number(form.total_value || 0) * Number(pctFinal || 0) / 100).toFixed(2)}
+              </p>
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
