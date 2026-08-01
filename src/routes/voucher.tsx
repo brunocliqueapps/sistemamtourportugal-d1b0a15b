@@ -104,14 +104,41 @@ function Voucher() {
             )}
 
 
-            <div className="flex justify-end">
-              <Button className="gradient-gold text-gold-foreground" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Gerar Voucher PDF
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
+                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
+              <Button className="gradient-gold text-gold-foreground" onClick={async () => {
+                const { error } = await supabase.from("proposals").update({ voucher_validated_at: new Date().toISOString() }).eq("id", p.id);
+                if (error) return toast.error(error.message);
+                toast.success("Voucher validado");
+                refetchValidated();
+              }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
             </div>
           </>
         )}
       </Card>
+
+      <Card className="p-4 mt-4">
+        <div className="font-semibold text-sm mb-2">Vouchers validados</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {(validated as any[]).map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="icon" variant="ghost" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {validated.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher validado ainda.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </Card>
+
     </div>
   );
 }
