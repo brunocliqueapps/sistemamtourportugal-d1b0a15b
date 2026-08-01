@@ -33,6 +33,9 @@ export const Route = createFileRoute("/orcamento")({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+type Stage = { label: string; pct: any };
+const DEFAULT_STAGES: Stage[] = [{ label: "Aprovação da Proposta", pct: 40 }, { label: "Final do Serviço", pct: 60 }];
+
 function Orcamento() {
   const [selected, setSelected] = useState<string>("");
   const [value, setValue] = useState<string>("");
@@ -40,6 +43,8 @@ function Orcamento() {
   const [receipt, setReceipt] = useState<string>("");
   const [refusal, setRefusal] = useState<string>("");
   const [search, setSearch] = useState<string>("");
+  const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
+
 
   const { data: props = [], refetch } = useQuery({
     queryKey: ["proposals-orcamento"],
