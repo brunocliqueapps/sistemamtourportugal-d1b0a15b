@@ -148,9 +148,13 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <Button onClick={openNew} className="gradient-gold text-gold-foreground">
-          <Plus className="h-4 w-4 mr-1" /> Novo
-        </Button>
+        <div className="flex items-center gap-2">
+          {extraActions}
+          <Button onClick={openNew} className="gradient-gold text-gold-foreground">
+            <Plus className="h-4 w-4 mr-1" /> Novo
+          </Button>
+        </div>
+
       </div>
 
       <Card>
