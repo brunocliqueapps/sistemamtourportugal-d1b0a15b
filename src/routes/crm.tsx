@@ -198,7 +198,7 @@ function CRM() {
                   draggable
                   onDragStart={(e) => { e.dataTransfer.setData("text/plain", l.id); e.dataTransfer.effectAllowed = "move"; setDragId(l.id); }}
                   onDragEnd={() => { setDragId(null); setDragOverCol(null); }}
-                  className={`p-3 cursor-grab active:cursor-grabbing ${dragId === l.id ? "opacity-50" : ""}`}
+                  className={`p-3 cursor-grab active:cursor-grabbing cursor-gold-hand ${dragId === l.id ? "opacity-50" : ""}`}
                 >
 
                   <div className="flex items-start justify-between gap-2">
