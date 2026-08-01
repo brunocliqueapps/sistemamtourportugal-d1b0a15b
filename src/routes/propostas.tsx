@@ -163,6 +163,8 @@ function Propostas() {
   }
 
   const selectedClient: any = clients.find((c: any) => c.id === form.client_id);
+  const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
