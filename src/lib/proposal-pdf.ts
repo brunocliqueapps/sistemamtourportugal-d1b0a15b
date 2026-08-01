@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
-import { daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
+import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
 
 async function header(doc: jsPDF, docTitle: string, code?: string) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
@@ -74,15 +74,22 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
 }
 
 function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
-  const days: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
-  if (!days.length) return y;
+  const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
+  // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
+  const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
+  const list = days.length ? days : saved;
+  if (!list.length) return y;
+  const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text(p.proposal_kind === "servico_privado" ? "Serviço privado — descritivo diário" : "Roteiro personalizado", 40, y);
   y += 6;
   autoTable(doc, {
     startY: y,
     head: [["Data", columnLabel]],
-    body: days.map((d) => [d.date, d.text || "—"]),
+    body: list.map((d, i) => [
+      `Dia ${i + 1}\n${d.date ?? "—"}`,
+      (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—",
+    ]),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
     headStyles: { fillColor: [16, 33, 66] },
@@ -90,6 +97,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa")
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
+
 
 export async function generateProposalPdf(id: string) {
   const p = await loadProposal(id);
