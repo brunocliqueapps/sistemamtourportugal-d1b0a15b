@@ -7,6 +7,7 @@ export interface QuickViewField {
   key: string;
   label: string;
   format?: (value: any, row: any) => any;
+  fullWidth?: boolean;
 }
 
 interface Props {
