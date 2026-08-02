@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
+import { fmtDate } from "@/lib/format-date";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
@@ -48,12 +50,10 @@ function Agenda() {
   const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
 
   const { data } = useQuery({
-    queryKey: ["agenda", periodFrom, periodTo, statusFilter, vehicleFilter, driverFilter],
+    queryKey: ["agenda", statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
         .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(code,title,itinerary_start,itinerary_end)")
-        .gte("service_date", periodFrom)
-        .lte("service_date", periodTo)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
@@ -63,16 +63,22 @@ function Agenda() {
     },
   });
 
+  // Data efetiva = data da viagem (proposta), não a data de registo
+  const tripStart = (s: any) => String(s.proposals?.itinerary_start ?? s.service_date ?? "");
+  const tripEnd = (s: any) => String(s.proposals?.itinerary_end ?? s.proposals?.itinerary_start ?? s.service_date ?? "");
+
+  const inPeriod = (data ?? []).filter((s: any) => tripEnd(s) >= periodFrom && tripStart(s) <= periodTo);
+
   // Agrupado por viagem (proposta) e não por Ordem de Serviço
-  const trips = Object.values((data ?? []).reduce<Record<string, { key: string; label: string; period: string; client: string; list: any[] }>>((acc, s: any) => {
+  const trips = Object.values(inPeriod.reduce<Record<string, { key: string; label: string; period: string; client: string; list: any[] }>>((acc, s: any) => {
     const key = s.proposal_id ?? `os-${s.id}`;
     if (!acc[key]) {
-      const start = s.proposals?.itinerary_start ?? s.service_date;
-      const end = s.proposals?.itinerary_end ?? s.service_date;
+      const start = tripStart(s);
+      const end = tripEnd(s);
       acc[key] = {
         key,
         label: s.proposals?.code ? `Viagem ${s.proposals.code}${s.proposals.title ? ` · ${s.proposals.title}` : ""}` : `Serviço avulso ${s.oc_code ?? ""}`,
-        period: start === end ? String(start) : `${start} → ${end}`,
+        period: start === end ? fmtDate(start) : `${fmtDate(start)} → ${fmtDate(end)}`,
         client: s.clients?.name ?? "—",
         list: [],
       };
@@ -155,7 +161,7 @@ function Agenda() {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Data</TableHead>
                   <TableHead className="whitespace-nowrap">Horário</TableHead>
-                  <TableHead>OS / Voucher</TableHead>
+                  <TableHead>OS</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Telefone</TableHead>
@@ -174,14 +180,13 @@ function Agenda() {
                   const pay = paymentBadge(Number(s.sale_value || 0), Number(s.amount_received || 0));
                   return (
                     <TableRow key={s.id}>
-                      <TableCell className="whitespace-nowrap text-xs">{s.service_date}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{fmtDate(tripStart(s))}</TableCell>
                       <TableCell className="font-mono">{s.start_time?.slice(0, 5) ?? "—"}</TableCell>
 
                       <TableCell>
-                        <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-medium">
-                          {s.oc_code}
+                        <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">
+                          {shortCode(s.oc_code)}
                         </Link>
-                        <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
                       </TableCell>
                       <TableCell><Badge variant="outline" className="capitalize">{s.operation_type ?? "—"}</Badge></TableCell>
                       <TableCell>{s.clients?.name ?? "—"}</TableCell>

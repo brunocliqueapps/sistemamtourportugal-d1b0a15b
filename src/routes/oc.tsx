@@ -9,58 +9,68 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, CheckCircle2, Plus, FileDown } from "lucide-react";
+import { Pencil, Trash2, Eye, CheckCircle2, Plus, FileDown, Check, X } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
+import { fmtDate } from "@/lib/format-date";
 import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
 
-export const Route = createFileRoute("/oc")({ component: OCList });
+export const Route = createFileRoute("/oc")({
+  component: OCList,
+  head: () => ({
+    meta: [
+      { title: "Ordens de Serviço — Mtour Portugal" },
+      { name: "description", content: "Gere as ordens de serviço: cliente, veículo, estado operacional e estado financeiro." },
+      { property: "og:title", content: "Ordens de Serviço — Mtour Portugal" },
+      { property: "og:description", content: "Ordens de serviço com veículo e estados operacional e financeiro." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+});
 
-const OP_FALLBACK = ["para_atendimento","em_atendimento","atendimento_finalizado"];
-const FIN_FALLBACK = ["nao_faturado","faturado","pago"];
-const OPTYPE_FALLBACK = ["privado","tvde","interno"];
+const OP_FALLBACK = ["para_atendimento", "em_atendimento", "atendimento_finalizado"];
+const FIN_FALLBACK = ["nao_faturado", "faturado", "pago"];
 
 function OCList() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<any | null>(null);
+  const [selected, setSelected] = useState<string>("");
+  const [creating, setCreating] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
   const [search, setSearch] = useState("");
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
   });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name,client_number,email").order("name")).data ?? [] });
-  const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts","oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_operational_status").eq("active",true).order("sort")).data ?? [] });
-  const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts","oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","oc_financial_status").eq("active",true).order("sort")).data ?? [] });
-  const { data: opTypeOpts = [] } = useQuery({ queryKey: ["status-opts","operation_type"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain","operation_type").eq("active",true).order("sort")).data ?? [] });
+  const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_operational_status").eq("active", true).order("sort")).data ?? [] });
+  const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_financial_status").eq("active", true).order("sort")).data ?? [] });
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
   const financial = finOpts.length ? finOpts : FIN_FALLBACK.map((c) => ({ code: c, label: c }));
-  const opTypes = opTypeOpts.length ? opTypeOpts : OPTYPE_FALLBACK.map((c) => ({ code: c, label: c }));
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
 
   const q = search.trim().toLowerCase();
-  const rows = !q ? (data as any[]) : (data as any[]).filter((s: any) =>
-    [s.clients?.client_number, s.clients?.name, s.clients?.email, s.oc_code, s.voucher_code]
-      .some((v: any) => String(v ?? "").toLowerCase().includes(q)));
+  const rows = useMemo(() => !q ? (data as any[]) : (data as any[]).filter((s: any) =>
+    [s.clients?.client_number, s.clients?.name, s.clients?.email, s.oc_code]
+      .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [data, q]);
 
-  const fromProposal = !!editing?.id && !!editing?.proposal_id;
+  const s: any = useMemo(() => (data as any[]).find((x: any) => x.id === selected), [data, selected]);
+  const editingId = s?.id ?? null;
+  const open = creating || !!editingId;
 
   const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
-      if (payload.sale_value != null) payload.sale_value = Number(payload.sale_value);
       if (payload.amount_received != null) payload.amount_received = Number(payload.amount_received) || 0;
-      if (payload.passengers != null) payload.passengers = Number(payload.passengers) || null;
-      if (editing?.id) {
-        const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
+      if (editingId) {
+        const { error } = await supabase.from("service_orders").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         if (!payload.operation_type) payload.operation_type = "privado";
@@ -70,7 +80,7 @@ function OCList() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { toast.success(editing?.id ? "OS atualizada" : "OS criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setEditing(null); },
+    onSuccess: () => { toast.success(editingId ? "OS atualizada" : "OS criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); close(); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -79,34 +89,34 @@ function OCList() {
       const { error } = await supabase.from("service_orders").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("OS removida"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
+    onSuccess: () => { toast.success("OS removida"); qc.invalidateQueries({ queryKey: ["service-orders"] }); close(); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  function openEdit(s: any) {
-    setEditing(s);
+  function openEdit(row: any) {
+    setCreating(false);
+    setSelected(row.id);
     setForm({
-      oc_code: s.oc_code ?? "", voucher_code: s.voucher_code ?? "",
-      service_date: s.service_date ?? "", start_time: s.start_time ?? "",
-      origin: s.origin ?? "", destination: s.destination ?? "",
-      passengers: s.passengers ?? "", sale_value: s.sale_value ?? 0,
-      vehicle_id: s.vehicle_id ?? "",
-      client_id: s.client_id ?? "", operation_type: s.operation_type ?? "privado",
-      status: s.status ?? "para_atendimento",
-      financial_status: s.financial_status ?? "pagar_empresa",
-      amount_received: s.amount_received ?? 0,
+      client_id: row.client_id ?? "",
+      vehicle_id: row.vehicle_id ?? "",
+      status: row.status ?? "para_atendimento",
+      financial_status: row.financial_status ?? "nao_faturado",
+      amount_received: row.amount_received ?? 0,
     });
   }
 
   function openNew() {
-    setEditing({});
+    setSelected("");
+    setCreating(true);
     setForm({
-      oc_code: "", voucher_code: "",
-      service_date: new Date().toISOString().slice(0,10), start_time: "",
-      origin: "", destination: "", passengers: "", sale_value: 0,
-      vehicle_id: "", client_id: "",
-      operation_type: "privado", status: "para_atendimento", financial_status: "pagar_empresa", amount_received: 0,
+      client_id: "", vehicle_id: "",
+      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
+      amount_received: 0, service_date: new Date().toISOString().slice(0, 10),
     });
+  }
+
+  function close() {
+    setSelected(""); setCreating(false); setForm({});
   }
 
   const concluir = useMutation({
@@ -118,18 +128,112 @@ function OCList() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const travelStart = s?.proposals?.itinerary_start ?? s?.service_date;
+  const travelEnd = s?.proposals?.itinerary_end ?? s?.service_date;
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelas propostas aprovadas ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
-      <Card className="p-3">
-        <Input placeholder="Filtrar por nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+
+      <Card className="p-4 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-3"><Label>Filtrar</Label>
+            <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="sm:col-span-3"><Label>Ordem de serviço</Label>
+            <Select value={selected} onValueChange={(v) => { const row = (data as any[]).find((x: any) => x.id === v); if (row) openEdit(row); }}>
+              <SelectTrigger><SelectValue placeholder="Selecionar ordem de serviço" /></SelectTrigger>
+              <SelectContent>
+                {rows.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.oc_code)} · {x.clients?.name ?? "—"}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {open && (
+          <>
+            {s && (
+              <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>Nº Cliente: <span className="font-medium">{shortCode(s.clients?.client_number)}</span></div>
+                <div>Cliente: <span className="font-medium">{s.clients?.name ?? "—"}</span></div>
+                <div>Telefone: <span className="font-medium">{s.clients?.phone ?? "—"}</span></div>
+                <div>Email: <span className="font-medium">{s.clients?.email ?? "—"}</span></div>
+                <div>Proposta: <span className="font-medium">{shortCode(s.proposals?.code) || "—"}</span></div>
+                <div>Passageiros: <span className="font-medium">{s.passengers ?? s.proposals?.passengers ?? "—"}</span></div>
+                <div className="sm:col-span-3">Data da viagem: {[fmtDate(travelStart), fmtDate(travelEnd)].filter(Boolean).join(" → ") || "—"} {s.start_time?.slice(0, 5) ?? ""}</div>
+                <div className="sm:col-span-3">Trajeto: {s.origin ?? "—"} → {s.destination ?? "—"}</div>
+                {s.proposals?.payment_terms && <div className="sm:col-span-3">Pagamento: {s.proposals.payment_terms}</div>}
+                {(s.proposals?.descriptive || s.proposals?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {s.proposals.descriptive ?? s.proposals.description}</div>}
+              </div>
+            )}
+
+            {Array.isArray(s?.proposals?.itinerary) && s.proposals.itinerary.filter((d: any) => !d.deleted).length > 0 && (
+              <Table>
+                <TableHeader><TableRow><TableHead className="w-28">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {s.proposals.itinerary.filter((d: any) => !d.deleted).map((d: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
+                      <TableCell className="whitespace-pre-wrap">{d.text ?? d.title ?? d.description ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+
+            <div className="rounded-md border p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2"><Label>Cliente</Label>
+                <Select value={form.client_id ?? ""} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                  <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{shortCode(c.client_number)} · {c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Veículo</Label>
+                <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar veículo" /></SelectTrigger>
+                  <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}{v.owner_company ? ` — ${v.owner_company}` : ""}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Estado operacional</Label>
+                <Select value={form.status ?? "para_atendimento"} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{operational.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Estado financeiro</Label>
+                <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => setForm({ ...form, financial_status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{financial.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              {(form.financial_status === "receber_maos" || form.financial_status === "pago") && (
+                <div><Label>Valor recebido (€)</Label>
+                  <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button variant="ghost" onClick={close}><X className="h-4 w-4 mr-1" /> Fechar</Button>
+              {editingId && (
+                <Button variant="outline" onClick={() => generateServiceOrderPdf(editingId).catch((e: any) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+                </Button>
+              )}
+              <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>
+                <Check className="h-4 w-4 mr-1" /> {editingId ? "Atualizar" : "Criar"}
+              </Button>
+            </div>
+          </>
+        )}
       </Card>
-      <Card>
+
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nº Cliente</TableHead><TableHead>OS</TableHead><TableHead>Voucher</TableHead><TableHead>Data</TableHead>
+            <TableHead>Nº Cliente</TableHead><TableHead>OS</TableHead><TableHead>Data da viagem</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
             <TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
@@ -137,124 +241,55 @@ function OCList() {
             <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {rows.map((s: any) => {
-              const canConcluir = s.status !== "atendimento_finalizado";
+            {rows.map((r: any) => {
+              const canConcluir = r.status !== "atendimento_finalizado";
+              const start = r.proposals?.itinerary_start ?? r.service_date;
+              const end = r.proposals?.itinerary_end ?? r.service_date;
               return (
-              <TableRow key={s.id}>
-                <TableCell className="font-mono text-xs">{shortCode(s.clients?.client_number)}</TableCell>
-                <TableCell><Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">{shortCode(s.oc_code)}</Link></TableCell>
-                <TableCell className="font-mono text-xs">{shortCode(s.voucher_code)}</TableCell>
-                <TableCell>{s.service_date} {s.start_time?.slice(0,5) ?? ""}</TableCell>
-                <TableCell>{s.clients?.name ?? "—"}</TableCell>
-                <TableCell className="text-sm">{s.origin} → {s.destination}</TableCell>
-                
-                <TableCell>{s.vehicles?.plate ?? "—"}{s.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{s.vehicles.owner_company}</div> : null}</TableCell>
-                <TableCell><Badge variant="outline">{opLabel(s.status)}</Badge></TableCell>
-                <TableCell><Badge variant={s.financial_status === "pago" ? "default" : "outline"}>{finLabel(s.financial_status ?? "nao_faturado")}</Badge></TableCell>
-                <TableCell className="text-right">€ {Number(s.sale_value||0).toFixed(2)}</TableCell>
-                <TableCell className="text-right space-x-1">
-                  {canConcluir && (
-                    <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(s.id); }}>
-                      <CheckCircle2 className="h-3 w-3 mr-1" /> Concluir
-                    </Button>
-                  )}
-                  <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateServiceOrderPdf(s.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(s)}><Eye className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OS?")) del.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
-                </TableCell>
-              </TableRow>
-            );})}
-            {rows.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{shortCode(r.clients?.client_number)}</TableCell>
+                  <TableCell><Link to="/oc/$id" params={{ id: r.id }} className="text-primary hover:underline font-mono text-xs">{shortCode(r.oc_code)}</Link></TableCell>
+                  <TableCell className="text-xs leading-tight">
+                    <div>Início: {fmtDate(start) || "—"}</div>
+                    <div>Fim: {fmtDate(end) || "—"}</div>
+                  </TableCell>
+                  <TableCell>{r.clients?.name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{r.origin} → {r.destination}</TableCell>
+                  <TableCell>{r.vehicles?.plate ?? "—"}{r.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{r.vehicles.owner_company}</div> : null}</TableCell>
+                  <TableCell><Badge variant="outline">{opLabel(r.status)}</Badge></TableCell>
+                  <TableCell><Badge variant={r.financial_status === "pago" ? "default" : "outline"}>{finLabel(r.financial_status ?? "nao_faturado")}</Badge></TableCell>
+                  <TableCell className="text-right">€ {Number(r.sale_value || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-right space-x-1">
+                    {canConcluir && (
+                      <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(r.id); }}>
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Concluir
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateServiceOrderPdf(r.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(r)}><Eye className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta OS?")) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {rows.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
-
-      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editing?.id ? `Editar OS ${editing?.oc_code ?? ""}` : "Nova OS"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="col-span-1 sm:col-span-2 rounded-lg border p-3 bg-muted/40 space-y-1 text-sm">
-              <div className="font-semibold">
-                Cliente: {editing?.clients?.name ?? clients.find((c: any) => c.id === form.client_id)?.name ?? "—"}
-                {editing?.clients?.client_number ? ` · Nº ${shortCode(editing.clients.client_number)}` : ""}
-              </div>
-              {editing?.clients?.phone && <div><b>Contacto:</b> {editing.clients.phone}{editing?.clients?.email ? ` · ${editing.clients.email}` : ""}</div>}
-              <div><b>Proposta:</b> {shortCode(editing?.proposals?.code)} · <b>Orçamento:</b> € {Number(editing?.sale_value ?? editing?.proposals?.total_value ?? 0).toFixed(2)}</div>
-              <div><b>Data / hora:</b> {editing?.service_date ?? form.service_date ?? "—"} {editing?.start_time ?? ""}</div>
-              <div><b>Trajeto:</b> {editing?.origin ?? "—"} → {editing?.destination ?? "—"}</div>
-              <div><b>Passageiros:</b> {editing?.passengers ?? editing?.proposals?.passengers ?? "—"}</div>
-              {editing?.proposals?.payment_terms && <div><b>Pagamento:</b> {editing.proposals.payment_terms}</div>}
-              {(editing?.proposals?.descriptive || editing?.proposals?.description) && <div><b>Descritivo:</b> {editing.proposals.descriptive ?? editing.proposals.description}</div>}
-              {Array.isArray(editing?.proposals?.itinerary) && editing.proposals.itinerary.length > 0 && (
-                <div>
-                  <b>Serviço contratado:</b>
-                  <ul className="list-disc pl-5">
-                    {editing.proposals.itinerary.map((d: any, i: number) => (
-                      <li key={i}>{d.date ?? `Dia ${i + 1}`} — {d.text ?? d.title ?? d.description ?? ""}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            {!fromProposal && (<>
-            <div><Label>Nº OS</Label><Input value={form.oc_code ?? ""} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
-            <div><Label>Nº Voucher</Label><Input value={form.voucher_code ?? ""} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
-            <div className="col-span-1 sm:col-span-2"><Label>Cliente</Label>
-              <Select value={form.client_id ?? ""} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            </>)}
-            <div><Label>Veículo</Label>
-              <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}{v.owner_company ? ` — ${v.owner_company}` : ""}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Estado operacional</Label>
-              <Select value={form.status ?? "para_atendimento"} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{operational.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Estado financeiro</Label>
-              <Select value={form.financial_status ?? "pagar_empresa"} onValueChange={(v) => setForm({ ...form, financial_status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{financial.map((s: any) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {(form.financial_status === "receber_maos" || form.financial_status === "pago") && (
-              <div><Label>Valor recebido (€)</Label>
-                <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            {editing?.id && (
-              <Button variant="outline" onClick={() => generateServiceOrderPdf(editing.id).catch((e: any) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
-              </Button>
-            )}
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>{editing?.id ? "Atualizar" : "Criar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <QuickViewDialog
         open={!!viewing}
         onClose={() => setViewing(null)}
         title="Ordem de Serviço"
-        record={viewing ? { ...viewing, oc_code: shortCode(viewing.oc_code), voucher_code: shortCode(viewing.voucher_code) } : null}
+        record={viewing ? { ...viewing, oc_code: shortCode(viewing.oc_code) } : null}
         fields={[
-          { key: "oc_code", label: "OS" }, { key: "voucher_code", label: "Voucher" },
-          { key: "service_date", label: "Data" }, { key: "start_time", label: "Horário" },
+          { key: "oc_code", label: "OS" },
+          { key: "service_date", label: "Data", format: (_v, r: any) => fmtDate(r?.proposals?.itinerary_start ?? r?.service_date) },
+          { key: "start_time", label: "Horário" },
           { key: "clients", label: "Cliente", format: (v) => v?.name ?? "—" },
           { key: "origin", label: "Origem" }, { key: "destination", label: "Destino" },
           { key: "passengers", label: "Passageiros" },
-          
           { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
