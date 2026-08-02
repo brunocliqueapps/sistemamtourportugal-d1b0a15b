@@ -149,23 +149,8 @@ function Propostas() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const approve = useMutation({
-    mutationFn: async () => {
-      const p = approveOpen;
-      const { error: upErr } = await supabase.from("proposals").update({ status: "convertida", approved_at: new Date().toISOString() }).eq("id", p.id);
-      if (upErr) throw upErr;
-      const { error: soErr } = await supabase.from("service_orders").insert({
-        proposal_id: p.id, client_id: p.client_id, sale_value: p.total_value,
-        service_date: srv.service_date, start_time: srv.start_time || null,
-        origin: srv.origin, destination: srv.destination, passengers: Number(srv.passengers) || null,
-        payment_terms: p.payment_terms ?? null,
-        status: "agendado", created_by: user!.id,
-      });
-      if (soErr) throw soErr;
-    },
-    onSuccess: () => { toast.success("Proposta convertida em OS/Voucher/Serviço"); qc.invalidateQueries(); setApproveOpen(null); },
-    onError: (e: any) => toast.error(e.message),
-  });
+
+
 
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(p: any) {
