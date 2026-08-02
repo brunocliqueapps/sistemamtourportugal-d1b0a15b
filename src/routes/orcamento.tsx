@@ -90,8 +90,13 @@ function Orcamento() {
 
   const stageTerms = () => stages.filter((s) => s.label.trim()).map((s) => `${s.label} ${Number(s.pct || 0)}%`).join(" · ");
 
-  async function save() {
-    if (!p) return;
+  function close() {
+    setSelected(""); setAction(""); setValue(""); setTerms(""); setReceipt(""); setRefusal(""); setAnalysisInfo("");
+    setStages(DEFAULT_STAGES); setStatusDate(today());
+  }
+
+  async function save(silent = false) {
+    if (!p) return true;
     const { error } = await supabase.from("proposals")
       .update({
         total_value: total,
@@ -99,17 +104,19 @@ function Orcamento() {
         payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
       })
       .eq("id", p.id);
-    if (error) return toast.error(error.message);
-    toast.success("Orçamento atualizado");
+    if (error) { toast.error(error.message); return false; }
+    if (!silent) toast.success("Orçamento atualizado");
     refetch();
+    return true;
   }
 
   async function validate() {
-    if (!p) return;
+    if (!p) return false;
     const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return false; }
     toast.success("Orçamento validado");
     refetch();
+    return true;
   }
 
 
@@ -117,11 +124,11 @@ function Orcamento() {
     if (!p) return;
     if (status === "aprovado" && !receipt.trim()) return toast.error("Indica as informações de recebimento.");
     if (status === "recusado" && !refusal.trim()) return toast.error("Indica o motivo da recusa.");
-    const now = new Date().toISOString();
+    const when = statusDate ? new Date(`${statusDate}T12:00:00`).toISOString() : new Date().toISOString();
     const patch: any = { budget_status: status };
-    if (status === "aprovado") { patch.budget_approved_at = now; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
-    if (status === "analise") { patch.budget_analysis_at = now; }
-    if (status === "recusado") { patch.budget_refused_at = now; patch.budget_refusal_reason = refusal; patch.status = "rejeitada"; }
+    if (status === "aprovado") { patch.budget_approved_at = when; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
+    if (status === "analise") { patch.budget_analysis_at = when; patch.budget_analysis_info = analysisInfo; patch.budget_validated_at = null; patch.status = "enviada"; }
+    if (status === "recusado") { patch.budget_refused_at = when; patch.budget_refusal_reason = refusal; patch.budget_validated_at = null; patch.status = "rejeitada"; }
     const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
     if (error) return toast.error(error.message);
     if (status === "aprovado") {
@@ -129,16 +136,21 @@ function Orcamento() {
       const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
       const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
         .filter(Boolean).join(" · ");
-      const mvPayload: any = { movement_date: now.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
+      const mvPayload: any = { movement_date: when.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
       const { error: mvErr } = existing
         ? await supabase.from("cash_movements").update(mvPayload).eq("id", existing.id)
         : await supabase.from("cash_movements").insert(mvPayload);
       if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
+    } else {
+      // Reverte o lançamento automático se deixou de estar aprovado
+      await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
     }
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
+    setAction("");
   }
+
 
 
   return (
