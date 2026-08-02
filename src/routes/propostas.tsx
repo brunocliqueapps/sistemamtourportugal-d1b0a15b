@@ -17,7 +17,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
-import { buildDays, daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
+import { buildDays, daysBetween, type ItineraryDay } from "@/lib/payment-terms";
 import { generateProposalPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 
@@ -31,7 +31,7 @@ const empty: any = {
   itinerary_start: "", itinerary_end: "", itinerary: [] as ItineraryDay[],
   region_id: "", tour_route_id: "",
 
-  title: "", descriptive: "", descriptive_service: "", payment_terms: "", total_value: 0,
+  title: "", descriptive: "", descriptive_service: "",
 };
 
 const KINDS = [
@@ -49,8 +49,6 @@ function Propostas() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
-  const [pctApproval, setPctApproval] = useState<any>(40);
-  const [pctFinal, setPctFinal] = useState<any>(60);
   const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
 
   const { data: props = [] } = useQuery({
@@ -88,14 +86,13 @@ function Propostas() {
       const next = { ...f, ...patch };
       const list = buildDays(next.itinerary_start, next.itinerary_end, f.itinerary ?? []);
       const n = daysBetween(next.itinerary_start, next.itinerary_end);
-      return { ...next, itinerary: list, payment_terms: f.payment_terms || suggestPaymentTerms(n || 1) };
+      return { ...next, itinerary: list, days_count: n || null };
     });
   }
 
   const save = useMutation({
     mutationFn: async () => {
       const n = daysBetween(form.itinerary_start, form.itinerary_end);
-      const pa = Number(pctApproval || 0), pf = Number(pctFinal || 0);
       // Garante que todos os dias do período são gravados (mesmo os não editados)
       const routeName = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id)?.name ?? "";
       const itinerary = buildDays(form.itinerary_start, form.itinerary_end, (form.itinerary ?? []) as ItineraryDay[])
@@ -169,12 +166,9 @@ function Propostas() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  function openNew() { setEditing(null); setForm(empty); setPctApproval(40); setPctFinal(60); setOpen(true); }
+  function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(p: any) {
     setEditing(p);
-    const m = String(p.payment_terms ?? "").match(/(\d+)\s*%[^\d]+(\d+)\s*%/);
-    setPctApproval(m ? Number(m[1]) : 40);
-    setPctFinal(m ? Number(m[2]) : 60);
     setForm({
       client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
       proposal_kind: p.proposal_kind ?? "roteiro_personalizado", responsible: p.responsible ?? "",
@@ -186,7 +180,7 @@ function Propostas() {
       itinerary: buildDays(p.itinerary_start ?? "", p.itinerary_end ?? "", Array.isArray(p.itinerary) ? p.itinerary : []),
       title: p.title ?? "",
       descriptive_service: p.private_service_text ?? "",
-      descriptive: p.descriptive ?? "", payment_terms: p.payment_terms ?? "", total_value: p.total_value ?? 0,
+      descriptive: p.descriptive ?? "",
     });
     setOpen(true);
   }
