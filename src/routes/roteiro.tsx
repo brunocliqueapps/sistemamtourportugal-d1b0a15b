@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { fmtDate } from "@/lib/format-date";
+import { TRIP_PROPOSAL_COLS, dayLabel, itineraryDayFor, tripRange } from "@/lib/trip-dates";
 import { CheckCircle2, Clock, MapPin, Car, User, Ticket, Gauge, Receipt, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/roteiro")({ component: Roteiro });
@@ -23,18 +25,24 @@ export const Route = createFileRoute("/roteiro")({ component: Roteiro });
 function Roteiro() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
+  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const names = {
+    regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
+    routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
+  };
+
   const { data: services = [] } = useQuery({
     queryKey: ["roteiro", date],
     queryFn: async () => {
       const { data } = await supabase.from("service_orders")
-        .select("*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(code,itinerary_start,itinerary_end)")
+        .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("start_time", { ascending: true });
-      // Prioriza a data da viagem (proposta); só usa a data da OS quando não há viagem
+      // A data da viagem (proposta) manda; a data de registo da OS é só o último recurso
       return (data ?? []).filter((s: any) => {
-        const start = s.proposals?.itinerary_start;
-        const end = s.proposals?.itinerary_end ?? start;
-        if (start) return String(start) <= date && date <= String(end);
-        return String(s.service_date ?? "") === date;
+        const { start, end } = tripRange(s);
+        if (!start) return false;
+        return start <= date && date <= (end || start);
       });
     },
   });
@@ -118,6 +126,9 @@ function Roteiro() {
                 const closed = closingBy(s.id);
                 const exps = expensesBy(s.id);
                 const totalExp = exps.reduce((a, e: any) => a + Number(e.amount || 0), 0);
+                const trip = tripRange(s);
+                const day = itineraryDayFor(s.proposals, date);
+                const dayText = dayLabel(s.proposals, day, names);
                 return (
                   <div key={s.id} className="rounded-lg border p-4 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -126,6 +137,11 @@ function Roteiro() {
                         <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-sm text-primary hover:underline">{s.oc_code}</Link>
                         <Badge variant="outline" className="gap-1"><Ticket className="w-3 h-3" />{s.voucher_code}</Badge>
                         <Badge>{s.status}</Badge>
+                        {trip.start && (
+                          <Badge variant="secondary" className="text-xs">
+                            Viagem {fmtDate(trip.start)}{trip.end && trip.end !== trip.start ? ` → ${fmtDate(trip.end)}` : ""}
+                          </Badge>
+                        )}
                       </div>
                       {closed?.closed_at ? (
                         <Badge className="bg-green-600 hover:bg-green-600 gap-1"><CheckCircle2 className="w-3 h-3" />Finalizado</Badge>
@@ -137,7 +153,11 @@ function Roteiro() {
                     <div className="grid gap-3 md:grid-cols-2 text-sm">
                       <div className="space-y-1">
                         <div className="flex items-start gap-2"><MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" /><span>{s.origin || "—"} → {s.destination || "—"}</span></div>
-                        {s.itinerary && <div className="text-muted-foreground pl-6 whitespace-pre-line">Roteiro: {s.itinerary}</div>}
+                        {(dayText || s.itinerary) && (
+                          <div className="text-muted-foreground pl-6 whitespace-pre-line">
+                            Roteiro de {fmtDate(date)}: {dayText || s.itinerary}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />{s.drivers?.full_name ?? "Sem motorista"} {s.drivers?.phone && `· ${s.drivers.phone}`}</div>
                         <div className="flex items-center gap-2"><Car className="w-4 h-4 text-muted-foreground" />{s.vehicles ? `${s.vehicles.plate} · ${s.vehicles.brand ?? ""} ${s.vehicles.model ?? ""}` : "Sem veículo"}</div>
                         <div className="text-muted-foreground">{s.passengers ?? 0} pax · Venda € {Number(s.sale_value || 0).toFixed(2)}</div>

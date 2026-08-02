@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState } from "react";
 import { fmtDate } from "@/lib/format-date";
 import { shortCode } from "@/lib/codes";
+import { TRIP_PROPOSAL_COLS, dayLabel, itineraryDays, tripRange } from "@/lib/trip-dates";
 
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
@@ -49,11 +50,18 @@ function Agenda() {
   const { data: vehicles = [] } = useQuery({ queryKey: ["agenda-vehicles"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,owner_company").order("plate")).data ?? [] });
   const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
 
+  const { data: regions = [] } = useQuery({ queryKey: ["agenda-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["agenda-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const names = {
+    regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
+    routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
+  };
+
   const { data } = useQuery({
     queryKey: ["agenda", statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
-        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(code,title,itinerary_start,itinerary_end)")
+        .select(`*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
@@ -64,13 +72,13 @@ function Agenda() {
   });
 
   // Data efetiva = data da viagem (proposta), não a data de registo
-  const tripStart = (s: any) => String(s.proposals?.itinerary_start ?? s.service_date ?? "");
-  const tripEnd = (s: any) => String(s.proposals?.itinerary_end ?? s.proposals?.itinerary_start ?? s.service_date ?? "");
+  const tripStart = (s: any) => tripRange(s).start;
+  const tripEnd = (s: any) => tripRange(s).end;
 
   const inPeriod = (data ?? []).filter((s: any) => tripEnd(s) >= periodFrom && tripStart(s) <= periodTo);
 
   // Agrupado por viagem (proposta) e não por Ordem de Serviço
-  const trips = Object.values(inPeriod.reduce<Record<string, { key: string; label: string; period: string; client: string; list: any[] }>>((acc, s: any) => {
+  const trips = Object.values(inPeriod.reduce<Record<string, { key: string; label: string; period: string; client: string; proposal: any; list: any[] }>>((acc, s: any) => {
     const key = s.proposal_id ?? `os-${s.id}`;
     if (!acc[key]) {
       const start = tripStart(s);
@@ -80,6 +88,7 @@ function Agenda() {
         label: s.proposals?.code ? `Viagem ${s.proposals.code}${s.proposals.title ? ` · ${s.proposals.title}` : ""}` : `Serviço avulso ${s.oc_code ?? ""}`,
         period: start === end ? fmtDate(start) : `${fmtDate(start)} → ${fmtDate(end)}`,
         client: s.clients?.name ?? "—",
+        proposal: s.proposals ?? null,
         list: [],
       };
     }
@@ -154,6 +163,19 @@ function Agenda() {
         <div key={t.key}>
           <h3 className="font-semibold mb-1">{t.label}</h3>
           <p className="text-sm text-muted-foreground mb-3">{t.client} · {t.period}</p>
+          {itineraryDays(t.proposal).length > 0 && (
+            <Card className="p-4 mb-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Roteiro da viagem</div>
+              <ul className="space-y-1 text-sm">
+                {itineraryDays(t.proposal).map((d, i) => (
+                  <li key={`${d.date}-${i}`} className="flex flex-col sm:flex-row sm:gap-3">
+                    <span className="font-mono text-xs text-muted-foreground sm:w-28 shrink-0">{fmtDate(d.date)}</span>
+                    <span className="flex-1">{dayLabel(t.proposal, d, names) || "—"}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card className="overflow-x-auto">
 
             <Table>
