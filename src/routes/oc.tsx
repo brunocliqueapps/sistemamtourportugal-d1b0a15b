@@ -159,12 +159,19 @@ function OCList() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const travelStart = s?.proposals?.itinerary_start ?? s?.service_date;
-  const travelEnd = s?.proposals?.itinerary_end ?? s?.service_date;
+  // Proposta/orçamento associado: da OS selecionada ou do orçamento validado escolhido na nova OS
+  const chosen: any = useMemo(() => (validated as any[]).find((x: any) => x.id === newProposal), [validated, newProposal]);
+  const prop: any = s?.proposals ?? chosen ?? null;
+  const cli: any = s?.clients ?? chosen?.clients ?? (clients as any[]).find((c: any) => c.id === form.client_id) ?? null;
+  const travelStart = prop?.itinerary_start ?? prop?.arrival_date ?? s?.service_date ?? form.service_date;
+  const travelEnd = prop?.itinerary_end ?? prop?.departure_date ?? s?.service_date ?? form.service_date;
+  const itDays: any[] = Array.isArray(prop?.itinerary) ? prop.itinerary.filter((d: any) => !d.deleted) : [];
+  const regName = (id?: string) => (regions as any[]).find((r: any) => r.id === id)?.name;
+  const routeName = (id?: string) => (routes as any[]).find((r: any) => r.id === id)?.name;
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelas propostas aprovadas ou criadas manualmente." actions={
+      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelos orçamentos validados ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
 
@@ -185,34 +192,66 @@ function OCList() {
 
         {open && (
           <>
-            {s && (
-              <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div>Nº Cliente: <span className="font-medium">{shortCode(s.clients?.client_number)}</span></div>
-                <div>Cliente: <span className="font-medium">{s.clients?.name ?? "—"}</span></div>
-                <div>Telefone: <span className="font-medium">{s.clients?.phone ?? "—"}</span></div>
-                <div>Email: <span className="font-medium">{s.clients?.email ?? "—"}</span></div>
-                <div>Proposta: <span className="font-medium">{shortCode(s.proposals?.code) || "—"}</span></div>
-                <div>Passageiros: <span className="font-medium">{s.passengers ?? s.proposals?.passengers ?? "—"}</span></div>
-                <div className="sm:col-span-3">Data da viagem: {[fmtDate(travelStart), fmtDate(travelEnd)].filter(Boolean).join(" → ") || "—"} {s.start_time?.slice(0, 5) ?? ""}</div>
-                <div className="sm:col-span-3">Trajeto: {s.origin ?? "—"} → {s.destination ?? "—"}</div>
-                {s.proposals?.payment_terms && <div className="sm:col-span-3">Pagamento: {s.proposals.payment_terms}</div>}
-                {(s.proposals?.descriptive || s.proposals?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {s.proposals.descriptive ?? s.proposals.description}</div>}
+            {creating && (
+              <div><Label>Orçamento validado</Label>
+                <Select value={newProposal} onValueChange={pickProposal}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar orçamento validado" /></SelectTrigger>
+                  <SelectContent>
+                    {(validated as any[]).map((x: any) => (
+                      <SelectItem key={x.id} value={x.id}>
+                        {shortCode(x.code)} · {x.clients?.name ?? "—"} · € {Number(x.total_value || 0).toFixed(2)}
+                      </SelectItem>
+                    ))}
+                    {validated.length === 0 && <SelectItem value="none" disabled>Sem orçamentos validados</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
-            {Array.isArray(s?.proposals?.itinerary) && s.proposals.itinerary.filter((d: any) => !d.deleted).length > 0 && (
+            {(cli || prop) && (
+              <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>Nº Cliente: <span className="font-medium">{shortCode(cli?.client_number)}</span></div>
+                <div>Cliente: <span className="font-medium">{cli?.name ?? "—"}</span></div>
+                <div>NIF/Passaporte: <span className="font-medium">{cli?.nif ?? "—"}</span></div>
+                <div>Telefone: <span className="font-medium">{[cli?.phone_country, cli?.phone].filter(Boolean).join(" ") || "—"}</span></div>
+                <div>Email: <span className="font-medium">{cli?.email ?? "—"}</span></div>
+                <div>Contacto emergência: <span className="font-medium">{cli?.emergency_contact ?? "—"}</span></div>
+                <div>Proposta / Orçamento: <span className="font-medium">{prop?.code ? shortCode(prop.code) : "—"}</span></div>
+                <div>Passageiros: <span className="font-medium">{s?.passengers ?? form.passengers ?? prop?.passengers ?? cli?.passengers ?? "—"}</span></div>
+                <div>Tipo: <span className="font-medium">{prop ? (prop.proposal_kind === "servico_privado" ? "Serviço Privado" : "Roteiro Personalizado") : "—"}</span></div>
+                <div>Região: <span className="font-medium">{prop?.regions?.name ?? regName(prop?.region_id) ?? "—"}</span></div>
+                <div>Roteiro: <span className="font-medium">{prop?.tour_routes?.name ?? routeName(prop?.tour_route_id) ?? "—"}</span></div>
+                <div>Valor: <span className="font-medium">€ {Number(s?.sale_value ?? form.sale_value ?? prop?.total_value ?? 0).toFixed(2)}</span></div>
+                <div className="sm:col-span-3">Data da viagem: {[fmtDate(travelStart), fmtDate(travelEnd)].filter(Boolean).join(" → ") || "—"}</div>
+                <div className="sm:col-span-3">Chegada: {[fmtDate(prop?.arrival_date), prop?.arrival_time, prop?.arrival_place].filter(Boolean).join(" · ") || "—"}</div>
+                <div className="sm:col-span-3">Saída: {[fmtDate(prop?.departure_date), prop?.departure_time, prop?.departure_place].filter(Boolean).join(" · ") || "—"}</div>
+                <div className="sm:col-span-3">Trajeto: {(s?.origin ?? form.origin ?? prop?.arrival_place) || "—"} → {(s?.destination ?? form.destination ?? prop?.departure_place) || "—"}</div>
+                {(s?.payment_terms || prop?.payment_terms) && <div className="sm:col-span-3">Condições de pagamento: {s?.payment_terms ?? prop?.payment_terms}</div>}
+                {prop?.budget_receipt_info && <div className="sm:col-span-3">Recebimento: {prop.budget_receipt_info}</div>}
+                {(prop?.descriptive || prop?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {prop.descriptive ?? prop.description}</div>}
+                {cli?.notes && <div className="sm:col-span-3 whitespace-pre-wrap">Notas do cliente: {cli.notes}</div>}
+              </div>
+            )}
+
+            {itDays.length > 0 && (
               <Table>
                 <TableHeader><TableRow><TableHead className="w-28">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {s.proposals.itinerary.filter((d: any) => !d.deleted).map((d: any, i: number) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
-                      <TableCell className="whitespace-pre-wrap">{d.text ?? d.title ?? d.description ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {itDays.map((d: any, i: number) => {
+                    const label = [regName(d.region_id || prop?.region_id), routeName(d.tour_route_id)].filter(Boolean).join(" · ");
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
+                        <TableCell className="whitespace-pre-wrap">
+                          {label}{label && d.text ? " — " : ""}{d.text || (label ? "" : "—")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
+
 
             <div className="rounded-md border p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2"><Label>Cliente</Label>
