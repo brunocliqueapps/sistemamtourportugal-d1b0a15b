@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Check, Pencil, Trash2, Eye, FileDown, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, FileDown, Lock } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -46,11 +46,11 @@ function Propostas() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [approveOpen, setApproveOpen] = useState<any | null>(null);
+  
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
-  const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
+  
 
   const { data: props = [] } = useQuery({
     queryKey: ["proposals"],
@@ -149,23 +149,8 @@ function Propostas() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const approve = useMutation({
-    mutationFn: async () => {
-      const p = approveOpen;
-      const { error: upErr } = await supabase.from("proposals").update({ status: "convertida", approved_at: new Date().toISOString() }).eq("id", p.id);
-      if (upErr) throw upErr;
-      const { error: soErr } = await supabase.from("service_orders").insert({
-        proposal_id: p.id, client_id: p.client_id, sale_value: p.total_value,
-        service_date: srv.service_date, start_time: srv.start_time || null,
-        origin: srv.origin, destination: srv.destination, passengers: Number(srv.passengers) || null,
-        payment_terms: p.payment_terms ?? null,
-        status: "agendado", created_by: user!.id,
-      });
-      if (soErr) throw soErr;
-    },
-    onSuccess: () => { toast.success("Proposta convertida em OS/Voucher/Serviço"); qc.invalidateQueries(); setApproveOpen(null); },
-    onError: (e: any) => toast.error(e.message),
-  });
+
+
 
   function openNew() { setEditing(null); setForm(empty); setOpen(true); }
   function openEdit(p: any) {
@@ -227,9 +212,6 @@ function Propostas() {
                 <TableCell>{p.days_count ?? "—"}</TableCell>
                 
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
-                  {p.status !== "convertida" && !locked && (
-                    <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
-                  )}
                   <Button size="icon" variant="ghost" title="PDF da proposta" onClick={() => generateProposalPdf(p.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
                   {locked ? (
@@ -393,22 +375,6 @@ function Propostas() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!approveOpen} onOpenChange={(v) => !v && setApproveOpen(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Aprovar e converter em OS</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Data do serviço</Label><Input type="date" value={srv.service_date} onChange={(e) => setSrv({ ...srv, service_date: e.target.value })} /></div>
-            <div><Label>Horário</Label><Input type="time" value={srv.start_time} onChange={(e) => setSrv({ ...srv, start_time: e.target.value })} /></div>
-            <div><Label>Origem</Label><Input value={srv.origin} onChange={(e) => setSrv({ ...srv, origin: e.target.value })} /></div>
-            <div><Label>Destino</Label><Input value={srv.destination} onChange={(e) => setSrv({ ...srv, destination: e.target.value })} /></div>
-            <div><Label>Passageiros</Label><Input type="number" value={srv.passengers} onChange={(e) => setSrv({ ...srv, passengers: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveOpen(null)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => approve.mutate()}>Gerar OC / Voucher / Serviço</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <QuickViewDialog
         open={!!viewing}
