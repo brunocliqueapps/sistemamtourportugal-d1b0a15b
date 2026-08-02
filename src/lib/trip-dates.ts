@@ -30,10 +30,15 @@ export function itineraryDayFor(proposal: any, date: string): ItineraryDay | und
 }
 
 /** Descrição do dia: roteiro escolhido (região · roteiro) ou texto livre. */
-export function dayLabel(proposal: any, day?: ItineraryDay): string {
+export function dayLabel(
+  proposal: any,
+  day?: ItineraryDay,
+  names?: { regions?: Record<string, string>; routes?: Record<string, string> },
+): string {
   if (!day) return "";
   if (day.mode === "personalizado") return day.text ?? "";
-  const parts = [proposal?.regions?.name, proposal?.tour_routes?.name].filter(Boolean);
-  const base = parts.join(" · ");
+  const region = (day.region_id && names?.regions?.[day.region_id]) || proposal?.regions?.name;
+  const route = (day.tour_route_id && names?.routes?.[day.tour_route_id]) || proposal?.tour_routes?.name;
+  const base = [region, route].filter(Boolean).join(" · ");
   return [base, day.text].filter(Boolean).join(" — ");
 }
