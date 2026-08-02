@@ -27,10 +27,15 @@ function Roteiro() {
     queryKey: ["roteiro", date],
     queryFn: async () => {
       const { data } = await supabase.from("service_orders")
-        .select("*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model)")
-        .eq("service_date", date)
+        .select("*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(code,itinerary_start,itinerary_end)")
         .order("start_time", { ascending: true });
-      return data ?? [];
+      // Prioriza a data da viagem (proposta); só usa a data da OS quando não há viagem
+      return (data ?? []).filter((s: any) => {
+        const start = s.proposals?.itinerary_start;
+        const end = s.proposals?.itinerary_end ?? start;
+        if (start) return String(start) <= date && date <= String(end);
+        return String(s.service_date ?? "") === date;
+      });
     },
   });
 
