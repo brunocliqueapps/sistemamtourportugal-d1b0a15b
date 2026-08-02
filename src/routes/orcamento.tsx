@@ -244,9 +244,12 @@ function Orcamento() {
             )}
 
 
-            <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+            <div className="rounded-md border p-3 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
+                <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+              </div>
 
-            <div className="rounded-md border p-3 space-y-2">
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
               {stages.map((s, i) => {
                 const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
@@ -275,29 +278,57 @@ function Orcamento() {
                 {p.budget_validated_at && <Badge variant="default">Validado</Badge>}
               </div>
 
-              {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
-              {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
-              {p.budget_analysis_at && p.budget_status === "analise" && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")} — bilhete diário de acompanhamento até aprovar ou recusar.</div>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Informações do recebimento (aprovação)</Label><Textarea rows={2} value={receipt} onChange={(e) => setReceipt(e.target.value)} placeholder="Ex.: 30% recebido por transferência em 10/02" /></div>
-                <div><Label>Motivo da recusa</Label><Textarea rows={2} value={refusal} onChange={(e) => setRefusal(e.target.value)} placeholder="Motivo indicado pelo cliente" /></div>
-              </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => setBudgetStatus("aprovado")} className="gradient-gold text-gold-foreground"><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
-                <Button variant="outline" onClick={() => setBudgetStatus("analise")}><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
-                <Button variant="outline" onClick={() => setBudgetStatus("recusado")}><X className="h-4 w-4 mr-1" /> Recusado</Button>
+                <Button
+                  variant={action === "aprovado" ? "default" : "outline"}
+                  className={action === "aprovado" ? "gradient-gold text-gold-foreground" : ""}
+                  onClick={() => { setAction("aprovado"); setStatusDate((p.budget_approved_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
+                <Button variant={action === "analise" ? "default" : "outline"}
+                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
+                <Button variant={action === "recusado" ? "default" : "outline"}
+                  onClick={() => { setAction("recusado"); setStatusDate((p.budget_refused_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><X className="h-4 w-4 mr-1" /> Recusado</Button>
               </div>
+
+              {action && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div><Label>Data</Label><Input type="date" value={statusDate} onChange={(e) => setStatusDate(e.target.value)} /></div>
+                  <div className="sm:col-span-2">
+                    <Label>
+                      {action === "aprovado" ? "Informações do recebimento" : action === "analise" ? "Informações da análise" : "Informações da recusa"}
+                    </Label>
+                    <Textarea rows={2}
+                      value={action === "aprovado" ? receipt : action === "analise" ? analysisInfo : refusal}
+                      onChange={(e) => action === "aprovado" ? setReceipt(e.target.value) : action === "analise" ? setAnalysisInfo(e.target.value) : setRefusal(e.target.value)}
+                      placeholder={action === "aprovado" ? "Ex.: 30% recebido por transferência em 10/02" : action === "analise" ? "Ex.: cliente a avaliar datas" : "Motivo indicado pelo cliente"}
+                    />
+                  </div>
+                  <div className="sm:col-span-3 flex flex-wrap gap-2">
+                    <Button className="gradient-gold text-gold-foreground" onClick={() => setBudgetStatus(action)}>
+                      Confirmar {action === "aprovado" ? "aprovação" : action === "analise" ? "análise" : "recusa"}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setAction("")}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+
+              {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleDateString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
+              {p.budget_analysis_at && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")}{p.budget_analysis_info ? ` · ${p.budget_analysis_info}` : ""}</div>}
+              {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleDateString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
             </div>
 
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="outline" onClick={save}>Guardar</Button>
+              <Button variant="outline" onClick={async () => { if (await save()) close(); }}>Guardar</Button>
               <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => { await save(); await validate(); }}>
+              <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
                 <Check className="h-4 w-4 mr-1" /> Validar Orçamento
               </Button>
             </div>
+
           </>
         )}
       </Card>
