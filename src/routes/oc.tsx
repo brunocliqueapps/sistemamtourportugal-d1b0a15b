@@ -117,6 +117,7 @@ function OCList() {
   function openNew() {
     setSelected("");
     setCreating(true);
+    setNewProposal("");
     setForm({
       client_id: "", vehicle_id: "",
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
@@ -124,9 +125,28 @@ function OCList() {
     });
   }
 
-  function close() {
-    setSelected(""); setCreating(false); setForm({});
+  function pickProposal(pid: string) {
+    const pr: any = (validated as any[]).find((x: any) => x.id === pid);
+    setNewProposal(pid);
+    if (!pr) return;
+    setForm((f: any) => ({
+      ...f,
+      proposal_id: pr.id,
+      client_id: pr.client_id ?? "",
+      passengers: pr.passengers ?? pr.clients?.passengers ?? null,
+      origin: pr.arrival_place ?? null,
+      destination: pr.departure_place ?? null,
+      service_date: (pr.itinerary_start ?? pr.arrival_date ?? new Date().toISOString()).slice(0, 10),
+      start_time: pr.arrival_time ?? null,
+      sale_value: Number(pr.total_value ?? 0),
+      payment_terms: pr.payment_terms ?? null,
+    }));
   }
+
+  function close() {
+    setSelected(""); setCreating(false); setForm({}); setNewProposal("");
+  }
+
 
   const concluir = useMutation({
     mutationFn: async (id: string) => {
