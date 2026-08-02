@@ -46,7 +46,7 @@ function Propostas() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [approveOpen, setApproveOpen] = useState<any | null>(null);
+  
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
