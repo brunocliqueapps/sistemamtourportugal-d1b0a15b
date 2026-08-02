@@ -179,7 +179,7 @@ function Orcamento() {
           <div className="sm:col-span-3"><Label>Filtrar</Label>
             <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="sm:col-span-2"><Label>Proposta</Label>
+          <div className="sm:col-span-3"><Label>Proposta</Label>
             <Select value={selected} onValueChange={(v) => {
               setSelected(v);
               const pr: any = props.find((x: any) => x.id === v);
@@ -190,6 +190,9 @@ function Orcamento() {
                 : DEFAULT_STAGES);
               setReceipt(pr?.budget_receipt_info ?? "");
               setRefusal(pr?.budget_refusal_reason ?? "");
+              setAnalysisInfo(pr?.budget_analysis_info ?? "");
+              setAction("");
+              setStatusDate(today());
             }}>
 
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
@@ -198,8 +201,8 @@ function Orcamento() {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
         </div>
+
 
         {p && (
           <>
