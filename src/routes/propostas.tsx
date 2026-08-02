@@ -212,9 +212,6 @@ function Propostas() {
                 <TableCell>{p.days_count ?? "—"}</TableCell>
                 
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
-                  {p.status !== "convertida" && !locked && (
-                    <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
-                  )}
                   <Button size="icon" variant="ghost" title="PDF da proposta" onClick={() => generateProposalPdf(p.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
                   {locked ? (
