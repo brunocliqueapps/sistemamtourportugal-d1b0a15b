@@ -179,14 +179,13 @@ function Agenda() {
                   const pay = paymentBadge(Number(s.sale_value || 0), Number(s.amount_received || 0));
                   return (
                     <TableRow key={s.id}>
-                      <TableCell className="whitespace-nowrap text-xs">{s.service_date}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{fmtDate(tripStart(s))}</TableCell>
                       <TableCell className="font-mono">{s.start_time?.slice(0, 5) ?? "—"}</TableCell>
 
                       <TableCell>
-                        <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-medium">
-                          {s.oc_code}
+                        <Link to="/oc/$id" params={{ id: s.id }} className="text-primary hover:underline font-mono text-xs">
+                          {shortCode(s.oc_code)}
                         </Link>
-                        <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
                       </TableCell>
                       <TableCell><Badge variant="outline" className="capitalize">{s.operation_type ?? "—"}</Badge></TableCell>
                       <TableCell>{s.clients?.name ?? "—"}</TableCell>
