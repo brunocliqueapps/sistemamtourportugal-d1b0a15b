@@ -40,8 +40,8 @@ function humanize(k: string) {
 
 export function QuickViewDialog({ open, onClose, title, record, fields, hideKeys = [] }: Props) {
   if (!record) return null;
-  const entries: { label: string; value: any }[] = fields
-    ? fields.map((f) => ({ label: f.label, value: f.format ? f.format(record[f.key], record) : fmtValue(record[f.key]) }))
+  const entries: { label: string; value: any; fullWidth?: boolean }[] = fields
+    ? fields.map((f) => ({ label: f.label, value: f.format ? f.format(record[f.key], record) : fmtValue(record[f.key]), fullWidth: f.fullWidth }))
     : Object.keys(record)
         .filter((k) => !HIDDEN_DEFAULT.includes(k) && !hideKeys.includes(k))
         .map((k) => ({ label: humanize(k), value: fmtValue(record[k]) }));
@@ -57,12 +57,13 @@ export function QuickViewDialog({ open, onClose, title, record, fields, hideKeys
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           {entries.map((e, i) => (
-            <div key={i} className="min-w-0">
+            <div key={i} className={`min-w-0 ${e.fullWidth ? "sm:col-span-2" : ""}`}>
               <div className="text-xs uppercase tracking-wide text-muted-foreground">{e.label}</div>
-              <div className="font-medium break-words">{e.value ?? "—"}</div>
+              <div className="font-medium break-words whitespace-pre-wrap">{e.value ?? "—"}</div>
             </div>
           ))}
         </div>
+
         {record.created_at && (
           <div className="mt-2 border-t pt-3 text-xs text-muted-foreground">
             Registado em {fmtValue(record.created_at)}
