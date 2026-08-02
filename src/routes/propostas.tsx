@@ -319,37 +319,49 @@ function Propostas() {
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
 
-              {(form.itinerary ?? []).length > 0 && (
+              {(form.itinerary ?? []).filter((d: ItineraryDay) => !d.deleted).length > 0 && (
                 <div className="mt-3 space-y-2">
-                  {(form.itinerary as ItineraryDay[]).map((d, i) => {
+                  {(form.itinerary as ItineraryDay[]).filter((d: ItineraryDay) => !d.deleted).map((d, i) => {
                     const patch = (v: Partial<ItineraryDay>) => {
                       const list = [...(form.itinerary as ItineraryDay[])];
-                      list[i] = { ...list[i], ...v };
+                      const idx = list.findIndex((x) => x.date === d.date && !x.deleted);
+                      if (idx >= 0) list[idx] = { ...list[idx], ...v };
+                      setForm({ ...form, itinerary: list });
+                    };
+                    const removeDay = () => {
+                      const list = [...(form.itinerary as ItineraryDay[])];
+                      const idx = list.findIndex((x) => x.date === d.date && !x.deleted);
+                      if (idx >= 0) list[idx] = { ...list[idx], deleted: true };
                       setForm({ ...form, itinerary: list });
                     };
                     const selectedRoute = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id);
                     const custom = (d.mode ?? "sugestao") === "personalizado";
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div><Label className="text-xs">Dia {i + 1} — data</Label>
-                            <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+                            <div><Label className="text-xs">Dia {i + 1} — data</Label>
+                              <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
+                            </div>
+                            <div><Label className="text-xs">Roteiro do dia</Label>
+                              <Select
+                                value={custom ? "outros" : (d.tour_route_id || form.tour_route_id || "")}
+                                onValueChange={(v) => {
+                                  if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
+                                  patch({ mode: "sugestao", region_id: form.region_id, tour_route_id: v, text: selectedRoute?.name ?? d.text });
+                                }}
+                              >
+                                <SelectTrigger><SelectValue placeholder={selectedRoute ? selectedRoute.name : "Escolha o roteiro acima"} /></SelectTrigger>
+                                <SelectContent>
+                                  {selectedRoute && <SelectItem value={selectedRoute.id}>{selectedRoute.name}</SelectItem>}
+                                  <SelectItem value="outros">Outros (personalizar)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <div><Label className="text-xs">Roteiro do dia</Label>
-                            <Select
-                              value={custom ? "outros" : (d.tour_route_id || form.tour_route_id || "")}
-                              onValueChange={(v) => {
-                                if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
-                                patch({ mode: "sugestao", region_id: form.region_id, tour_route_id: v, text: selectedRoute?.name ?? d.text });
-                              }}
-                            >
-                              <SelectTrigger><SelectValue placeholder={selectedRoute ? selectedRoute.name : "Escolha o roteiro acima"} /></SelectTrigger>
-                              <SelectContent>
-                                {selectedRoute && <SelectItem value={selectedRoute.id}>{selectedRoute.name}</SelectItem>}
-                                <SelectItem value="outros">Outros (personalizar)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <Button size="icon" variant="ghost" className="shrink-0 text-destructive" title="Eliminar dia" onClick={removeDay}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                         {custom && (
                           <Textarea rows={2} placeholder="Descreva o programa deste dia" value={d.text} onChange={(e) => patch({ text: e.target.value })} />
@@ -359,6 +371,7 @@ function Propostas() {
                   })}
                 </div>
               )}
+
             </div>
 
             <div><Label>Descritivo à parte</Label><Textarea rows={3} value={form.descriptive} onChange={(e) => setForm({ ...form, descriptive: e.target.value })} /></div>
@@ -433,7 +446,7 @@ function Propostas() {
           { key: "arrival_date", label: "Chegada", format: (v, r) => [v, r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
           { key: "departure_date", label: "Saída", format: (v, r) => [v, r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
           { key: "days_count", label: "Dias" },
-          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.map((d: any) => `${d.date}: ${d.text}`).join("\n") : "—" },
+          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${d.date}: ${d.text}`).join("\n") : "—" },
           { key: "descriptive", label: "Descritivo" },
           { key: "payment_terms", label: "Condições de pagamento" },
           { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },

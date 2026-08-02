@@ -206,11 +206,11 @@ function Orcamento() {
               {p.descriptive && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {p.descriptive}</div>}
             </div>
 
-            {itinerary.length > 0 && (
+            {itinerary.filter((d) => !d.deleted).length > 0 && (
               <Table>
                 <TableHeader><TableRow><TableHead className="w-28">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {itinerary.map((d, i) => {
+                  {itinerary.filter((d) => !d.deleted).map((d, i) => {
                     const reg = (regions as any[]).find((r) => r.id === (d.region_id || p.region_id));
                     const rt = (routes as any[]).find((r) => r.id === d.tour_route_id);
                     return (
@@ -226,6 +226,7 @@ function Orcamento() {
                 </TableBody>
               </Table>
             )}
+
 
             <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
 
