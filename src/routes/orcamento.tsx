@@ -147,6 +147,7 @@ function Orcamento() {
       await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
     }
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
+    else await supabase.from("proposal_followups").update({ done: false }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
     setAction("");
