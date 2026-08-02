@@ -320,7 +320,7 @@ function ClientHistoryDialog({ client, onClose }: { client: any | null; onClose:
             <Card>
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Data</TableHead><TableHead>OC</TableHead><TableHead>Voucher</TableHead>
+                  <TableHead>Data</TableHead><TableHead>OS</TableHead><TableHead>Voucher</TableHead>
                   <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead>
                   <TableHead>Tipo</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Valor</TableHead>
                 </TableRow></TableHeader>
