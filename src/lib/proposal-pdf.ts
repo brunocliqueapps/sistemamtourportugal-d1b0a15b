@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
+import { shortCode } from "@/lib/codes";
 import { fmtDate } from "./format-date";
 
 async function header(doc: jsPDF, docTitle: string, code?: string) {
@@ -183,13 +184,13 @@ export async function generateServiceOrderPdf(id: string) {
   if (!data) throw new Error("Ordem de serviço não encontrada");
   const s: any = data;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  let y = await header(doc, "ORDEM DE SERVIÇO", s.oc_code ?? s.voucher_code);
+  let y = await header(doc, "ORDEM DE SERVIÇO", shortCode(s.oc_code ?? s.voucher_code));
   y = clientBlock(doc, { clients: s.clients, passengers: s.passengers ?? s.proposals?.passengers, responsible: s.responsible }, y);
   autoTable(doc, {
     startY: y,
     head: [["Data", "Hora", "Origem", "Destino", "Veículo"]],
     body: [[
-      fmtDate(s.service_date) || "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
+      fmtDate(s.proposals?.itinerary_start ?? s.service_date) || "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
       s.vehicles ? `${s.vehicles.plate}${s.vehicles.owner_company ? " — " + s.vehicles.owner_company : ""}` : "—",
     ]],
     styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
@@ -200,6 +201,6 @@ export async function generateServiceOrderPdf(id: string) {
   doc.text(`Valor: € ${Number(s.sale_value ?? s.proposals?.total_value ?? 0).toFixed(2)}`, 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
   if (s.payment_terms ?? s.proposals?.payment_terms) doc.text(String(s.payment_terms ?? s.proposals?.payment_terms), 40, y);
-  doc.save(`OS-${s.oc_code ?? s.id}.pdf`);
+  doc.save(`OS-${shortCode(s.oc_code) ?? s.id}.pdf`);
 }
 

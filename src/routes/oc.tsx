@@ -303,7 +303,7 @@ function OCList() {
       <Card className="overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nº Cliente</TableHead><TableHead>OS</TableHead><TableHead>Data da viagem</TableHead>
+            <TableHead>OS</TableHead><TableHead>Data da viagem</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
             <TableHead>Veículo</TableHead>
             <TableHead>Operacional</TableHead><TableHead>Financeiro</TableHead>
@@ -317,7 +317,6 @@ function OCList() {
               const end = r.proposals?.itinerary_end ?? r.proposals?.departure_date ?? r.service_date;
               return (
                 <TableRow key={r.id}>
-                  <TableCell className="font-mono text-xs">{shortCode(r.clients?.client_number)}</TableCell>
                   <TableCell><Link to="/oc/$id" params={{ id: r.id }} className="text-primary hover:underline font-mono text-xs">{shortCode(r.oc_code)}</Link></TableCell>
                   <TableCell className="text-xs leading-tight">
                     <div>Início: {fmtDate(start) || "—"}</div>
@@ -344,7 +343,7 @@ function OCList() {
                 </TableRow>
               );
             })}
-            {rows.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
+            {rows.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
