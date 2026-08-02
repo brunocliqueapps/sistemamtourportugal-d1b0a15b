@@ -42,8 +42,12 @@ function Orcamento() {
   const [terms, setTerms] = useState<string>("");
   const [receipt, setReceipt] = useState<string>("");
   const [refusal, setRefusal] = useState<string>("");
+  const [analysisInfo, setAnalysisInfo] = useState<string>("");
+  const [statusDate, setStatusDate] = useState<string>(today());
+  const [action, setAction] = useState<"" | "aprovado" | "analise" | "recusado">("");
   const [search, setSearch] = useState<string>("");
   const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
+
 
 
   const { data: props = [], refetch } = useQuery({
