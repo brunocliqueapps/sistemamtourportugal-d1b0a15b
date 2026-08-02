@@ -393,22 +393,6 @@ function Propostas() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!approveOpen} onOpenChange={(v) => !v && setApproveOpen(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Aprovar e converter em OS</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Data do serviço</Label><Input type="date" value={srv.service_date} onChange={(e) => setSrv({ ...srv, service_date: e.target.value })} /></div>
-            <div><Label>Horário</Label><Input type="time" value={srv.start_time} onChange={(e) => setSrv({ ...srv, start_time: e.target.value })} /></div>
-            <div><Label>Origem</Label><Input value={srv.origin} onChange={(e) => setSrv({ ...srv, origin: e.target.value })} /></div>
-            <div><Label>Destino</Label><Input value={srv.destination} onChange={(e) => setSrv({ ...srv, destination: e.target.value })} /></div>
-            <div><Label>Passageiros</Label><Input type="number" value={srv.passengers} onChange={(e) => setSrv({ ...srv, passengers: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveOpen(null)}>Cancelar</Button>
-            <Button className="gradient-gold text-gold-foreground" onClick={() => approve.mutate()}>Gerar OC / Voucher / Serviço</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <QuickViewDialog
         open={!!viewing}
