@@ -110,14 +110,14 @@ function Propostas() {
       const payload: any = {
         ...form,
         itinerary,
-        total_value: Number(form.total_value || 0),
         passengers: Number(form.passengers || 0) || null,
         days_count: n || null,
-
-        payment_terms: `Aprovação da Proposta ${pa}% · Final do Serviço ${pf}%`,
         private_service_text: form.proposal_kind === "servico_privado" ? (form.descriptive_service || null) : null,
       };
       delete payload.descriptive_service;
+      delete payload.payment_terms;
+      delete payload.total_value;
+
       ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end", "region_id", "tour_route_id"].forEach((k) => {
         if (!payload[k]) payload[k] = null;
       });
