@@ -225,7 +225,7 @@ function Propostas() {
                 <TableCell>{p.title ?? "—"}</TableCell>
                 <TableCell>{KINDS.find((k) => k.code === p.proposal_kind)?.label ?? "—"}</TableCell>
                 <TableCell>{p.days_count ?? "—"}</TableCell>
-                <TableCell className="text-right">€ {Number(p.total_value).toFixed(2)}</TableCell>
+                
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
                   {p.status !== "convertida" && !locked && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
