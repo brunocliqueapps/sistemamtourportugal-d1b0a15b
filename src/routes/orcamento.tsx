@@ -147,6 +147,7 @@ function Orcamento() {
       await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
     }
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
+    else await supabase.from("proposal_followups").update({ done: false }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
     setAction("");
@@ -340,12 +341,16 @@ function Orcamento() {
       <Card className="p-4">
         <div className="font-semibold text-sm mb-2">Orçamentos validados</div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
           <TableBody>
             {(props as any[]).filter((x: any) => x.budget_validated_at).map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs leading-tight">
+                  <div>Início: {fmtDate(x.itinerary_start) || "—"}</div>
+                  <div>Fim: {fmtDate(x.itinerary_end) || "—"}</div>
+                </TableCell>
                 <TableCell className="text-xs">{new Date(x.budget_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">
@@ -354,7 +359,7 @@ function Orcamento() {
               </TableRow>
             ))}
             {!(props as any[]).some((x: any) => x.budget_validated_at) && (
-              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
