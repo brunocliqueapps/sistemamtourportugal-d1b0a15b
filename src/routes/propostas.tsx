@@ -376,27 +376,10 @@ function Propostas() {
 
             <div><Label>Descritivo à parte</Label><Textarea rows={3} value={form.descriptive} onChange={(e) => setForm({ ...form, descriptive: e.target.value })} /></div>
 
-            <div>
-              <Label>Condições de pagamento</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                <div className="flex items-center gap-1">
-                  <Input className="w-16" type="number" min={0} max={100} value={pctApproval} onChange={(e) => setPctApproval(e.target.value)} />
-                  <span className="text-sm">% na Aprovação da Proposta</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Input className="w-16" type="number" min={0} max={100} value={pctFinal} onChange={(e) => setPctFinal(e.target.value)} />
-                  <span className="text-sm">% no Final do Serviço</span>
-                </div>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              O valor total e as condições de pagamento são definidos na página Orçamento.
+            </p>
 
-            <div>
-              <Label>Valor total (€)</Label>
-              <Input type="number" step="0.01" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
-              <p className="text-xs text-muted-foreground mt-1">
-                Aprovação da Proposta {Number(pctApproval || 0)}% = € {(Number(form.total_value || 0) * Number(pctApproval || 0) / 100).toFixed(2)} · Final do Serviço {Number(pctFinal || 0)}% = € {(Number(form.total_value || 0) * Number(pctFinal || 0) / 100).toFixed(2)}
-              </p>
-            </div>
 
           </div>
           <DialogFooter>
