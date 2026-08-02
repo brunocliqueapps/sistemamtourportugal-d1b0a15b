@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState } from "react";
 import { fmtDate } from "@/lib/format-date";
 import { shortCode } from "@/lib/codes";
+import { TRIP_PROPOSAL_COLS, dayLabel, itineraryDays, tripRange } from "@/lib/trip-dates";
 
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
@@ -53,7 +54,7 @@ function Agenda() {
     queryKey: ["agenda", statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
-        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(code,title,itinerary_start,itinerary_end)")
+        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), ${TRIP_PROPOSAL_COLS}")
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
@@ -64,8 +65,8 @@ function Agenda() {
   });
 
   // Data efetiva = data da viagem (proposta), não a data de registo
-  const tripStart = (s: any) => String(s.proposals?.itinerary_start ?? s.service_date ?? "");
-  const tripEnd = (s: any) => String(s.proposals?.itinerary_end ?? s.proposals?.itinerary_start ?? s.service_date ?? "");
+  const tripStart = (s: any) => tripRange(s).start;
+  const tripEnd = (s: any) => tripRange(s).end;
 
   const inPeriod = (data ?? []).filter((s: any) => tripEnd(s) >= periodFrom && tripStart(s) <= periodTo);
 
