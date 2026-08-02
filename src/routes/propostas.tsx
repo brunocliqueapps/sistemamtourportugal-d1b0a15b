@@ -418,17 +418,34 @@ function Propostas() {
           { key: "code", label: "Nº Cliente / Proposta", format: (v: any) => shortCode(v) },
           { key: "title", label: "Serviço" },
           { key: "clients", label: "Cliente", format: (v, r) => v?.name ?? r?.leads?.name ?? "—" },
-          { key: "responsible", label: "Responsável" },
           { key: "passengers", label: "Nº de pessoas" },
           { key: "proposal_kind", label: "Tipo", format: (v) => KINDS.find((k) => k.code === v)?.label ?? v },
           { key: "arrival_date", label: "Chegada", format: (v, r) => [fmtDate(v), r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
           { key: "departure_date", label: "Saída", format: (v, r) => [fmtDate(v), r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
           { key: "days_count", label: "Dias" },
-          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${fmtDate(d.date)}: ${d.text}`).join("\n") : "—" },
-          { key: "descriptive", label: "Descritivo" },
-          { key: "payment_terms", label: "Condições de pagamento" },
-          { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          {
+            key: "itinerary",
+            label: "Roteiro",
+            fullWidth: true,
+            format: (v, r) => {
+              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              if (!list.length) return "—";
+              const fallback = r?.tour_routes?.name ?? "";
+              return (
+                <div className="space-y-1">
+                  {list.map((d: any, i: number) => (
+                    <div key={i} className="flex flex-col sm:flex-row sm:gap-3 border-b border-border/50 pb-1 last:border-0">
+                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {i + 1} · {fmtDate(d.date) || "—"}</span>
+                      <span className="min-w-0 break-words">{(d.text && d.text.trim()) || fallback || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            },
+          },
+          { key: "descriptive", label: "Descritivo", fullWidth: true },
         ]}
+
       />
     </div>
   );
