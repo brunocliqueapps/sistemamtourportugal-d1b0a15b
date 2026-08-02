@@ -133,6 +133,23 @@ function Orcamento() {
     const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
     if (error) return toast.error(error.message);
     if (status === "aprovado") {
+      // Gera automaticamente a Ordem de Serviço / Voucher (sem campos a preencher)
+      const { data: existingSo } = await supabase.from("service_orders").select("id").eq("proposal_id", p.id).maybeSingle();
+      if (!existingSo) {
+        const { error: soErr } = await supabase.from("service_orders").insert({
+          proposal_id: p.id,
+          client_id: p.client_id,
+          sale_value: total,
+          service_date: (p.itinerary_start ?? when).slice(0, 10),
+          passengers: p.passengers ?? p.clients?.passengers ?? null,
+          origin: p.arrival_place ?? null,
+          destination: p.departure_place ?? null,
+          payment_terms: stageTerms() || terms || p.payment_terms || null,
+          status: "agendado",
+        });
+        if (soErr) toast.error(`OS: ${soErr.message}`);
+      }
+      await supabase.from("proposals").update({ status: "convertida", approved_at: when }).eq("id", p.id);
       // Lança automaticamente na conta corrente como entrada
       const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
       const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
@@ -143,9 +160,11 @@ function Orcamento() {
         : await supabase.from("cash_movements").insert(mvPayload);
       if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
     } else {
-      // Reverte o lançamento automático se deixou de estar aprovado
+      // Reverte o lançamento automático e a OS gerada se deixou de estar aprovado
       await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
+      await supabase.from("service_orders").delete().eq("proposal_id", p.id);
     }
+
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
     else await supabase.from("proposal_followups").update({ done: false }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
