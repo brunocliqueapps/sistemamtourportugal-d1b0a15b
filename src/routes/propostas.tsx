@@ -210,7 +210,8 @@ function Propostas() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Tipo</TableHead>
-            <TableHead>Dias</TableHead><TableHead className="text-right">Valor</TableHead>
+            <TableHead>Dias</TableHead>
+
             <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -224,7 +225,7 @@ function Propostas() {
                 <TableCell>{p.title ?? "—"}</TableCell>
                 <TableCell>{KINDS.find((k) => k.code === p.proposal_kind)?.label ?? "—"}</TableCell>
                 <TableCell>{p.days_count ?? "—"}</TableCell>
-                <TableCell className="text-right">€ {Number(p.total_value).toFixed(2)}</TableCell>
+                
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
                   {p.status !== "convertida" && !locked && (
                     <Button size="sm" variant="outline" onClick={() => setApproveOpen(p)}><Check className="h-3 w-3 mr-1" /> Aprovar</Button>
@@ -270,7 +271,7 @@ function Propostas() {
                 <div>Telefone: <span className="text-foreground">{[selectedClient.phone_country, selectedClient.phone].filter(Boolean).join(" ") || "—"}</span></div>
                 <div>Email: <span className="text-foreground">{selectedClient.email ?? "—"}</span></div>
                 <div>Nº de passageiros: <span className="text-foreground">{form.passengers || "—"}</span></div>
-                <div>Responsável: <span className="text-foreground">{form.responsible || selectedClient.name || "—"}</span></div>
+
                 <div>Contacto emergência: <span className="text-foreground">{selectedClient.emergency_contact ?? "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[fmtDate(form.arrival_date), form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[fmtDate(form.departure_date), form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
@@ -418,17 +419,34 @@ function Propostas() {
           { key: "code", label: "Nº Cliente / Proposta", format: (v: any) => shortCode(v) },
           { key: "title", label: "Serviço" },
           { key: "clients", label: "Cliente", format: (v, r) => v?.name ?? r?.leads?.name ?? "—" },
-          { key: "responsible", label: "Responsável" },
           { key: "passengers", label: "Nº de pessoas" },
           { key: "proposal_kind", label: "Tipo", format: (v) => KINDS.find((k) => k.code === v)?.label ?? v },
           { key: "arrival_date", label: "Chegada", format: (v, r) => [fmtDate(v), r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
           { key: "departure_date", label: "Saída", format: (v, r) => [fmtDate(v), r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
           { key: "days_count", label: "Dias" },
-          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${fmtDate(d.date)}: ${d.text}`).join("\n") : "—" },
-          { key: "descriptive", label: "Descritivo" },
-          { key: "payment_terms", label: "Condições de pagamento" },
-          { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
+          {
+            key: "itinerary",
+            label: "Roteiro",
+            fullWidth: true,
+            format: (v, r) => {
+              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              if (!list.length) return "—";
+              const fallback = r?.tour_routes?.name ?? "";
+              return (
+                <div className="space-y-1">
+                  {list.map((d: any, i: number) => (
+                    <div key={i} className="flex flex-col sm:flex-row sm:gap-3 border-b border-border/50 pb-1 last:border-0">
+                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {i + 1} · {fmtDate(d.date) || "—"}</span>
+                      <span className="min-w-0 break-words">{(d.text && d.text.trim()) || fallback || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            },
+          },
+          { key: "descriptive", label: "Descritivo", fullWidth: true },
         ]}
+
       />
     </div>
   );
