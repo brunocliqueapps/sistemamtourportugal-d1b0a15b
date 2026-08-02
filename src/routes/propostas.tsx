@@ -446,7 +446,7 @@ function Propostas() {
           { key: "arrival_date", label: "Chegada", format: (v, r) => [v, r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
           { key: "departure_date", label: "Saída", format: (v, r) => [v, r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
           { key: "days_count", label: "Dias" },
-          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.map((d: any) => `${d.date}: ${d.text}`).join("\n") : "—" },
+          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${d.date}: ${d.text}`).join("\n") : "—" },
           { key: "descriptive", label: "Descritivo" },
           { key: "payment_terms", label: "Condições de pagamento" },
           { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
