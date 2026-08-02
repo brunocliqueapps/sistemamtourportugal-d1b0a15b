@@ -210,7 +210,8 @@ function Propostas() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Tipo</TableHead>
-            <TableHead>Dias</TableHead><TableHead className="text-right">Valor</TableHead>
+            <TableHead>Dias</TableHead>
+
             <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
