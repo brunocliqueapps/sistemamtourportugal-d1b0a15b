@@ -42,14 +42,23 @@ function OCList() {
   const [form, setForm] = useState<any>({});
   const [search, setSearch] = useState("");
 
+  const PROPOSAL_COLS = "code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,payment_stages,passengers,total_value,responsible,arrival_date,arrival_time,arrival_place,departure_date,departure_time,departure_place,region_id,tour_route_id,budget_status,budget_validated_at,budget_receipt_info,regions(name),tour_routes(name)";
+
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select(`*, clients(*), vehicles(plate,brand,model,usage_type,owner_company), proposals(${PROPOSAL_COLS})`).order("service_date", { ascending: false })).data ?? [],
   });
+  const { data: validated = [] } = useQuery({
+    queryKey: ["proposals-validadas-os"],
+    queryFn: async () => (await supabase.from("proposals").select(`id,client_id,${PROPOSAL_COLS},clients(*)`).not("budget_validated_at", "is", null).order("budget_validated_at", { ascending: false })).data ?? [],
+  });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "os-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name,client_number,email").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_operational_status").eq("active", true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_financial_status").eq("active", true).order("sort")).data ?? [] });
+
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
   const financial = finOpts.length ? finOpts : FIN_FALLBACK.map((c) => ({ code: c, label: c }));
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
