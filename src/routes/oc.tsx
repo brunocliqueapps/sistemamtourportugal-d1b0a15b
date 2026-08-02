@@ -41,6 +41,8 @@ function OCList() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
   const [search, setSearch] = useState("");
+  const [newProposal, setNewProposal] = useState<string>("");
+
 
   const PROPOSAL_COLS = "code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,payment_stages,passengers,total_value,responsible,arrival_date,arrival_time,arrival_place,departure_date,departure_time,departure_place,region_id,tour_route_id,budget_status,budget_validated_at,budget_receipt_info,regions(name),tour_routes(name)";
 
