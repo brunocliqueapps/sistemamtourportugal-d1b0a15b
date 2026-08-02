@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { fmtDate } from "@/lib/format-date";
+import { shortCode } from "@/lib/codes";
 
 export const Route = createFileRoute("/agenda")({ component: Agenda });
 
@@ -160,7 +161,7 @@ function Agenda() {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Data</TableHead>
                   <TableHead className="whitespace-nowrap">Horário</TableHead>
-                  <TableHead>OS / Voucher</TableHead>
+                  <TableHead>OS</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Telefone</TableHead>
