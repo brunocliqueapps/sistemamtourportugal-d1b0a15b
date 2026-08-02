@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Eye, CheckCircle2, Plus, FileDown, Check, X } from "lucide-react";
+import { Pencil, Trash2, Eye, CheckCircle2, Plus, FileDown, Check, X, ShieldCheck } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/oc")({
   component: OCList,
@@ -36,6 +37,7 @@ const FIN_FALLBACK = ["nao_faturado", "faturado", "pago"];
 
 function OCList() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [selected, setSelected] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -156,6 +158,37 @@ function OCList() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido concluído"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const validate = useMutation({
+    mutationFn: async ({ row, on }: { row: any; on: boolean }) => {
+      if (on) {
+        const value = Number(row.sale_value ?? row.proposals?.total_value ?? 0);
+        if (value <= 0) throw new Error("Defina o valor da OS antes de validar.");
+        const { error } = await supabase.from("service_orders").update({ validated_at: new Date().toISOString() }).eq("id", row.id);
+        if (error) throw error;
+        const { data: exists } = await supabase.from("cash_movements")
+          .select("id").eq("service_order_id", row.id).like("description", "Orçamento validado%").maybeSingle();
+        if (!exists) {
+          const { error: cmErr } = await supabase.from("cash_movements").insert({
+            kind: "entrada", amount: value,
+            service_order_id: row.id,
+            description: `Orçamento validado · Mtour Portugal · ${row.clients?.name ?? "Cliente"} · ${row.proposals?.title ?? shortCode(row.oc_code)}`,
+            created_by: user?.id ?? null,
+          });
+          if (cmErr) throw cmErr;
+        }
+      } else {
+        const { error } = await supabase.from("service_orders").update({ validated_at: null }).eq("id", row.id);
+        if (error) throw error;
+        await supabase.from("cash_movements").delete().eq("service_order_id", row.id).like("description", "Orçamento validado%");
+      }
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.on ? "OS validada e lançada na conta corrente" : "Validação removida");
+      qc.invalidateQueries();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -287,6 +320,11 @@ function OCList() {
 
             <div className="flex flex-wrap gap-2 justify-end">
               <Button variant="ghost" onClick={close}><X className="h-4 w-4 mr-1" /> Fechar</Button>
+              {editingId && s && (
+                <Button variant={s.validated_at ? "secondary" : "default"} onClick={() => validate.mutate({ row: s, on: !s.validated_at })}>
+                  <ShieldCheck className="h-4 w-4 mr-1" /> {s.validated_at ? "Anular validação" : "Validar OS"}
+                </Button>
+              )}
               {editingId && (
                 <Button variant="outline" onClick={() => generateServiceOrderPdf(editingId).catch((e: any) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
@@ -330,6 +368,10 @@ function OCList() {
                   <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
 
                   <TableCell className="text-right space-x-1">
+                    <Button size="icon" variant="ghost" title={r.validated_at ? "Anular validação" : "Validar OS"}
+                      onClick={() => validate.mutate({ row: r, on: !r.validated_at })}>
+                      <ShieldCheck className={`h-4 w-4 ${r.validated_at ? "text-emerald-600" : ""}`} />
+                    </Button>
                     {canConcluir && (
                       <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(r.id); }}>
                         <CheckCircle2 className="h-3 w-3 mr-1" /> Concluir
