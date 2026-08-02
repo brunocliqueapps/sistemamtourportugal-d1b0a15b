@@ -292,7 +292,7 @@ function Relatorios() {
               })), "servicos.csv")}>Exportar CSV</Button>
             </div>
             <Table><TableHeader><TableRow>
-              <TableHead>OC</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead>
+              <TableHead>OS</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead>
               <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead><TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead><TableHead className="text-right">Valor</TableHead>
             </TableRow></TableHeader><TableBody>

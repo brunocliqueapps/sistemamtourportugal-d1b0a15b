@@ -55,7 +55,7 @@ export function GlobalSearch() {
       const out: Result[] = [];
       for (const l of leads.data ?? []) out.push({ module: "Lead", label: `${l.code} · ${l.name}`, sublabel: l.email, to: "/crm" });
       for (const p of props.data ?? []) out.push({ module: "Proposta", label: `${p.code} · ${p.title ?? p.client_name}`, to: "/propostas" });
-      for (const o of ocs.data ?? []) out.push({ module: "OC / Voucher", label: `${o.code} · ${o.voucher_code ?? ""} · ${o.client_name ?? ""}`, sublabel: o.service_date, to: `/oc/${o.id}` });
+      for (const o of ocs.data ?? []) out.push({ module: "OS / Voucher", label: `${o.code} · ${o.voucher_code ?? ""} · ${o.client_name ?? ""}`, sublabel: o.service_date, to: `/oc/${o.id}` });
       for (const i of invs.data ?? []) out.push({ module: "Fatura", label: `${i.code} · ${i.invoice_number ?? ""} · ${i.entity_name ?? ""}`, sublabel: `NIF ${i.entity_nif ?? "—"} · ${i.issue_date}`, to: "/financeiro" });
       for (const c of clis.data ?? []) out.push({ module: "Cliente", label: c.name, sublabel: `${c.email ?? ""} · NIF ${c.nif ?? "—"}`, to: "/cadastros" });
       setResults(out);

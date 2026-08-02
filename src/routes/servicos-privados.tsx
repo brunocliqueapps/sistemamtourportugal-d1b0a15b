@@ -128,7 +128,7 @@ function ServicosPrivados() {
               kind: "entrada",
               amount: sale,
               service_order_id: id,
-              description: `Recebimento OC ${svc?.oc_code ?? ""} (fechamento em lote)`,
+              description: `Recebimento OS ${svc?.oc_code ?? ""} (fechamento em lote)`,
               created_by: user?.id ?? null,
             });
           }
@@ -199,7 +199,7 @@ function ServicosPrivados() {
                 <Checkbox checked={allSelected} onCheckedChange={(v) => toggleAll(!!v)} />
               </TableHead>
               <TableHead>Data</TableHead>
-              <TableHead>OC / Voucher</TableHead>
+              <TableHead>OS / Voucher</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Motorista / Veículo</TableHead>
               <TableHead>Origem → Destino</TableHead>
@@ -260,7 +260,7 @@ function ServicosPrivados() {
         title="Serviço privado — detalhes da operação"
         record={viewing}
         fields={[
-          { key: "oc_code", label: "Nº OC" },
+          { key: "oc_code", label: "Nº OS" },
           { key: "voucher_code", label: "Voucher" },
           { key: "service_date", label: "Data" },
           { key: "start_time", label: "Hora prevista", format: (v) => v ? String(v).slice(0, 5) : "—" },
@@ -293,7 +293,7 @@ function ServicosPrivados() {
           <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>Nº OC</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
+              <div><Label>Nº OS</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
               <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
               <div><Label>Hora</Label><Input type="time" value={editing.start_time?.slice(0, 5) ?? ""} onChange={(e) => setEditing({ ...editing, start_time: e.target.value })} /></div>
@@ -591,7 +591,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
             amount: closingPayload.amount_received,
             service_order_id: service.id,
             payment_method_id: closingPayload.payment_method_id,
-            description: `Recebimento OC ${service.oc_code}`,
+            description: `Recebimento OS ${service.oc_code}`,
             created_by: user!.id,
           });
         }
@@ -616,7 +616,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
           service_order_id: service.id,
           service_expense_id: ins.id,
           payment_method_id: e.payment_method_id || null,
-          description: `Despesa (${e.category}) OC ${service.oc_code}${e.description ? ` · ${e.description}` : ""}`,
+          description: `Despesa (${e.category}) OS ${service.oc_code}${e.description ? ` · ${e.description}` : ""}`,
           created_by: user!.id,
         });
       }
@@ -862,7 +862,7 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><Label>Nº OC</Label><Input value={form.oc_code} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
+          <div><Label>Nº OS</Label><Input value={form.oc_code} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
           <div><Label>Nº Voucher</Label><Input value={form.voucher_code} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
           <div className="col-span-2"><Label>Cliente *</Label>
             <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>

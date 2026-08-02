@@ -97,7 +97,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
     <>
       <Card>
         <Table>
-          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>OC</TableHead><TableHead>Enviado</TableHead><TableHead>Respondido</TableHead><TableHead>Média</TableHead><TableHead>NPS</TableHead><TableHead>Estado</TableHead><TableHead className="text-right w-40">Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>OS</TableHead><TableHead>Enviado</TableHead><TableHead>Respondido</TableHead><TableHead>Média</TableHead><TableHead>NPS</TableHead><TableHead>Estado</TableHead><TableHead className="text-right w-40">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {surveys.map((s: any) => (
               <TableRow key={s.id}>

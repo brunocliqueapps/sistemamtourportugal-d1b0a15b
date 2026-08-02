@@ -216,7 +216,7 @@ function FinalizeDialog({ service }: { service: any }) {
         await supabase.from("cash_movements").insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: service.id,
-          description: `Recebimento OC ${service.oc_code}`, created_by: user!.id,
+          description: `Recebimento OS ${service.oc_code}`, created_by: user!.id,
         });
       }
     },

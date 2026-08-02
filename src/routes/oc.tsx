@@ -41,15 +41,26 @@ function OCList() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
   const [search, setSearch] = useState("");
+  const [newProposal, setNewProposal] = useState<string>("");
+
+
+  const PROPOSAL_COLS = "code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,payment_stages,passengers,total_value,responsible,arrival_date,arrival_time,arrival_place,departure_date,departure_time,departure_place,region_id,tour_route_id,budget_status,budget_validated_at,budget_receipt_info,regions(name),tour_routes(name)";
 
   const { data = [] } = useQuery({
     queryKey: ["service-orders"],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone,email,client_number), vehicles(plate,brand,model,usage_type,owner_company), proposals(code,title,description,descriptive,proposal_kind,itinerary,itinerary_start,itinerary_end,payment_terms,passengers,total_value)").order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders").select(`*, clients(*), vehicles(plate,brand,model,usage_type,owner_company), proposals(${PROPOSAL_COLS})`).order("service_date", { ascending: false })).data ?? [],
   });
+  const { data: validated = [] } = useQuery({
+    queryKey: ["proposals-validadas-os"],
+    queryFn: async () => (await supabase.from("proposals").select(`id,client_id,${PROPOSAL_COLS},clients(*)`).not("budget_validated_at", "is", null).order("budget_validated_at", { ascending: false })).data ?? [],
+  });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "os-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
   const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name,client_number,email").order("name")).data ?? [] });
   const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_operational_status").eq("active", true).order("sort")).data ?? [] });
   const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_financial_status").eq("active", true).order("sort")).data ?? [] });
+
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
   const financial = finOpts.length ? finOpts : FIN_FALLBACK.map((c) => ({ code: c, label: c }));
   const opLabel = (c: string) => operational.find((o: any) => o.code === c)?.label ?? c;
@@ -108,6 +119,7 @@ function OCList() {
   function openNew() {
     setSelected("");
     setCreating(true);
+    setNewProposal("");
     setForm({
       client_id: "", vehicle_id: "",
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
@@ -115,9 +127,28 @@ function OCList() {
     });
   }
 
-  function close() {
-    setSelected(""); setCreating(false); setForm({});
+  function pickProposal(pid: string) {
+    const pr: any = (validated as any[]).find((x: any) => x.id === pid);
+    setNewProposal(pid);
+    if (!pr) return;
+    setForm((f: any) => ({
+      ...f,
+      proposal_id: pr.id,
+      client_id: pr.client_id ?? "",
+      passengers: pr.passengers ?? pr.clients?.passengers ?? null,
+      origin: pr.arrival_place ?? null,
+      destination: pr.departure_place ?? null,
+      service_date: (pr.itinerary_start ?? pr.arrival_date ?? new Date().toISOString()).slice(0, 10),
+      start_time: pr.arrival_time ?? null,
+      sale_value: Number(pr.total_value ?? 0),
+      payment_terms: pr.payment_terms ?? null,
+    }));
   }
+
+  function close() {
+    setSelected(""); setCreating(false); setForm({}); setNewProposal("");
+  }
+
 
   const concluir = useMutation({
     mutationFn: async (id: string) => {
@@ -128,12 +159,19 @@ function OCList() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const travelStart = s?.proposals?.itinerary_start ?? s?.service_date;
-  const travelEnd = s?.proposals?.itinerary_end ?? s?.service_date;
+  // Proposta/orçamento associado: da OS selecionada ou do orçamento validado escolhido na nova OS
+  const chosen: any = useMemo(() => (validated as any[]).find((x: any) => x.id === newProposal), [validated, newProposal]);
+  const prop: any = s?.proposals ?? chosen ?? null;
+  const cli: any = s?.clients ?? chosen?.clients ?? (clients as any[]).find((c: any) => c.id === form.client_id) ?? null;
+  const travelStart = prop?.itinerary_start ?? prop?.arrival_date ?? s?.service_date ?? form.service_date;
+  const travelEnd = prop?.itinerary_end ?? prop?.departure_date ?? s?.service_date ?? form.service_date;
+  const itDays: any[] = Array.isArray(prop?.itinerary) ? prop.itinerary.filter((d: any) => !d.deleted) : [];
+  const regName = (id?: string) => (regions as any[]).find((r: any) => r.id === id)?.name;
+  const routeName = (id?: string) => (routes as any[]).find((r: any) => r.id === id)?.name;
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelas propostas aprovadas ou criadas manualmente." actions={
+      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelos orçamentos validados ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
 
@@ -154,34 +192,66 @@ function OCList() {
 
         {open && (
           <>
-            {s && (
-              <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div>Nº Cliente: <span className="font-medium">{shortCode(s.clients?.client_number)}</span></div>
-                <div>Cliente: <span className="font-medium">{s.clients?.name ?? "—"}</span></div>
-                <div>Telefone: <span className="font-medium">{s.clients?.phone ?? "—"}</span></div>
-                <div>Email: <span className="font-medium">{s.clients?.email ?? "—"}</span></div>
-                <div>Proposta: <span className="font-medium">{shortCode(s.proposals?.code) || "—"}</span></div>
-                <div>Passageiros: <span className="font-medium">{s.passengers ?? s.proposals?.passengers ?? "—"}</span></div>
-                <div className="sm:col-span-3">Data da viagem: {[fmtDate(travelStart), fmtDate(travelEnd)].filter(Boolean).join(" → ") || "—"} {s.start_time?.slice(0, 5) ?? ""}</div>
-                <div className="sm:col-span-3">Trajeto: {s.origin ?? "—"} → {s.destination ?? "—"}</div>
-                {s.proposals?.payment_terms && <div className="sm:col-span-3">Pagamento: {s.proposals.payment_terms}</div>}
-                {(s.proposals?.descriptive || s.proposals?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {s.proposals.descriptive ?? s.proposals.description}</div>}
+            {creating && (
+              <div><Label>Orçamento validado</Label>
+                <Select value={newProposal} onValueChange={pickProposal}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar orçamento validado" /></SelectTrigger>
+                  <SelectContent>
+                    {(validated as any[]).map((x: any) => (
+                      <SelectItem key={x.id} value={x.id}>
+                        {shortCode(x.code)} · {x.clients?.name ?? "—"} · € {Number(x.total_value || 0).toFixed(2)}
+                      </SelectItem>
+                    ))}
+                    {validated.length === 0 && <SelectItem value="none" disabled>Sem orçamentos validados</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
-            {Array.isArray(s?.proposals?.itinerary) && s.proposals.itinerary.filter((d: any) => !d.deleted).length > 0 && (
+            {(cli || prop) && (
+              <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>Nº Cliente: <span className="font-medium">{shortCode(cli?.client_number)}</span></div>
+                <div>Cliente: <span className="font-medium">{cli?.name ?? "—"}</span></div>
+                <div>NIF/Passaporte: <span className="font-medium">{cli?.nif ?? "—"}</span></div>
+                <div>Telefone: <span className="font-medium">{[cli?.phone_country, cli?.phone].filter(Boolean).join(" ") || "—"}</span></div>
+                <div>Email: <span className="font-medium">{cli?.email ?? "—"}</span></div>
+                <div>Contacto emergência: <span className="font-medium">{cli?.emergency_contact ?? "—"}</span></div>
+                <div>Proposta / Orçamento: <span className="font-medium">{prop?.code ? shortCode(prop.code) : "—"}</span></div>
+                <div>Passageiros: <span className="font-medium">{s?.passengers ?? form.passengers ?? prop?.passengers ?? cli?.passengers ?? "—"}</span></div>
+                <div>Tipo: <span className="font-medium">{prop ? (prop.proposal_kind === "servico_privado" ? "Serviço Privado" : "Roteiro Personalizado") : "—"}</span></div>
+                <div>Região: <span className="font-medium">{prop?.regions?.name ?? regName(prop?.region_id) ?? "—"}</span></div>
+                <div>Roteiro: <span className="font-medium">{prop?.tour_routes?.name ?? routeName(prop?.tour_route_id) ?? "—"}</span></div>
+                <div>Valor: <span className="font-medium">€ {Number(s?.sale_value ?? form.sale_value ?? prop?.total_value ?? 0).toFixed(2)}</span></div>
+                <div className="sm:col-span-3">Data da viagem: {[fmtDate(travelStart), fmtDate(travelEnd)].filter(Boolean).join(" → ") || "—"}</div>
+                <div className="sm:col-span-3">Chegada: {[fmtDate(prop?.arrival_date), prop?.arrival_time, prop?.arrival_place].filter(Boolean).join(" · ") || "—"}</div>
+                <div className="sm:col-span-3">Saída: {[fmtDate(prop?.departure_date), prop?.departure_time, prop?.departure_place].filter(Boolean).join(" · ") || "—"}</div>
+                <div className="sm:col-span-3">Trajeto: {(s?.origin ?? form.origin ?? prop?.arrival_place) || "—"} → {(s?.destination ?? form.destination ?? prop?.departure_place) || "—"}</div>
+                {(s?.payment_terms || prop?.payment_terms) && <div className="sm:col-span-3">Condições de pagamento: {s?.payment_terms ?? prop?.payment_terms}</div>}
+                {prop?.budget_receipt_info && <div className="sm:col-span-3">Recebimento: {prop.budget_receipt_info}</div>}
+                {(prop?.descriptive || prop?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {prop.descriptive ?? prop.description}</div>}
+                {cli?.notes && <div className="sm:col-span-3 whitespace-pre-wrap">Notas do cliente: {cli.notes}</div>}
+              </div>
+            )}
+
+            {itDays.length > 0 && (
               <Table>
                 <TableHeader><TableRow><TableHead className="w-28">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {s.proposals.itinerary.filter((d: any) => !d.deleted).map((d: any, i: number) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
-                      <TableCell className="whitespace-pre-wrap">{d.text ?? d.title ?? d.description ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {itDays.map((d: any, i: number) => {
+                    const label = [regName(d.region_id || prop?.region_id), routeName(d.tour_route_id)].filter(Boolean).join(" · ");
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
+                        <TableCell className="whitespace-pre-wrap">
+                          {label}{label && d.text ? " — " : ""}{d.text || (label ? "" : "—")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
+
 
             <div className="rounded-md border p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2"><Label>Cliente</Label>
@@ -243,8 +313,8 @@ function OCList() {
           <TableBody>
             {rows.map((r: any) => {
               const canConcluir = r.status !== "atendimento_finalizado";
-              const start = r.proposals?.itinerary_start ?? r.service_date;
-              const end = r.proposals?.itinerary_end ?? r.service_date;
+              const start = r.proposals?.itinerary_start ?? r.proposals?.arrival_date ?? r.service_date;
+              const end = r.proposals?.itinerary_end ?? r.proposals?.departure_date ?? r.service_date;
               return (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono text-xs">{shortCode(r.clients?.client_number)}</TableCell>
@@ -254,11 +324,12 @@ function OCList() {
                     <div>Fim: {fmtDate(end) || "—"}</div>
                   </TableCell>
                   <TableCell>{r.clients?.name ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{r.origin} → {r.destination}</TableCell>
+                  <TableCell className="text-sm">{(r.origin ?? r.proposals?.arrival_place) || "—"} → {(r.destination ?? r.proposals?.departure_place) || "—"}</TableCell>
                   <TableCell>{r.vehicles?.plate ?? "—"}{r.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{r.vehicles.owner_company}</div> : null}</TableCell>
                   <TableCell><Badge variant="outline">{opLabel(r.status)}</Badge></TableCell>
                   <TableCell><Badge variant={r.financial_status === "pago" ? "default" : "outline"}>{finLabel(r.financial_status ?? "nao_faturado")}</Badge></TableCell>
-                  <TableCell className="text-right">€ {Number(r.sale_value || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
+
                   <TableCell className="text-right space-x-1">
                     {canConcluir && (
                       <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(r.id); }}>
