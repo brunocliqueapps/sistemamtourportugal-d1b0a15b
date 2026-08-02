@@ -50,7 +50,7 @@ function Propostas() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
-  const [srv, setSrv] = useState<any>({ service_date: new Date().toISOString().slice(0, 10), start_time: "", origin: "", destination: "", passengers: 1 });
+  
 
   const { data: props = [] } = useQuery({
     queryKey: ["proposals"],
