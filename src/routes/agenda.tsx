@@ -54,7 +54,7 @@ function Agenda() {
     queryKey: ["agenda", statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
       let q = supabase.from("service_orders")
-        .select("*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), ${TRIP_PROPOSAL_COLS}")
+        .select(`*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (vehicleFilter !== "all") q = q.eq("vehicle_id", vehicleFilter);
