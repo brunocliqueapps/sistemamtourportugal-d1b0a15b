@@ -5,6 +5,7 @@ export type ItineraryDay = {
   mode?: "sugestao" | "personalizado";
   region_id?: string;
   tour_route_id?: string;
+  deleted?: boolean;
 };
 
 export function daysBetween(start?: string | null, end?: string | null): number {
@@ -23,7 +24,7 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
     const d = new Date(start as string);
     d.setDate(d.getDate() + i);
     const iso = d.toISOString().slice(0, 10);
-    const prev = existing.find((e) => e.date === iso) ?? existing[i];
+    const prev = existing.find((e) => e.date === iso && !e.deleted);
     out.push({
       date: iso,
       text: prev?.text ?? "",
@@ -34,6 +35,7 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
   }
   return out;
 }
+
 
 /** Condições de pagamento sugeridas conforme a duração. */
 export function suggestPaymentTerms(days: number): string {
