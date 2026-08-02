@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
+import { fmtDate } from "./format-date";
 
 async function header(doc: jsPDF, docTitle: string, code?: string) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
@@ -63,8 +64,8 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
     startY: y,
     head: [["", "Data", "Hora", "Local"]],
     body: [
-      ["Chegada", p.arrival_date ?? "—", p.arrival_time ?? "—", p.arrival_place ?? "—"],
-      ["Partida", p.departure_date ?? "—", p.departure_time ?? "—", p.departure_place ?? "—"],
+      ["Chegada", fmtDate(p.arrival_date) || "—", p.arrival_time ?? "—", p.arrival_place ?? "—"],
+      ["Partida", fmtDate(p.departure_date) || "—", p.departure_time ?? "—", p.departure_place ?? "—"],
     ],
     styles: { fontSize: 9 },
     headStyles: { fillColor: [16, 33, 66] },
@@ -87,7 +88,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa")
     startY: y,
     head: [["Data", columnLabel]],
     body: list.map((d, i) => [
-      `Dia ${i + 1}\n${d.date ?? "—"}`,
+      `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
       (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—",
     ]),
     columnStyles: { 0: { cellWidth: 80 } },
@@ -164,7 +165,7 @@ export async function generateVoucherPdf(id: string) {
   const c = p.clients ?? {};
   doc.setFont("helvetica", "normal").setFontSize(10);
   [c.address, [c.postal_code, c.city].filter(Boolean).join(" "), c.country,
-   c.birth_date ? `Data de nascimento: ${c.birth_date}` : null]
+   c.birth_date ? `Data de nascimento: ${fmtDate(c.birth_date)}` : null]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
   y += 8;
   y = travelBlock(doc, p, y);
@@ -188,7 +189,7 @@ export async function generateServiceOrderPdf(id: string) {
     startY: y,
     head: [["Data", "Hora", "Origem", "Destino", "Veículo"]],
     body: [[
-      s.service_date ?? "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
+      fmtDate(s.service_date) || "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
       s.vehicles ? `${s.vehicles.plate}${s.vehicles.owner_company ? " — " + s.vehicles.owner_company : ""}` : "—",
     ]],
     styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
