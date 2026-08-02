@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
+import { fmtDate } from "@/lib/format-date";
 
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
@@ -93,8 +94,8 @@ function Voucher() {
             <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>Pessoas: <span className="font-medium">{p.passengers ?? "—"}</span></div>
               <div>Responsável: <span className="font-medium">{p.responsible ?? "—"}</span></div>
-              <div>Chegada: <span className="font-medium">{[p.arrival_date, p.arrival_time, p.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
-              <div>Saída: <span className="font-medium">{[p.departure_date, p.departure_time, p.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
+              <div>Chegada: <span className="font-medium">{[fmtDate(p.arrival_date), p.arrival_time, p.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
+              <div>Saída: <span className="font-medium">{[fmtDate(p.departure_date), p.departure_time, p.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
             </div>
 
             {Array.isArray(p.itinerary) && p.itinerary.length > 0 && (
@@ -102,7 +103,7 @@ function Voucher() {
                 <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {p.itinerary.map((d: any, i: number) => (
-                    <TableRow key={i}><TableCell className="font-mono text-xs">{d.date}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
+                    <TableRow key={i}><TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
                   ))}
                 </TableBody>
               </Table>

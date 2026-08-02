@@ -20,6 +20,7 @@ import { usePermissions } from "@/lib/permissions";
 import { buildDays, daysBetween, type ItineraryDay } from "@/lib/payment-terms";
 import { generateProposalPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
+import { fmtDate } from "@/lib/format-date";
 
 export const Route = createFileRoute("/propostas")({ component: Propostas });
 
@@ -271,8 +272,8 @@ function Propostas() {
                 <div>Nº de passageiros: <span className="text-foreground">{form.passengers || "—"}</span></div>
                 <div>Responsável: <span className="text-foreground">{form.responsible || selectedClient.name || "—"}</span></div>
                 <div>Contacto emergência: <span className="text-foreground">{selectedClient.emergency_contact ?? "—"}</span></div>
-                <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[form.arrival_date, form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
-                <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[form.departure_date, form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
+                <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[fmtDate(form.arrival_date), form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
+                <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[fmtDate(form.departure_date), form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3 border-t pt-2">Notas do cliente: <span className="text-foreground whitespace-pre-wrap">{selectedClient.notes?.trim() || (leads as any[]).find((l: any) => l.id === (selectedClient.lead_id ?? form.lead_id))?.notes?.trim() || "—"}</span></div>
               </div>
             )}
@@ -420,10 +421,10 @@ function Propostas() {
           { key: "responsible", label: "Responsável" },
           { key: "passengers", label: "Nº de pessoas" },
           { key: "proposal_kind", label: "Tipo", format: (v) => KINDS.find((k) => k.code === v)?.label ?? v },
-          { key: "arrival_date", label: "Chegada", format: (v, r) => [v, r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
-          { key: "departure_date", label: "Saída", format: (v, r) => [v, r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
+          { key: "arrival_date", label: "Chegada", format: (v, r) => [fmtDate(v), r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
+          { key: "departure_date", label: "Saída", format: (v, r) => [fmtDate(v), r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
           { key: "days_count", label: "Dias" },
-          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${d.date}: ${d.text}`).join("\n") : "—" },
+          { key: "itinerary", label: "Roteiro", format: (v) => Array.isArray(v) && v.length ? v.filter((d: any) => !d.deleted).map((d: any) => `${fmtDate(d.date)}: ${d.text}`).join("\n") : "—" },
           { key: "descriptive", label: "Descritivo" },
           { key: "payment_terms", label: "Condições de pagamento" },
           { key: "total_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },

@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { fmtDate, fmtDateTime } from "@/lib/format-date";
 
 export interface QuickViewField {
   key: string;
@@ -24,8 +25,8 @@ function fmtValue(v: any) {
   if (typeof v === "boolean") return v ? "Sim" : "Não";
   if (typeof v === "number") return String(v);
   if (typeof v === "string") {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) { try { return new Date(v).toLocaleString("pt-PT"); } catch { return v; } }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(v).toLocaleDateString("pt-PT");
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return fmtDateTime(v);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return fmtDate(v);
     return v;
   }
   if (typeof v === "object") return JSON.stringify(v);

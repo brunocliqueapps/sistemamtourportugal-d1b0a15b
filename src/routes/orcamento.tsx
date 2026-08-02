@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
 import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
+import { fmtDate } from "@/lib/format-date";
 
 export const Route = createFileRoute("/orcamento")({
   component: Orcamento,
@@ -219,9 +220,9 @@ function Orcamento() {
               <div>Tipo: <span className="font-medium">{p.proposal_kind === "servico_privado" ? "Serviço Privado" : "Roteiro Personalizado"}</span></div>
               <div>Região: <span className="font-medium">{p.regions?.name ?? "—"}</span></div>
               <div>Roteiro: <span className="font-medium">{p.tour_routes?.name ?? "—"}</span></div>
-              <div className="sm:col-span-3">Período: {[p.itinerary_start, p.itinerary_end].filter(Boolean).join(" → ") || "—"}</div>
-              <div className="sm:col-span-3">Chegada: {[p.arrival_date, p.arrival_time, p.arrival_place].filter(Boolean).join(" · ") || "—"}</div>
-              <div className="sm:col-span-3">Saída: {[p.departure_date, p.departure_time, p.departure_place].filter(Boolean).join(" · ") || "—"}</div>
+              <div className="sm:col-span-3">Período: {[fmtDate(p.itinerary_start), fmtDate(p.itinerary_end)].filter(Boolean).join(" → ") || "—"}</div>
+              <div className="sm:col-span-3">Chegada: {[fmtDate(p.arrival_date), p.arrival_time, p.arrival_place].filter(Boolean).join(" · ") || "—"}</div>
+              <div className="sm:col-span-3">Saída: {[fmtDate(p.departure_date), p.departure_time, p.departure_place].filter(Boolean).join(" · ") || "—"}</div>
               {p.descriptive && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {p.descriptive}</div>}
             </div>
 
@@ -234,7 +235,7 @@ function Orcamento() {
                     const rt = (routes as any[]).find((r) => r.id === d.tour_route_id);
                     return (
                       <TableRow key={i}>
-                        <TableCell className="font-mono text-xs">{d.date}</TableCell>
+                        <TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell>
                         <TableCell className="whitespace-pre-wrap">
                           {[reg?.name, rt?.name].filter(Boolean).join(" · ")}
                           {(reg || rt) && d.text ? " — " : ""}{d.text || (reg || rt ? "" : "—")}
