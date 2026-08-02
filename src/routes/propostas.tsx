@@ -271,7 +271,7 @@ function Propostas() {
                 <div>Telefone: <span className="text-foreground">{[selectedClient.phone_country, selectedClient.phone].filter(Boolean).join(" ") || "—"}</span></div>
                 <div>Email: <span className="text-foreground">{selectedClient.email ?? "—"}</span></div>
                 <div>Nº de passageiros: <span className="text-foreground">{form.passengers || "—"}</span></div>
-                <div>Responsável: <span className="text-foreground">{form.responsible || selectedClient.name || "—"}</span></div>
+
                 <div>Contacto emergência: <span className="text-foreground">{selectedClient.emergency_contact ?? "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Chegada: <span className="text-foreground">{[fmtDate(form.arrival_date), form.arrival_time, form.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
                 <div className="col-span-2 sm:col-span-3">Partida: <span className="text-foreground">{[fmtDate(form.departure_date), form.departure_time, form.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>
