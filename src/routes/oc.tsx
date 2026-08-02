@@ -313,8 +313,8 @@ function OCList() {
           <TableBody>
             {rows.map((r: any) => {
               const canConcluir = r.status !== "atendimento_finalizado";
-              const start = r.proposals?.itinerary_start ?? r.service_date;
-              const end = r.proposals?.itinerary_end ?? r.service_date;
+              const start = r.proposals?.itinerary_start ?? r.proposals?.arrival_date ?? r.service_date;
+              const end = r.proposals?.itinerary_end ?? r.proposals?.departure_date ?? r.service_date;
               return (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono text-xs">{shortCode(r.clients?.client_number)}</TableCell>
@@ -324,11 +324,12 @@ function OCList() {
                     <div>Fim: {fmtDate(end) || "—"}</div>
                   </TableCell>
                   <TableCell>{r.clients?.name ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{r.origin} → {r.destination}</TableCell>
+                  <TableCell className="text-sm">{(r.origin ?? r.proposals?.arrival_place) || "—"} → {(r.destination ?? r.proposals?.departure_place) || "—"}</TableCell>
                   <TableCell>{r.vehicles?.plate ?? "—"}{r.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{r.vehicles.owner_company}</div> : null}</TableCell>
                   <TableCell><Badge variant="outline">{opLabel(r.status)}</Badge></TableCell>
                   <TableCell><Badge variant={r.financial_status === "pago" ? "default" : "outline"}>{finLabel(r.financial_status ?? "nao_faturado")}</Badge></TableCell>
-                  <TableCell className="text-right">€ {Number(r.sale_value || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
+
                   <TableCell className="text-right space-x-1">
                     {canConcluir && (
                       <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(r.id); }}>
