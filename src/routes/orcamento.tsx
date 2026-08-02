@@ -42,8 +42,12 @@ function Orcamento() {
   const [terms, setTerms] = useState<string>("");
   const [receipt, setReceipt] = useState<string>("");
   const [refusal, setRefusal] = useState<string>("");
+  const [analysisInfo, setAnalysisInfo] = useState<string>("");
+  const [statusDate, setStatusDate] = useState<string>(today());
+  const [action, setAction] = useState<"" | "aprovado" | "analise" | "recusado">("");
   const [search, setSearch] = useState<string>("");
   const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
+
 
 
   const { data: props = [], refetch } = useQuery({
@@ -86,8 +90,13 @@ function Orcamento() {
 
   const stageTerms = () => stages.filter((s) => s.label.trim()).map((s) => `${s.label} ${Number(s.pct || 0)}%`).join(" · ");
 
-  async function save() {
-    if (!p) return;
+  function close() {
+    setSelected(""); setAction(""); setValue(""); setTerms(""); setReceipt(""); setRefusal(""); setAnalysisInfo("");
+    setStages(DEFAULT_STAGES); setStatusDate(today());
+  }
+
+  async function save(silent = false) {
+    if (!p) return true;
     const { error } = await supabase.from("proposals")
       .update({
         total_value: total,
@@ -95,17 +104,19 @@ function Orcamento() {
         payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
       })
       .eq("id", p.id);
-    if (error) return toast.error(error.message);
-    toast.success("Orçamento atualizado");
+    if (error) { toast.error(error.message); return false; }
+    if (!silent) toast.success("Orçamento atualizado");
     refetch();
+    return true;
   }
 
   async function validate() {
-    if (!p) return;
+    if (!p) return false;
     const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return false; }
     toast.success("Orçamento validado");
     refetch();
+    return true;
   }
 
 
@@ -113,11 +124,11 @@ function Orcamento() {
     if (!p) return;
     if (status === "aprovado" && !receipt.trim()) return toast.error("Indica as informações de recebimento.");
     if (status === "recusado" && !refusal.trim()) return toast.error("Indica o motivo da recusa.");
-    const now = new Date().toISOString();
+    const when = statusDate ? new Date(`${statusDate}T12:00:00`).toISOString() : new Date().toISOString();
     const patch: any = { budget_status: status };
-    if (status === "aprovado") { patch.budget_approved_at = now; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
-    if (status === "analise") { patch.budget_analysis_at = now; }
-    if (status === "recusado") { patch.budget_refused_at = now; patch.budget_refusal_reason = refusal; patch.status = "rejeitada"; }
+    if (status === "aprovado") { patch.budget_approved_at = when; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
+    if (status === "analise") { patch.budget_analysis_at = when; patch.budget_analysis_info = analysisInfo; patch.budget_validated_at = null; patch.status = "enviada"; }
+    if (status === "recusado") { patch.budget_refused_at = when; patch.budget_refusal_reason = refusal; patch.budget_validated_at = null; patch.status = "rejeitada"; }
     const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
     if (error) return toast.error(error.message);
     if (status === "aprovado") {
@@ -125,16 +136,21 @@ function Orcamento() {
       const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
       const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
         .filter(Boolean).join(" · ");
-      const mvPayload: any = { movement_date: now.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
+      const mvPayload: any = { movement_date: when.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
       const { error: mvErr } = existing
         ? await supabase.from("cash_movements").update(mvPayload).eq("id", existing.id)
         : await supabase.from("cash_movements").insert(mvPayload);
       if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
+    } else {
+      // Reverte o lançamento automático se deixou de estar aprovado
+      await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
     }
     if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
+    setAction("");
   }
+
 
 
   return (
@@ -163,7 +179,7 @@ function Orcamento() {
           <div className="sm:col-span-3"><Label>Filtrar</Label>
             <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="sm:col-span-2"><Label>Proposta</Label>
+          <div className="sm:col-span-3"><Label>Proposta</Label>
             <Select value={selected} onValueChange={(v) => {
               setSelected(v);
               const pr: any = props.find((x: any) => x.id === v);
@@ -174,6 +190,9 @@ function Orcamento() {
                 : DEFAULT_STAGES);
               setReceipt(pr?.budget_receipt_info ?? "");
               setRefusal(pr?.budget_refusal_reason ?? "");
+              setAnalysisInfo(pr?.budget_analysis_info ?? "");
+              setAction("");
+              setStatusDate(today());
             }}>
 
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
@@ -182,8 +201,8 @@ function Orcamento() {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
         </div>
+
 
         {p && (
           <>
@@ -228,9 +247,12 @@ function Orcamento() {
             )}
 
 
-            <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+            <div className="rounded-md border p-3 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
+                <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+              </div>
 
-            <div className="rounded-md border p-3 space-y-2">
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
               {stages.map((s, i) => {
                 const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
@@ -259,29 +281,57 @@ function Orcamento() {
                 {p.budget_validated_at && <Badge variant="default">Validado</Badge>}
               </div>
 
-              {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
-              {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
-              {p.budget_analysis_at && p.budget_status === "analise" && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")} — bilhete diário de acompanhamento até aprovar ou recusar.</div>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Informações do recebimento (aprovação)</Label><Textarea rows={2} value={receipt} onChange={(e) => setReceipt(e.target.value)} placeholder="Ex.: 30% recebido por transferência em 10/02" /></div>
-                <div><Label>Motivo da recusa</Label><Textarea rows={2} value={refusal} onChange={(e) => setRefusal(e.target.value)} placeholder="Motivo indicado pelo cliente" /></div>
-              </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => setBudgetStatus("aprovado")} className="gradient-gold text-gold-foreground"><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
-                <Button variant="outline" onClick={() => setBudgetStatus("analise")}><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
-                <Button variant="outline" onClick={() => setBudgetStatus("recusado")}><X className="h-4 w-4 mr-1" /> Recusado</Button>
+                <Button
+                  variant={action === "aprovado" ? "default" : "outline"}
+                  className={action === "aprovado" ? "gradient-gold text-gold-foreground" : ""}
+                  onClick={() => { setAction("aprovado"); setStatusDate((p.budget_approved_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
+                <Button variant={action === "analise" ? "default" : "outline"}
+                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
+                <Button variant={action === "recusado" ? "default" : "outline"}
+                  onClick={() => { setAction("recusado"); setStatusDate((p.budget_refused_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><X className="h-4 w-4 mr-1" /> Recusado</Button>
               </div>
+
+              {action && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div><Label>Data</Label><Input type="date" value={statusDate} onChange={(e) => setStatusDate(e.target.value)} /></div>
+                  <div className="sm:col-span-2">
+                    <Label>
+                      {action === "aprovado" ? "Informações do recebimento" : action === "analise" ? "Informações da análise" : "Informações da recusa"}
+                    </Label>
+                    <Textarea rows={2}
+                      value={action === "aprovado" ? receipt : action === "analise" ? analysisInfo : refusal}
+                      onChange={(e) => action === "aprovado" ? setReceipt(e.target.value) : action === "analise" ? setAnalysisInfo(e.target.value) : setRefusal(e.target.value)}
+                      placeholder={action === "aprovado" ? "Ex.: 30% recebido por transferência em 10/02" : action === "analise" ? "Ex.: cliente a avaliar datas" : "Motivo indicado pelo cliente"}
+                    />
+                  </div>
+                  <div className="sm:col-span-3 flex flex-wrap gap-2">
+                    <Button className="gradient-gold text-gold-foreground" onClick={() => setBudgetStatus(action)}>
+                      Confirmar {action === "aprovado" ? "aprovação" : action === "analise" ? "análise" : "recusa"}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setAction("")}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+
+              {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleDateString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
+              {p.budget_analysis_at && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")}{p.budget_analysis_info ? ` · ${p.budget_analysis_info}` : ""}</div>}
+              {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleDateString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
             </div>
 
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="outline" onClick={save}>Guardar</Button>
+              <Button variant="outline" onClick={async () => { if (await save()) close(); }}>Guardar</Button>
               <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => { await save(); await validate(); }}>
+              <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
                 <Check className="h-4 w-4 mr-1" /> Validar Orçamento
               </Button>
             </div>
+
           </>
         )}
       </Card>
