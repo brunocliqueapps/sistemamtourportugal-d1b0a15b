@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { fmtDate } from "@/lib/format-date";
+import { TRIP_PROPOSAL_COLS, dayLabel, itineraryDayFor, tripRange } from "@/lib/trip-dates";
 import { CheckCircle2, Clock, MapPin, Car, User, Ticket, Gauge, Receipt, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/roteiro")({ component: Roteiro });
@@ -23,18 +25,24 @@ export const Route = createFileRoute("/roteiro")({ component: Roteiro });
 function Roteiro() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
+  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const names = {
+    regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
+    routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
+  };
+
   const { data: services = [] } = useQuery({
     queryKey: ["roteiro", date],
     queryFn: async () => {
       const { data } = await supabase.from("service_orders")
-        .select("*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(code,itinerary_start,itinerary_end)")
+        .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("start_time", { ascending: true });
-      // Prioriza a data da viagem (proposta); só usa a data da OS quando não há viagem
+      // A data da viagem (proposta) manda; a data de registo da OS é só o último recurso
       return (data ?? []).filter((s: any) => {
-        const start = s.proposals?.itinerary_start;
-        const end = s.proposals?.itinerary_end ?? start;
-        if (start) return String(start) <= date && date <= String(end);
-        return String(s.service_date ?? "") === date;
+        const { start, end } = tripRange(s);
+        if (!start) return false;
+        return start <= date && date <= (end || start);
       });
     },
   });
