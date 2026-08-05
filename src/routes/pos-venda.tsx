@@ -52,9 +52,9 @@ function ResultsPanel() {
   const answered = surveys.filter((s: any) => s.status === "respondido");
   const respRate = total ? Math.round((answered.length / total) * 100) : 0;
   const avg = answered.length ? +(answered.reduce((a: number, s: any) => a + Number(s.average_score || 0), 0) / answered.length).toFixed(2) : 0;
-  const npsVals = answered.map((s: any) => Number(s.nps_score)).filter((n) => !isNaN(n));
-  const promoters = npsVals.filter((n) => n >= 9).length;
-  const detractors = npsVals.filter((n) => n <= 6).length;
+  const npsVals = answered.map((s: any) => Number(s.nps_score)).filter((n: any) => !isNaN(n));
+  const promoters = npsVals.filter((n: any) => n >= 9).length;
+  const detractors = npsVals.filter((n: any) => n <= 6).length;
   const nps = npsVals.length ? Math.round(((promoters - detractors) / npsVals.length) * 100) : 0;
 
   return (
