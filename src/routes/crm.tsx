@@ -348,46 +348,9 @@ function CRM() {
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do lead</h4>
 
-              <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div>
-                  <Label>Telefone</Label>
-                  <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
-                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
-
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>NIF / Passaporte</Label><Input value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
-                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
-              </div>
-              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Origem</Label>
-                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
-                    <SelectContent className="max-h-56 overflow-y-auto">
-                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Temperatura</Label>
-                  <Select value={form.temperature || "frio"} onValueChange={(v) => setForm({ ...form, temperature: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TEMPS.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div><Label>Estado</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
+                <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
               </div>
             </div>
 
@@ -403,12 +366,59 @@ function CRM() {
                 <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
                 <div><Label>Local de partida</Label><Input value={form.departure_place} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
-              </div>
             </div>
 
             <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Contactos e documentos</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
+                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passaporte</Label><Input value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Origem do Lead</Label>
+                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v, origin_detail: ORIGINS_WITH_DETAIL.includes(v) ? form.origin_detail : "" })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status do Lead</Label>
+                  <Select value={form.temperature || "novo"} onValueChange={(v) => setForm({ ...form, temperature: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{TEMPS.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {ORIGINS_WITH_DETAIL.includes(form.origin) && (
+                <div>
+                  <Label>Descrever origem ({form.origin})</Label>
+                  <Input value={form.origin_detail ?? ""} onChange={(e) => setForm({ ...form, origin_detail: e.target.value })} placeholder="Quem indicou / qual parceria / detalhe" />
+                </div>
+              )}
+              <div><Label>Estado</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               {form.status === "perdido" && (
                 <div>
@@ -421,6 +431,7 @@ function CRM() {
                 </div>
               )}
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
