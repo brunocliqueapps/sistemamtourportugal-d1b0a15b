@@ -73,7 +73,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: [table, "list"],
-    queryFn: async () => (await supabase.from(table).select("*").order(orderBy, { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from(table as any).select("*").order(orderBy, { ascending: false })).data ?? [],
   });
 
   // Opções dinâmicas (ex.: regiões)
