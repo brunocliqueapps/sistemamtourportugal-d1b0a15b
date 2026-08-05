@@ -121,7 +121,7 @@ function Orcamento() {
 
   async function validate() {
     if (!p) return false;
-    const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
+    const { error } = await supabase.from("proposals" as any).update({ budget_validated_at: new Date().toISOString() } as any).eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
     toast.success("Orçamento validado");
     refetch();
