@@ -23,16 +23,19 @@ import { useNextClientNumber } from "@/lib/next-client-number";
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 
 
 
 const emptyClient = {
-  name: "", nif: "", email: "", phone: "", phone_country: "+351", origin: "",
-  birth_date: "", emergency_contact: "", city: "", country: "", address: "", notes: "",
+  name: "", passengers: "", email: "", phone: "", phone_country: "+351",
+  nif: "", birth_date: "", emergency_contact: "",
+  origin: "", origin_detail: "", city: "", country: "", address: "", notes: "",
   arrival_date: "", arrival_time: "", arrival_place: "",
-  departure_date: "", departure_time: "", departure_place: "", passengers: "",
+  departure_date: "", departure_time: "", departure_place: "",
 };
+
 
 function Clientes() {
   const qc = useQueryClient();
