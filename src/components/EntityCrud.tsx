@@ -115,10 +115,10 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         payload[f.key] = v;
       }
       if (editing?.id) {
-        const { error } = await supabase.from(table).update(payload).eq("id", editing.id);
+        const { error } = await supabase.from(table as any).update(payload as any).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { data: inserted, error } = await supabase.from(table).insert(payload).select().single();
+        const { data: inserted, error } = await supabase.from(table as any).insert(payload as any).select().single();
         if (error) throw error;
         // Auto-gerar alertas de vencimento para veículos / motoristas / funcionários
         await autoCreateExpiryAlerts(table, inserted, fields);
