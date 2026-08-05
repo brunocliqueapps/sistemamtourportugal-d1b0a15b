@@ -36,8 +36,8 @@ const empty: any = {
 };
 
 const KINDS = [
-  { code: "roteiro_personalizado", label: "Sugestão Roteiro Mtour" },
-  { code: "servico_privado", label: "Roteiro Personalizado Mtour" },
+  { code: "roteiro_personalizado", label: "Roteiro Personalizado Mtour" },
+  { code: "servico_privado", label: "Serviço Privado" },
 ];
 
 
@@ -106,16 +106,18 @@ function Propostas() {
     mutationFn: async () => {
       const n = daysBetween(form.itinerary_start, form.itinerary_end);
       // Garante que todos os dias do período são gravados (mesmo os não editados)
-      const routeName = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id)?.name ?? "";
+      const routeById = (id?: string) => (tourRoutes as any[]).find((r) => r.id === id);
       const itinerary = buildDays(form.itinerary_start, form.itinerary_end, (form.itinerary ?? []) as ItineraryDay[])
-        .map((d) => ({
-          ...d,
-          region_id: d.region_id || form.region_id || "",
-          tour_route_id: (d.mode ?? "sugestao") === "sugestao" ? (d.tour_route_id || form.tour_route_id || "") : "",
-          text: (d.text && String(d.text).trim())
-            || ((d.mode ?? "sugestao") === "sugestao" ? routeName : "")
-            || "",
-        }));
+        .map((d) => {
+          const custom = (d.mode ?? "sugestao") === "personalizado";
+          const r = custom ? null : routeById(d.tour_route_id);
+          return {
+            ...d,
+            region_id: r?.region_id || d.region_id || "",
+            tour_route_id: custom ? "" : (d.tour_route_id || ""),
+            text: (d.text && String(d.text).trim()) || r?.name || "",
+          };
+        });
       const payload: any = {
         ...form,
         itinerary,
@@ -189,7 +191,6 @@ function Propostas() {
     ? (props as any[]).filter((p: any) => [p.code, p.clients?.client_number, p.clients?.name, p.leads?.name, p.clients?.email]
         .some((v: any) => String(v ?? "").toLowerCase().includes(q)))
     : (props as any[]);
-  const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
 
 
   return (
@@ -279,32 +280,19 @@ function Propostas() {
                   <Select value={form.proposal_kind} onValueChange={(v) => setForm({ ...form, proposal_kind: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="roteiro_personalizado">Sugestão Roteiro Mtour</SelectItem>
-                      <SelectItem value="servico_privado">Roteiro Personalizado Mtour</SelectItem>
+                      <SelectItem value="roteiro_personalizado">Roteiro Personalizado Mtour</SelectItem>
+                      <SelectItem value="servico_privado">Serviço Privado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div><Label>Início</Label><Input type="date" value={form.itinerary_start} onChange={(e) => setRange({ itinerary_start: e.target.value })} /></div>
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
 
-                {form.proposal_kind === "servico_privado" ? (
-                  <div className="sm:col-span-4"><Label>Roteiro personalizado</Label>
-                    <Textarea rows={2} placeholder="Descreva o roteiro personalizado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
+                {form.proposal_kind === "servico_privado" && (
+                  <div className="sm:col-span-4"><Label>Descrição do serviço privado</Label>
+                    <Textarea rows={2} placeholder="Descreva o serviço privado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
                   </div>
-                ) : (<>
-                  <div className="sm:col-span-2"><Label>Região</Label>
-                    <Select value={form.region_id} onValueChange={(v) => setForm({ ...form, region_id: v, tour_route_id: "" })}>
-                      <SelectTrigger><SelectValue placeholder="Selecionar região" /></SelectTrigger>
-                      <SelectContent>{regions.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="sm:col-span-2"><Label>Roteiro</Label>
-                    <Select value={form.tour_route_id} onValueChange={(v) => setForm({ ...form, tour_route_id: v })} disabled={!form.region_id}>
-                      <SelectTrigger><SelectValue placeholder={form.region_id ? "Selecionar roteiro" : "Escolha a região primeiro"} /></SelectTrigger>
-                      <SelectContent>{regionRoutes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </>)}
+                )}
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
 
@@ -323,7 +311,6 @@ function Propostas() {
                       if (idx >= 0) list[idx] = { ...list[idx], deleted: true };
                       setForm({ ...form, itinerary: list });
                     };
-                    const selectedRoute = (tourRoutes as any[]).find((r) => r.id === form.tour_route_id);
                     const custom = (d.mode ?? "sugestao") === "personalizado";
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
@@ -334,15 +321,20 @@ function Propostas() {
                             </div>
                             <div><Label className="text-xs">Roteiro do dia</Label>
                               <Select
-                                value={custom ? "outros" : (d.tour_route_id || form.tour_route_id || "")}
+                                value={custom ? "outros" : (d.tour_route_id || "")}
                                 onValueChange={(v) => {
-                                  if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "" });
-                                  patch({ mode: "sugestao", region_id: form.region_id, tour_route_id: v, text: selectedRoute?.name ?? d.text });
+                                  if (v === "outros") return patch({ mode: "personalizado", tour_route_id: "", region_id: "" });
+                                  const r = (tourRoutes as any[]).find((x) => x.id === v);
+                                  patch({ mode: "sugestao", region_id: r?.region_id ?? "", tour_route_id: v, text: r?.name ?? "" });
                                 }}
                               >
-                                <SelectTrigger><SelectValue placeholder={selectedRoute ? selectedRoute.name : "Escolha o roteiro acima"} /></SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Selecionar roteiro" /></SelectTrigger>
                                 <SelectContent>
-                                  {selectedRoute && <SelectItem value={selectedRoute.id}>{selectedRoute.name}</SelectItem>}
+                                  {(tourRoutes as any[]).map((r: any) => (
+                                    <SelectItem key={r.id} value={r.id}>
+                                      {[(regions as any[]).find((g: any) => g.id === r.region_id)?.name, r.name].filter(Boolean).join(" · ")}
+                                    </SelectItem>
+                                  ))}
                                   <SelectItem value="outros">Outros (personalizar)</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -358,6 +350,24 @@ function Propostas() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {(form.itinerary ?? []).filter((d: ItineraryDay) => d.deleted).length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-xs text-muted-foreground">Dias eliminados — clique em + para repor</div>
+                  {(form.itinerary as ItineraryDay[]).map((d, idx) => ({ d, idx })).filter(({ d }) => d.deleted).map(({ d, idx }) => (
+                    <div key={`del-${d.date}-${idx}`} className="flex items-center justify-between gap-2 rounded-md border border-dashed p-2 text-sm">
+                      <span className="text-muted-foreground">{fmtDate(d.date)}</span>
+                      <Button size="icon" variant="ghost" title="Repor dia" onClick={() => {
+                        const list = [...(form.itinerary as ItineraryDay[])];
+                        list[idx] = { ...list[idx], deleted: false };
+                        setForm({ ...form, itinerary: list });
+                      }}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
 
