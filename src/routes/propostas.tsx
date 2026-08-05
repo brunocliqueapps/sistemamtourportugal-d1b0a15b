@@ -17,7 +17,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { buildDays, daysBetween, type ItineraryDay } from "@/lib/payment-terms";
+
 import { generateProposalPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
@@ -45,8 +47,10 @@ function Propostas() {
   const { user } = useAuth();
   const { isAdmin } = usePermissions();
   const qc = useQueryClient();
+  const { setHasUnsavedChanges } = useUnsavedChanges();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+
   
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
@@ -70,7 +74,9 @@ function Propostas() {
   const days = daysBetween(form.itinerary_start, form.itinerary_end);
 
   function pickClient(id: string) {
+    setHasUnsavedChanges(true);
     const c: any = clients.find((x: any) => x.id === id);
+
     // O lead de origem costuma ter os dados de passageiros/viagem preenchidos
     const l: any = c?.lead_id ? (leads as any[]).find((x: any) => x.id === c.lead_id) : null;
     const pick = (k: string) => c?.[k] ?? l?.[k] ?? null;
@@ -94,7 +100,9 @@ function Propostas() {
 
 
   function setRange(patch: any) {
+    setHasUnsavedChanges(true);
     setForm((f: any) => {
+
       const next = { ...f, ...patch };
       const list = buildDays(next.itinerary_start, next.itinerary_end, f.itinerary ?? []);
       const n = daysBetween(next.itinerary_start, next.itinerary_end);
@@ -147,7 +155,7 @@ function Propostas() {
     onSuccess: async () => {
       toast.success(editing ? "Proposta atualizada" : "Proposta gerada");
       qc.invalidateQueries({ queryKey: ["proposals"] });
-      setOpen(false); setEditing(null); setForm(empty);
+      setOpen(false); setEditing(null); setForm(empty); setHasUnsavedChanges(false);
     },
 
     onError: (e: any) => toast.error(e.message),
@@ -165,7 +173,7 @@ function Propostas() {
 
 
 
-  function openNew() { setEditing(null); setForm(empty); setOpen(true); }
+  function openNew() { setEditing(null); setForm(empty); setOpen(true); setHasUnsavedChanges(false); }
   function openEdit(p: any) {
     setEditing(p);
     setForm({
@@ -181,7 +189,7 @@ function Propostas() {
       descriptive_service: p.private_service_text ?? "",
       descriptive: p.descriptive ?? "",
     });
-    setOpen(true);
+    setOpen(true); setHasUnsavedChanges(false);
   }
 
 
@@ -239,7 +247,13 @@ function Propostas() {
         </Table>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => {
+        if (!v && useUnsavedChanges().hasUnsavedChanges) {
+          if (!confirm("Tem alterações não guardadas. Deseja sair?")) return;
+        }
+        setOpen(v);
+        if (!v) setHasUnsavedChanges(false);
+      }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar Proposta" : "Roteiro Personalizado"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
