@@ -139,13 +139,13 @@ function TVDE() {
     mutationFn: async () => {
       const kmFinal = close.km_final ? Number(close.km_final) : null;
       const closedAt = new Date().toISOString();
-      const { error } = await supabase.from("tvde_shifts").update({
+      const { error } = await (supabase.from("tvde_shifts" as any).update({
         end_time: closedAt,
         km_final: kmFinal,
         closed_at: closedAt,
         closed_by: user!.id,
-        notes: [shift!.notes, close.notes && `Acerto: ${close.notes}`, `Motorista %: ${close.driver_pct}%`].filter(Boolean).join(" · "),
-      }).eq("id", shift!.id);
+        notes: [(shift as any)!.notes, close.notes && `Acerto: ${close.notes}`, `Motorista %: ${close.driver_pct}%`].filter(Boolean).join(" · "),
+      } as any) as any).eq("id", (shift as any)!.id);
       if (error) throw error;
 
       // Lançamentos automáticos no financeiro (Conta Corrente):
