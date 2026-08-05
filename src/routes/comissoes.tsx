@@ -27,13 +27,13 @@ function Comissoes() {
   const { data: rows = [] } = useQuery({
     queryKey: ["weekly-result", week],
     queryFn: async () =>
-      (await supabase.from("v_weekly_vehicle_result").select("*").eq("week_start", week)).data ?? [],
+      (await supabase.from("v_weekly_vehicle_result" as any).select("*").eq("week_start", week)).data ?? [],
   });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["veh-comm"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company,rental_weekly_cost")).data ?? [] });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drv-comm"], queryFn: async () => (await supabase.from("drivers").select("id,full_name,commission_pct")).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["veh-comm"], queryFn: async () => (await supabase.from("vehicles" as any).select("id,plate,brand,model,usage_type,owner_company,rental_weekly_cost")).data ?? [] });
+  const { data: drivers = [] } = useQuery({ queryKey: ["drv-comm"], queryFn: async () => (await supabase.from("drivers" as any).select("id,full_name,commission_pct")).data ?? [] });
   const { data: settled = [] } = useQuery({
     queryKey: ["settlements", week],
-    queryFn: async () => (await supabase.from("commission_settlements").select("*").eq("week_start", week)).data ?? [],
+    queryFn: async () => (await supabase.from("commission_settlements" as any).select("*").eq("week_start", week)).data ?? [],
   });
 
   const computed = rows.map((r: any) => {
@@ -60,8 +60,8 @@ function Comissoes() {
         paid: true, paid_at: new Date().toISOString(),
       };
       const { error } = row.existingId
-        ? await supabase.from("commission_settlements").update(payload).eq("id", row.existingId)
-        : await supabase.from("commission_settlements").insert(payload);
+        ? await supabase.from("commission_settlements" as any).update(payload as any).eq("id", row.existingId)
+        : await supabase.from("commission_settlements" as any).insert(payload as any);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Comissão liquidada"); qc.invalidateQueries({ queryKey: ["settlements"] }); },
