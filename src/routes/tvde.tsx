@@ -151,8 +151,8 @@ function TVDE() {
       // Lançamentos automáticos no financeiro (Conta Corrente):
       // 1) Entrada: líquido de plataformas (bruto - comissões - retenções)
       if (netPlat > 0) {
-        const { data: existing } = await supabase.from("cash_movements")
-          .select("id").eq("tvde_shift_id", shift!.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+        const { data: existing } = await (supabase.from("cash_movements" as any)
+          .select("id") as any).eq("tvde_shift_id", (shift as any)!.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
         if (!existing || existing.length === 0) {
           await supabase.from("cash_movements").insert({
             kind: "entrada", amount: Number(netPlat.toFixed(2)),
