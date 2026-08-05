@@ -109,12 +109,57 @@ function Voucher() {
               <Table>
                 <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {p.itinerary.map((d: any, i: number) => (
-                    <TableRow key={i}><TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
-                  ))}
+                  {p.itinerary.map((d: any, i: number) => {
+                    const dayNotes = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
+                    const currentNote = dayNotes.find((n: any) => n.date === d.date)?.note || "";
+                    
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="align-top">
+                          <div className="font-mono text-xs">{fmtDate(d.date)}</div>
+                        </TableCell>
+                        <TableCell className="space-y-3">
+                          <div className="whitespace-pre-wrap text-sm">{d.text || "—"}</div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Orientações para este dia</Label>
+                            <Textarea 
+                              placeholder="Escreva orientações específicas para este dia..."
+                              value={currentNote}
+                              className="min-h-[80px] text-sm"
+                              onChange={(e) => {
+                                const newNote = e.target.value;
+                                setHasUnsavedChanges(true);
+                                const newDayNotes = [...dayNotes];
+                                const idx = newDayNotes.findIndex((n: any) => n.date === d.date);
+                                if (idx >= 0) {
+                                  newDayNotes[idx] = { ...newDayNotes[idx], note: newNote };
+                                } else {
+                                  newDayNotes.push({ date: d.date, note: newNote });
+                                }
+                                // We update the local object directly for UI responsiveness
+                                p.voucher_day_notes = newDayNotes;
+                              }}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
+
+            <div className="space-y-2 mt-4">
+              <Label>Nota Final</Label>
+              <Textarea 
+                placeholder="Escrita final para o voucher..."
+                value={p.voucher_final_note || ""}
+                onChange={(e) => {
+                  setHasUnsavedChanges(true);
+                  p.voucher_final_note = e.target.value;
+                }}
+              />
+            </div>
 
 
             <div className="flex flex-wrap justify-end gap-2">
@@ -122,12 +167,16 @@ function Voucher() {
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
               <Button className="gradient-gold text-gold-foreground" onClick={async () => {
-                const { error } = await supabase.from("proposals").update({ voucher_validated_at: new Date().toISOString() }).eq("id", p.id);
+                const { error } = await supabase.from("proposals").update({ 
+                  voucher_validated_at: new Date().toISOString(),
+                  voucher_final_note: p.voucher_final_note,
+                  voucher_day_notes: p.voucher_day_notes
+                }).eq("id", p.id);
                 if (error) return toast.error(error.message);
-                toast.success("Voucher validado");
+                toast.success("Voucher guardado e validado");
                 setHasUnsavedChanges(false);
                 refetchValidated();
-              }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
+              }}><Check className="h-4 w-4 mr-1" /> Guardar e Validar Voucher</Button>
             </div>
           </>
         )}

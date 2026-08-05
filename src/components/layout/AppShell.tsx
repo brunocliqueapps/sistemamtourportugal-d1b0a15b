@@ -27,8 +27,8 @@ const groups: Group[] = [
     { to: "/orcamento", label: "Orçamento", icon: Calculator, module: "propostas" },
   ]},
   { label: "Operação", items: [
-    { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
     { to: "/voucher", label: "Voucher", icon: FileText, module: "voucher" },
+    { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
     { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
   ]},
   { label: "Logística", items: [
