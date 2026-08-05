@@ -434,6 +434,27 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          module: string
+          role: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          module: string
+          role: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          module?: string
+          role?: string
+        }
+        Relationships: []
+      }
       service_orders: {
         Row: {
           code: string | null
@@ -452,6 +473,27 @@ export type Database = {
           created_at?: string | null
           id?: string
           status?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
