@@ -35,7 +35,11 @@ export const Route = createFileRoute("/orcamento")({
 const today = () => new Date().toISOString().slice(0, 10);
 
 type Stage = { label: string; pct: any };
-const DEFAULT_STAGES: Stage[] = [{ label: "Aprovação da Proposta", pct: 40 }, { label: "Final do Serviço", pct: 60 }];
+const DEFAULT_STAGES: Stage[] = [
+  { label: "Aprovação da Proposta", pct: 30 },
+  { label: "Pagamento Inicial", pct: 50 },
+  { label: "Final do Serviço", pct: 20 }
+];
 
 function Orcamento() {
   const [selected, setSelected] = useState<string>("");
