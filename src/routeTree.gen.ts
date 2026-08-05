@@ -23,7 +23,6 @@ import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as FechamentoRouteImport } from './routes/fechamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CustosFixosRouteImport } from './routes/custos-fixos'
-import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ContaCorrenteRouteImport } from './routes/conta-corrente'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ComissoesRouteImport } from './routes/comissoes'
@@ -105,11 +104,6 @@ const CustosFixosRoute = CustosFixosRouteImport.update({
   path: '/custos-fixos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CrmRoute = CrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ContaCorrenteRoute = ContaCorrenteRouteImport.update({
   id: '/conta-corrente',
   path: '/conta-corrente',
@@ -170,7 +164,6 @@ export interface FileRoutesByFullPath {
   '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
-  '/crm': typeof CrmRoute
   '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
@@ -197,7 +190,6 @@ export interface FileRoutesByTo {
   '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
-  '/crm': typeof CrmRoute
   '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
@@ -225,7 +217,6 @@ export interface FileRoutesById {
   '/comissoes': typeof ComissoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conta-corrente': typeof ContaCorrenteRoute
-  '/crm': typeof CrmRoute
   '/custos-fixos': typeof CustosFixosRoute
   '/dashboard': typeof DashboardRoute
   '/fechamento': typeof FechamentoRoute
@@ -254,7 +245,6 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
-    | '/crm'
     | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
@@ -281,7 +271,6 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
-    | '/crm'
     | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
@@ -308,7 +297,6 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/configuracoes'
     | '/conta-corrente'
-    | '/crm'
     | '/custos-fixos'
     | '/dashboard'
     | '/fechamento'
@@ -336,7 +324,6 @@ export interface RootRouteChildren {
   ComissoesRoute: typeof ComissoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContaCorrenteRoute: typeof ContaCorrenteRoute
-  CrmRoute: typeof CrmRoute
   CustosFixosRoute: typeof CustosFixosRoute
   DashboardRoute: typeof DashboardRoute
   FechamentoRoute: typeof FechamentoRoute
@@ -454,13 +441,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustosFixosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/crm': {
-      id: '/crm'
-      path: '/crm'
-      fullPath: '/crm'
-      preLoaderRoute: typeof CrmRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/conta-corrente': {
       id: '/conta-corrente'
       path: '/conta-corrente'
@@ -553,7 +533,6 @@ const rootRouteChildren: RootRouteChildren = {
   ComissoesRoute: ComissoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContaCorrenteRoute: ContaCorrenteRoute,
-  CrmRoute: CrmRoute,
   CustosFixosRoute: CustosFixosRoute,
   DashboardRoute: DashboardRoute,
   FechamentoRoute: FechamentoRoute,
@@ -573,13 +552,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
