@@ -381,17 +381,21 @@ function Propostas() {
 
 
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            {editing?.id && (
-              <Button variant="outline" onClick={() => generateProposalPdf(editing.id).catch((e: any) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex-1 text-xs text-muted-foreground hidden sm:block">
+              Clique em Guardar para não perder as informações registadas.
+            </div>
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              {editing?.id && (
+                <Button variant="outline" onClick={() => generateProposalPdf(editing.id).catch((e: any) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> PDF
+                </Button>
+              )}
+              <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!form.client_id || save.isPending}>
+                Guardar
               </Button>
-            )}
-            <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!form.client_id || save.isPending}>
-              {editing ? "Atualizar proposta" : "Gerar proposta"}
-            </Button>
-
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
