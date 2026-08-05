@@ -199,7 +199,10 @@ export async function generateBudgetPdf(id: string) {
       p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
       String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
     ]],
-    styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 18;
 
@@ -255,7 +258,10 @@ export async function generateServiceOrderPdf(id: string) {
       fmtDate(s.proposals?.itinerary_start ?? s.service_date) || "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
       s.vehicles ? `${s.vehicles.plate}${s.vehicles.owner_company ? " — " + s.vehicles.owner_company : ""}` : "—",
     ]],
-    styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 18;
   if (s.proposals) y = itineraryBlock(doc, s.proposals, y, "Serviço contratado");
