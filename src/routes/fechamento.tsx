@@ -80,7 +80,7 @@ function Fechamento() {
         irc_taxable_base_est: ircBase, irc_estimate: ircEst,
         irc_payments_on_account: payAcc, irc_withholdings: withhold, irc_balance_est: ircBalance,
       };
-      const { error } = await supabase.from("monthly_closings").upsert(payload, { onConflict: "period" });
+      const { error } = await supabase.from("monthly_closings" as any).upsert(payload as any, { onConflict: "period" });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Fechamento gravado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
