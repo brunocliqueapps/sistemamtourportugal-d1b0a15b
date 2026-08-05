@@ -61,7 +61,7 @@ function ContaCorrente() {
         if (error) throw error;
       } else {
         payload.created_by = user!.id;
-        const { error } = await supabase.from("cash_movements").insert(payload);
+        const { error } = await supabase.from("cash_movements" as any).insert(payload as any);
         if (error) throw error;
       }
     },
