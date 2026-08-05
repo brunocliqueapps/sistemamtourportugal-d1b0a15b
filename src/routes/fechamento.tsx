@@ -38,9 +38,9 @@ function Fechamento() {
       const [invR, cmR, prevR, currR] = await Promise.all([
         supabase.from("invoices").select("kind,total,value_ex_vat,vat_amount,vat_deductible,vat_non_deductible,issue_date")
           .gte("issue_date", from).lte("issue_date", to),
-        supabase.from("cash_movements").select("kind,amount,movement_date").gte("movement_date", from).lte("movement_date", to),
-        supabase.from("monthly_closings").select("*").lt("period", from).order("period", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("monthly_closings").select("*").eq("period", from).maybeSingle(),
+        (supabase.from("cash_movements" as any).select("kind,amount,movement_date").gte("movement_date", from).lte("movement_date", to) as any),
+        (supabase.from("monthly_closings" as any).select("*").lt("period", from).order("period", { ascending: false }).limit(1).maybeSingle() as any),
+        (supabase.from("monthly_closings" as any).select("*").eq("period", from).maybeSingle() as any),
       ]);
       return { inv: invR.data ?? [], cm: cmR.data ?? [], prev: prevR.data, curr: currR.data };
     },
