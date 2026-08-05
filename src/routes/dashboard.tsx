@@ -68,7 +68,7 @@ function Dashboard() {
   });
 
   const revenueByMonth = Object.entries(
-    inv.filter((i: any) => i.kind === "entrada").reduce<Record<string, number>>((acc: Record<string, number>, i: any) => {
+    inv.filter((i: any) => i.kind === "entrada").reduce((acc: Record<string, number>, i: any) => {
       const k = (i.issue_date || "").slice(0, 7);
       if (k) acc[k] = (acc[k] || 0) + Number(i.total || 0);
       return acc;
