@@ -118,8 +118,8 @@ function Financeiro() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("cash_movements").delete().eq("invoice_id", id);
-      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      await supabase.from("cash_movements" as any).delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Fatura removida"); qc.invalidateQueries({ queryKey: ["invoices"] }); },
