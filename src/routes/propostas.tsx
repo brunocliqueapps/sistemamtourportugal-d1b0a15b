@@ -36,9 +36,10 @@ const empty: any = {
 };
 
 const KINDS = [
-  { code: "roteiro_personalizado", label: "Roteiro Personalizado" },
-  { code: "servico_privado", label: "Serviço Privado" },
+  { code: "roteiro_personalizado", label: "Sugestão Roteiro Mtour" },
+  { code: "servico_privado", label: "Roteiro Personalizado Mtour" },
 ];
+
 
 function Propostas() {
   const { user } = useAuth();
