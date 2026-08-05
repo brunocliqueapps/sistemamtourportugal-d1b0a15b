@@ -138,13 +138,13 @@ function Orcamento() {
     if (status === "aprovado") { patch.budget_approved_at = when; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
     if (status === "analise") { patch.budget_analysis_at = when; patch.budget_analysis_info = analysisInfo; patch.budget_validated_at = null; patch.status = "enviada"; }
     if (status === "recusado") { patch.budget_refused_at = when; patch.budget_refusal_reason = refusal; patch.budget_validated_at = null; patch.status = "rejeitada"; }
-    const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
+    const { error } = await supabase.from("proposals" as any).update(patch as any).eq("id", p.id);
     if (error) return toast.error(error.message);
     if (status === "aprovado") {
       // Gera automaticamente a Ordem de Serviço / Voucher (sem campos a preencher)
-      const { data: existingSo } = await supabase.from("service_orders").select("id").eq("proposal_id", p.id).maybeSingle();
+      const { data: existingSo } = await (supabase.from("service_orders" as any).select("id") as any).eq("proposal_id", p.id).maybeSingle();
       if (!existingSo) {
-        const { error: soErr } = await supabase.from("service_orders").insert({
+        const { error: soErr } = await supabase.from("service_orders" as any).insert({
           proposal_id: p.id,
           client_id: p.client_id,
           sale_value: total,
@@ -154,27 +154,27 @@ function Orcamento() {
           destination: p.departure_place ?? null,
           payment_terms: stageTerms() || terms || p.payment_terms || null,
           status: "agendado",
-        });
+        } as any);
         if (soErr) toast.error(`OS: ${soErr.message}`);
       }
-      await supabase.from("proposals").update({ status: "convertida", approved_at: when }).eq("id", p.id);
+      await supabase.from("proposals" as any).update({ status: "convertida", approved_at: when } as any).eq("id", p.id);
       // Lança automaticamente na conta corrente como entrada
-      const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
+      const { data: existing } = await (supabase.from("cash_movements" as any).select("id") as any).eq("proposal_id", p.id).maybeSingle();
       const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
         .filter(Boolean).join(" · ");
       const mvPayload: any = { movement_date: when.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
       const { error: mvErr } = existing
-        ? await supabase.from("cash_movements").update(mvPayload).eq("id", existing.id)
-        : await supabase.from("cash_movements").insert(mvPayload);
+        ? await supabase.from("cash_movements" as any).update(mvPayload).eq("id", existing.id)
+        : await supabase.from("cash_movements" as any).insert(mvPayload);
       if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
     } else {
       // Reverte o lançamento automático e a OS gerada se deixou de estar aprovado
-      await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
-      await supabase.from("service_orders").delete().eq("proposal_id", p.id);
+      await (supabase.from("cash_movements" as any).delete() as any).eq("proposal_id", p.id);
+      await (supabase.from("service_orders" as any).delete() as any).eq("proposal_id", p.id);
     }
 
-    if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
-    else await supabase.from("proposal_followups").update({ done: false }).eq("proposal_id", p.id);
+    if (status !== "analise") await supabase.from("proposal_followups" as any).update({ done: true } as any).eq("proposal_id", p.id);
+    else await supabase.from("proposal_followups" as any).update({ done: false } as any).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado — OS/Voucher gerados e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
     setAction("");
