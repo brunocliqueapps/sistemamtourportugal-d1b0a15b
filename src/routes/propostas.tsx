@@ -191,7 +191,6 @@ function Propostas() {
     ? (props as any[]).filter((p: any) => [p.code, p.clients?.client_number, p.clients?.name, p.leads?.name, p.clients?.email]
         .some((v: any) => String(v ?? "").toLowerCase().includes(q)))
     : (props as any[]);
-  const regionRoutes = (tourRoutes as any[]).filter((r) => r.region_id === form.region_id);
 
 
   return (
@@ -281,8 +280,8 @@ function Propostas() {
                   <Select value={form.proposal_kind} onValueChange={(v) => setForm({ ...form, proposal_kind: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="roteiro_personalizado">Sugestão Roteiro Mtour</SelectItem>
-                      <SelectItem value="servico_privado">Roteiro Personalizado Mtour</SelectItem>
+                      <SelectItem value="roteiro_personalizado">Roteiro Personalizado Mtour</SelectItem>
+                      <SelectItem value="servico_privado">Serviço Privado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
