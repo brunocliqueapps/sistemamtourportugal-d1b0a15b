@@ -209,7 +209,7 @@ function Orcamento() {
               setSelected(v);
               const pr: any = props.find((x: any) => x.id === v);
               setValue(String(pr?.total_value ?? 0));
-              setTerms(pr?.payment_terms ?? suggestPaymentTerms(pr?.days_count ?? 1));
+              setTerms(pr?.payment_terms ?? "");
               setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
                 ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
                 : DEFAULT_STAGES);
