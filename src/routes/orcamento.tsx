@@ -194,7 +194,7 @@ function Orcamento() {
               <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-1">
                 <span>{f.due_date} · {shortCode(f.proposals?.code)} · {f.proposals?.clients?.name ?? "—"}</span>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  await supabase.from("proposal_followups").update({ done: true }).eq("id", f.id);
+                  await supabase.from("proposal_followups" as any).update({ done: true } as any).eq("id", f.id);
                   refetchFollowups();
                 }}>Marcar tratado</Button>
               </div>
