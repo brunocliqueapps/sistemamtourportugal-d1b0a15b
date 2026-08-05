@@ -74,13 +74,13 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("surveys").update({
+      const { error } = await supabase.from("surveys" as any).update({
         client_name: editing.client_name,
         client_email: editing.client_email,
         status: editing.status,
         average_score: editing.average_score ? Number(editing.average_score) : null,
         nps_score: editing.nps_score !== "" && editing.nps_score != null ? Number(editing.nps_score) : null,
-      }).eq("id", editing.id);
+      } as any).eq("id", editing.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pesquisa atualizada"); setEditing(null); qc.invalidateQueries({ queryKey: ["surveys"] }); },
