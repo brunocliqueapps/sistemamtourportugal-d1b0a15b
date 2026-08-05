@@ -18,10 +18,10 @@ function PesquisaPublica() {
 
   useEffect(() => {
     (async () => {
-      const { data: s } = await supabase.from("surveys").select("*").eq("token", token).maybeSingle();
-      setSurvey(s);
-      if (s?.template_id) {
-        const { data: t } = await supabase.from("survey_templates").select("*").eq("id", s.template_id).maybeSingle();
+      const { data: s } = await (supabase.from("surveys" as any).select("*") as any).eq("token", token).maybeSingle();
+      setSurvey(s as any);
+      if ((s as any)?.template_id) {
+        const { data: t } = await (supabase.from("survey_templates" as any).select("*") as any).eq("id", (s as any).template_id).maybeSingle();
         setTemplate(t);
       }
       setDone(s?.status === "respondido");
