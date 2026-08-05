@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileDown, Check } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
@@ -53,6 +53,16 @@ function Voucher() {
 
   const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
+  const [localNotes, setLocalNotes] = useState<any[]>([]);
+  const [localFinalNote, setLocalFinalNote] = useState("");
+
+  useEffect(() => {
+    if (p) {
+      setLocalNotes(Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : []);
+      setLocalFinalNote(p.voucher_final_note || "");
+    }
+  }, [p]);
+
   const filteredClients = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return clients as any[];
@@ -170,8 +180,8 @@ function Voucher() {
               <Button className="gradient-gold text-gold-foreground" onClick={async () => {
                 const { error } = await supabase.from("proposals").update({ 
                   voucher_validated_at: new Date().toISOString(),
-                  voucher_final_note: p.voucher_final_note,
-                  voucher_day_notes: p.voucher_day_notes
+                  voucher_final_note: localFinalNote,
+                  voucher_day_notes: localNotes
                 }).eq("id", p.id);
                 if (error) return toast.error(error.message);
                 toast.success("Voucher guardado e validado");
