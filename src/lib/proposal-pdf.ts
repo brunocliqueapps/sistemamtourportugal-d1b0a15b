@@ -176,9 +176,26 @@ export async function generateProposalPdf(id: string) {
     doc.splitTextToSize(p.descriptive, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { doc.text(l, 40, y); y += 12; });
     y += 6;
   }
-  doc.setFont("helvetica", "bold").setFontSize(12);
+
+  // Condições Gerais da Empresa
+  const { data: company } = await supabase.from("company_settings").select("proposal_general_conditions").maybeSingle();
+  if (company?.proposal_general_conditions) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Condições Gerais", 40, y); y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+    doc.splitTextToSize(company.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+      if (y > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.text(l, 40, y); y += 12; 
+    });
+    y += 10;
+  }
+
+  doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
   doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
-  doc.setFont("helvetica", "normal").setFontSize(10);
+  doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
   doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y);
   doc.save(`Proposta-${p.code ?? p.id}.pdf`);
 }
@@ -239,8 +256,71 @@ export async function generateVoucherPdf(id: string) {
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
   y += 8;
   y = travelBlock(doc, p, y);
-  // O voucher é apenas para o cliente: sem valores nem observações de venda.
+  
+  // No voucher, acrescentar também tudo que tem em Orçamento, inclusive os valores e formas de pagamento.
   y = itineraryBlock(doc, p, y, "Serviço contratado");
+
+  // Adicionar orientações diárias se houver
+  const dayNotes: any[] = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
+  if (dayNotes.length > 0) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Orientações Importantes", 40, y); y += 14;
+    dayNotes.forEach((dn) => {
+      if (dn.note && dn.note.trim()) {
+        doc.setFont("helvetica", "bold").setFontSize(9);
+        doc.text(`${fmtDate(dn.date)}:`, 40, y);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(dn.note, doc.internal.pageSize.getWidth() - 120);
+        doc.text(lines, 110, y);
+        y += (lines.length * 12) + 6;
+      }
+    });
+    y += 10;
+  }
+
+  // Tabela de Valores e Etapas (Igual ao Orçamento)
+  const days = p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1;
+  autoTable(doc, {
+    startY: y,
+    head: [["Descrição", "Dias", "Pessoas", "Total (€)"]],
+    body: [[
+      p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
+      String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
+    ]],
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
+    margin: { left: 40, right: 40 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 18;
+
+  doc.setFont("helvetica", "bold").setFontSize(11);
+  doc.text("Forma de Pagamento", 40, y); y += 6;
+  const stages: any[] = Array.isArray(p.payment_stages) && p.payment_stages.length
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    : paymentSchedule(days || 1, p.total_value);
+  autoTable(doc, {
+    startY: y,
+    head: [["Etapa", "%", "Valor (€)"]],
+    body: stages.map((s) => [s.label, `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
+    alternateRowStyles: { fillColor: [255, 252, 245] },
+    margin: { left: 40, right: 40 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 16;
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  if (p.payment_terms) doc.text(p.payment_terms, 40, y);
+  y += 20;
+
+  if (p.voucher_final_note) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Nota Final", 40, y); y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(10);
+    doc.splitTextToSize(p.voucher_final_note, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+      doc.text(l, 40, y); y += 12; 
+    });
+  }
+
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
 }
 

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -122,6 +123,15 @@ function CompanyForm() {
         {F("instagram_qr_url","Instagram QR Code (URL)")}
         {F("instagram_url","Instagram (URL)")}{F("facebook_url","Facebook (URL)")}
         <div className="md:col-span-2">{F("invoice_footer","Rodapé da fatura")}</div>
+        <div className="md:col-span-2">
+          <Label>Condições Gerais (Proposta Comercial)</Label>
+          <Textarea 
+            value={f.proposal_general_conditions ?? ""} 
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setF({ ...f, proposal_general_conditions: e.target.value })} 
+            rows={4}
+            placeholder="Texto de condições gerais que irá abaixo de tudo na proposta comercial..."
+          />
+        </div>
       </div>
 
       <div className="mt-4"><Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>Guardar</Button></div>
