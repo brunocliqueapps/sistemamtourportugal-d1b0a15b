@@ -43,7 +43,7 @@ function PosVenda() {
 }
 
 function useSurveys() {
-  return useQuery({ queryKey: ["surveys"], queryFn: async () => (await supabase.from("surveys").select("*").order("created_at",{ascending:false})).data ?? [] });
+  return useQuery({ queryKey: ["surveys"], queryFn: async () => (await (supabase.from("surveys" as any).select("*") as any).order("created_at",{ascending:false})).data ?? [] });
 }
 
 function ResultsPanel() {
