@@ -478,22 +478,22 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
   const { data: pm = [] } = useQuery({
     queryKey: ["pm-fin"],
     enabled: open,
-    queryFn: async () => (await supabase.from("payment_methods").select("id,name").eq("active", true)).data ?? [],
+    queryFn: async () => (await (supabase.from("payment_methods" as any).select("id,name") as any).eq("active", true)).data ?? [],
   });
   const { data: cc = [] } = useQuery({
     queryKey: ["cc-fin"],
     enabled: open,
-    queryFn: async () => (await supabase.from("cost_centers").select("id,name").eq("active", true)).data ?? [],
+    queryFn: async () => (await (supabase.from("cost_centers" as any).select("id,name") as any).eq("active", true)).data ?? [],
   });
   const { data: vehiclesList = [] } = useQuery({
     queryKey: ["veh-list"],
     enabled: open,
-    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
+    queryFn: async () => (await (supabase.from("vehicles" as any).select("id,plate,brand,model") as any).order("plate")).data ?? [],
   });
   const { data: profilesList = [] } = useQuery({
     queryKey: ["prof-list"],
     enabled: open,
-    queryFn: async () => (await supabase.from("profiles").select("id,full_name,email").order("full_name")).data ?? [],
+    queryFn: async () => (await (supabase.from("profiles" as any).select("id,full_name,email") as any).order("full_name")).data ?? [],
   });
   const { data: existingExpenses = [] } = useQuery({
     queryKey: ["so-exp", service.id],
