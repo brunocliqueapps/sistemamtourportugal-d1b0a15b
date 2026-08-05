@@ -337,8 +337,8 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ["priv-shifts", from, to],
-    queryFn: async () => (await supabase.from("tvde_shifts")
-      .select("*, drivers(full_name), vehicles(plate)")
+    queryFn: async () => (await (supabase.from("tvde_shifts" as any)
+      .select("*, drivers(full_name), vehicles(plate)") as any)
       .eq("operation_type", "privado")
       .gte("shift_date", from).lte("shift_date", to)
       .order("shift_date", { ascending: false })).data ?? [],
