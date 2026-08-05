@@ -40,8 +40,8 @@ function ServicosPrivados() {
   const { data: services = [] } = useQuery({
     queryKey: ["priv-services", from, to, status],
     queryFn: async () => {
-      let q = supabase.from("service_orders")
-        .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)")
+      let q = (supabase.from("service_orders" as any)
+        .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)") as any)
         .or("operation_type.eq.privado,operation_type.is.null")
         .gte("service_date", from).lte("service_date", to)
         .order("service_date", { ascending: false }).order("start_time");
