@@ -68,7 +68,7 @@ function TVDE() {
   });
 
   const delEarn = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("tvde_earnings").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await (supabase.from("tvde_earnings" as any).delete() as any).eq("id", id); if (error) throw error; },
     onSuccess: () => qc.invalidateQueries(),
   });
 
