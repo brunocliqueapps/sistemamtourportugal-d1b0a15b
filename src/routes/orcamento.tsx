@@ -91,7 +91,7 @@ function Orcamento() {
         }
       }
       if (!rows.length) return;
-      await supabase.from("proposal_followups").upsert(rows, { onConflict: "proposal_id,due_date", ignoreDuplicates: true });
+      await supabase.from("proposal_followups" as any).upsert(rows as any, { onConflict: "proposal_id,due_date", ignoreDuplicates: true } as any);
       refetchFollowups();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
