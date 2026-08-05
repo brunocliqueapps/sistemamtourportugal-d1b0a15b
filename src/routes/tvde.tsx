@@ -84,13 +84,13 @@ function TVDE() {
       if (error) throw error;
       // Só lança no financeiro se paga pela empresa (não pelo motorista)
       if (!exp.paid_by_driver) {
-        await supabase.from("cash_movements").insert({
+        await (supabase.from("cash_movements" as any).insert({
           kind: "saida", amount: Number(exp.amount),
-          tvde_shift_id: shift!.id, service_expense_id: data.id,
+          tvde_shift_id: (shift as any)!.id, service_expense_id: (data as any).id,
           payment_method_id: exp.payment_method_id || null,
           description: `TVDE · ${exp.category}${exp.description ? " · " + exp.description : ""}`,
           created_by: user!.id,
-        });
+        } as any) as any);
       }
     },
     onSuccess: () => { toast.success("Despesa registada"); qc.invalidateQueries(); setExp(EMPTY_EXP); },
