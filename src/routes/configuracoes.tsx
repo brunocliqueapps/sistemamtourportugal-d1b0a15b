@@ -228,7 +228,7 @@ function UsersPanel() {
         <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
         <TableBody>
           {profiles.map((p: any) => {
-            const cur = userRoles.find((r: any) => r.user_id === p.id)?.role ?? "";
+            const cur = (userRoles as any[]).find((r: any) => r.user_id === p.id)?.role ?? "";
             return (
               <TableRow key={p.id}>
                 <TableCell>{p.name ?? "—"}</TableCell>
