@@ -88,7 +88,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys" as any).delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["surveys"] }); },
     onError: (e: any) => toast.error(e.message),
   });
