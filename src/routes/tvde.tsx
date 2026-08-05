@@ -28,10 +28,10 @@ function TVDE() {
   const { data: shift } = useQuery({
     queryKey: ["tvde-shift"],
     queryFn: async () =>
-      (await supabase.from("tvde_shifts")
-        .select("*, vehicles(plate), drivers(full_name)")
+      (await (supabase.from("tvde_shifts" as any)
+        .select("*, vehicles(plate), drivers(full_name)") as any)
         .eq("operation_type", "tvde").is("closed_at", null)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle()).data,
+        .order("created_at", { ascending: false }).limit(1).maybeSingle() as any).data,
   });
 
   const { data: earnings = [] } = useQuery({
