@@ -121,8 +121,7 @@ function Voucher() {
                 <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {p.itinerary.map((d: any, i: number) => {
-                    const dayNotes = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
-                    const currentNote = dayNotes.find((n: any) => n.date === d.date)?.note || "";
+                    const currentNote = localNotes.find((n: any) => n.date === d.date)?.note || "";
                     
                     return (
                       <TableRow key={i}>
@@ -140,15 +139,13 @@ function Voucher() {
                               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                                 const newNote = e.target.value;
                                 setHasUnsavedChanges(true);
-                                const newDayNotes = [...dayNotes];
-                                const idx = newDayNotes.findIndex((n: any) => n.date === d.date);
-                                if (idx >= 0) {
-                                  newDayNotes[idx] = { ...newDayNotes[idx], note: newNote };
-                                } else {
-                                  newDayNotes.push({ date: d.date, note: newNote });
-                                }
-                                // We update the local object directly for UI responsiveness
-                                p.voucher_day_notes = newDayNotes;
+                                setLocalNotes(prev => {
+                                  const next = [...prev];
+                                  const idx = next.findIndex((n: any) => n.date === d.date);
+                                  if (idx >= 0) next[idx] = { ...next[idx], note: newNote };
+                                  else next.push({ date: d.date, note: newNote });
+                                  return next;
+                                });
                               }}
                             />
                           </div>
@@ -164,10 +161,10 @@ function Voucher() {
               <Label>Nota Final</Label>
               <Textarea 
                 placeholder="Escrita final para o voucher..."
-                value={p.voucher_final_note || ""}
+                value={localFinalNote}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setHasUnsavedChanges(true);
-                  p.voucher_final_note = e.target.value;
+                  setLocalFinalNote(e.target.value);
                 }}
               />
             </div>
