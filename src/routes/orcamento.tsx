@@ -38,7 +38,7 @@ type Stage = { label: string; pct: any };
 const DEFAULT_STAGES: Stage[] = [
   { label: "Aprovação da Proposta", pct: 30 },
   { label: "Pagamento Inicial", pct: 50 },
-  { label: "Final do Serviço", pct: 20 }
+  { label: "Pagamento Final", pct: 20 }
 ];
 
 function Orcamento() {
