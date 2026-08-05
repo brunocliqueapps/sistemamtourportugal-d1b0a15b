@@ -55,12 +55,12 @@ function TVDE() {
 
   const addEarn = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tvde_earnings").insert({
-        tvde_shift_id: shift!.id, platform: earn.platform,
+      const { error } = await supabase.from("tvde_earnings" as any).insert({
+        tvde_shift_id: (shift as any)!.id, platform: earn.platform,
         gross: Number(earn.gross) || 0, tips: Number(earn.tips) || 0, bonus: Number(earn.bonus) || 0,
         commissions: Number(earn.commissions) || 0, other_deductions: Number(earn.other_deductions) || 0,
         notes: earn.notes || null,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Ganho registado"); qc.invalidateQueries(); setEarn(EMPTY_EARN); },
