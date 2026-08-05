@@ -40,8 +40,8 @@ function ServicosPrivados() {
   const { data: services = [] } = useQuery({
     queryKey: ["priv-services", from, to, status],
     queryFn: async () => {
-      let q = (supabase.from("service_orders" as any)
-        .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)") as any)
+      let q = supabase.from("service_orders")
+        .select("*, clients(name,phone), drivers(full_name), vehicles(plate,brand,model)")
         .or("operation_type.eq.privado,operation_type.is.null")
         .gte("service_date", from).lte("service_date", to)
         .order("service_date", { ascending: false }).order("start_time");
@@ -55,7 +55,7 @@ function ServicosPrivados() {
   const { data: closings = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["priv-closings", ids.join(",")],
-    queryFn: async () => (await (supabase.from("service_closings" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await supabase.from("service_closings").select("*").in("service_order_id", ids)).data ?? [],
   });
 
   const closingBy = (id: string) => closings.find((c: any) => c.service_order_id === id);
@@ -104,7 +104,7 @@ function ServicosPrivados() {
       for (const id of selectedIds) {
         const svc: any = services.find((s: any) => s.id === id);
         const sale = Number(svc?.sale_value || 0);
-        await (supabase.from("service_closings" as any).upsert({
+        await supabase.from("service_closings").upsert({
           service_order_id: id,
           end_time: nowIso,
           sale_value: sale,
@@ -113,24 +113,24 @@ function ServicosPrivados() {
           closed_at: nowIso,
           closed_by: user?.id ?? null,
           notes: "Fechamento em lote",
-        } as any, { onConflict: "service_order_id" }) as any);
-        await (supabase.from("service_orders" as any).update({
+        }, { onConflict: "service_order_id" });
+        await supabase.from("service_orders").update({
           status: "finalizado",
           amount_received: sale,
           amount_pending: 0,
-        } as any).eq("id", id) as any);
+        }).eq("id", id);
         // Lançamento automático no financeiro (Conta Corrente)
         if (sale > 0) {
-          const { data: existing } = await (supabase.from("cash_movements" as any)
-            .select("id") as any).eq("service_order_id", id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+          const { data: existing } = await supabase.from("cash_movements")
+            .select("id").eq("service_order_id", id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
           if (!existing || existing.length === 0) {
-            await supabase.from("cash_movements" as any).insert({
+            await supabase.from("cash_movements").insert({
               kind: "entrada",
               amount: sale,
               service_order_id: id,
               description: `Recebimento OS ${svc?.oc_code ?? ""} (fechamento em lote)`,
               created_by: user?.id ?? null,
-            } as any);
+            });
           }
         }
       }
@@ -337,8 +337,8 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ["priv-shifts", from, to],
-    queryFn: async () => (await (supabase.from("tvde_shifts" as any)
-      .select("*, drivers(full_name), vehicles(plate)") as any)
+    queryFn: async () => (await supabase.from("tvde_shifts")
+      .select("*, drivers(full_name), vehicles(plate)")
       .eq("operation_type", "privado")
       .gte("shift_date", from).lte("shift_date", to)
       .order("shift_date", { ascending: false })).data ?? [],
@@ -354,7 +354,7 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
         notes: editing.notes || null,
       };
       if (editing._reopen) payload.closed_at = null;
-      const { error } = await (supabase.from("tvde_shifts" as any).update(payload as any) as any).eq("id", editing.id);
+      const { error } = await supabase.from("tvde_shifts").update(payload).eq("id", editing.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Turno atualizado"); setEditing(null); qc.invalidateQueries(); },
@@ -364,12 +364,12 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
   const closeShift = useMutation({
     mutationFn: async (s: any) => {
       const km = prompt("Km final (opcional):");
-      const { error } = await (supabase.from("tvde_shifts" as any).update({
+      const { error } = await supabase.from("tvde_shifts").update({
         end_time: new Date().toISOString(),
         km_final: km ? Number(km) : s.km_final,
         closed_at: new Date().toISOString(),
         closed_by: user?.id ?? null,
-      } as any).eq("id", s.id) as any);
+      }).eq("id", s.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Turno fechado"); qc.invalidateQueries(); },
@@ -478,27 +478,27 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
   const { data: pm = [] } = useQuery({
     queryKey: ["pm-fin"],
     enabled: open,
-    queryFn: async () => (await (supabase.from("payment_methods" as any).select("id,name") as any).eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("payment_methods").select("id,name").eq("active", true)).data ?? [],
   });
   const { data: cc = [] } = useQuery({
     queryKey: ["cc-fin"],
     enabled: open,
-    queryFn: async () => (await (supabase.from("cost_centers" as any).select("id,name") as any).eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("cost_centers").select("id,name").eq("active", true)).data ?? [],
   });
   const { data: vehiclesList = [] } = useQuery({
     queryKey: ["veh-list"],
     enabled: open,
-    queryFn: async () => (await (supabase.from("vehicles" as any).select("id,plate,brand,model") as any).order("plate")).data ?? [],
+    queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").order("plate")).data ?? [],
   });
   const { data: profilesList = [] } = useQuery({
     queryKey: ["prof-list"],
     enabled: open,
-    queryFn: async () => (await (supabase.from("profiles" as any).select("id,full_name,email") as any).order("full_name")).data ?? [],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,email").order("full_name")).data ?? [],
   });
   const { data: existingExpenses = [] } = useQuery({
     queryKey: ["so-exp", service.id],
     enabled: open,
-    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).eq("service_order_id", service.id)).data ?? [],
+    queryFn: async () => (await supabase.from("service_expenses").select("*").eq("service_order_id", service.id)).data ?? [],
   });
 
   const nowIso = () => new Date().toISOString();
@@ -570,36 +570,36 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
         closed_at: nowIso(),
         closed_by: user!.id,
       };
-      const { error: cErr } = await (supabase.from("service_closings" as any)
-        .upsert(closingPayload as any, { onConflict: "service_order_id" }) as any);
+      const { error: cErr } = await supabase.from("service_closings")
+        .upsert(closingPayload, { onConflict: "service_order_id" });
       if (cErr) throw cErr;
 
       // 2) Update OC status/receipts
-      await (supabase.from("service_orders" as any).update({
+      await supabase.from("service_orders").update({
         status: "finalizado",
         amount_received: closingPayload.amount_received,
         amount_pending: closingPayload.balance_pending,
-      } as any).eq("id", service.id) as any);
+      }).eq("id", service.id);
 
       // 3) Cash movement for received amount (idempotent — only if not registered yet)
       if (closingPayload.amount_received > 0) {
-        const { data: existing } = await (supabase.from("cash_movements" as any)
-          .select("id") as any).eq("service_order_id", service.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+        const { data: existing } = await supabase.from("cash_movements")
+          .select("id").eq("service_order_id", service.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
         if (!existing || existing.length === 0) {
-          await supabase.from("cash_movements" as any).insert({
+          await supabase.from("cash_movements").insert({
             kind: "entrada",
             amount: closingPayload.amount_received,
             service_order_id: service.id,
             payment_method_id: closingPayload.payment_method_id,
             description: `Recebimento OS ${service.oc_code}`,
             created_by: user!.id,
-          } as any);
+          });
         }
       }
 
       // 4) Insert new expenses + matching cash_movements (auto envio ao financeiro)
       for (const e of newExpenses) {
-        const { data: ins, error: eErr } = await (supabase.from("service_expenses" as any).insert({
+        const { data: ins, error: eErr } = await supabase.from("service_expenses").insert({
           service_order_id: service.id,
           category: e.category,
           description: e.description || null,
@@ -608,17 +608,17 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
           paid_by: e.paid_by || user!.id,
           vehicle_id: e.vehicle_id || service.vehicle_id || null,
           cost_center_id: e.cost_center_id || null,
-        } as any).select().single() as any);
+        }).select().single();
         if (eErr) throw eErr;
-        await supabase.from("cash_movements" as any).insert({
+        await supabase.from("cash_movements").insert({
           kind: "saida",
           amount: Number(e.amount),
           service_order_id: service.id,
-          service_expense_id: (ins as any).id,
+          service_expense_id: ins.id,
           payment_method_id: e.payment_method_id || null,
           description: `Despesa (${e.category}) OS ${service.oc_code}${e.description ? ` · ${e.description}` : ""}`,
           created_by: user!.id,
-        } as any);
+        });
       }
     },
     onSuccess: () => {

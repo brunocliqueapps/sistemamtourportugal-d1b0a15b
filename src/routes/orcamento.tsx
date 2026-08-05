@@ -61,13 +61,13 @@ function Orcamento() {
 
   const { data: props = [], refetch } = useQuery({
     queryKey: ["proposals-orcamento"],
-    queryFn: async () => (await (supabase.from("proposals" as any).select("*, clients(*), regions(name), tour_routes(name)") as any).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("proposals").select("*, clients(*), regions(name), tour_routes(name)").order("created_at", { ascending: false })).data ?? [],
   });
-  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await (supabase.from("regions" as any).select("*") as any)).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await (supabase.from("tour_routes" as any).select("*") as any)).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*")).data ?? [] });
   const { data: followups = [], refetch: refetchFollowups } = useQuery({
     queryKey: ["proposal-followups"],
-    queryFn: async () => (await (supabase.from("proposal_followups" as any).select("*, proposals(code, clients(name))") as any).eq("done", false).order("due_date")).data ?? [],
+    queryFn: async () => (await supabase.from("proposal_followups").select("*, proposals(code, clients(name))").eq("done", false).order("due_date")).data ?? [],
   });
 
   const q = search.trim().toLowerCase();
@@ -91,7 +91,7 @@ function Orcamento() {
         }
       }
       if (!rows.length) return;
-      await supabase.from("proposal_followups" as any).upsert(rows as any, { onConflict: "proposal_id,due_date", ignoreDuplicates: true } as any);
+      await supabase.from("proposal_followups").upsert(rows, { onConflict: "proposal_id,due_date", ignoreDuplicates: true });
       refetchFollowups();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,7 +121,7 @@ function Orcamento() {
 
   async function validate() {
     if (!p) return false;
-    const { error } = await supabase.from("proposals" as any).update({ budget_validated_at: new Date().toISOString() } as any).eq("id", p.id);
+    const { error } = await supabase.from("proposals").update({ budget_validated_at: new Date().toISOString() }).eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
     toast.success("Orçamento validado");
     refetch();
@@ -138,13 +138,13 @@ function Orcamento() {
     if (status === "aprovado") { patch.budget_approved_at = when; patch.budget_receipt_info = receipt; patch.status = "aprovada"; }
     if (status === "analise") { patch.budget_analysis_at = when; patch.budget_analysis_info = analysisInfo; patch.budget_validated_at = null; patch.status = "enviada"; }
     if (status === "recusado") { patch.budget_refused_at = when; patch.budget_refusal_reason = refusal; patch.budget_validated_at = null; patch.status = "rejeitada"; }
-    const { error } = await supabase.from("proposals" as any).update(patch as any).eq("id", p.id);
+    const { error } = await supabase.from("proposals").update(patch).eq("id", p.id);
     if (error) return toast.error(error.message);
     if (status === "aprovado") {
       // Gera automaticamente a Ordem de Serviço / Voucher (sem campos a preencher)
-      const { data: existingSo } = await (supabase.from("service_orders" as any).select("id") as any).eq("proposal_id", p.id).maybeSingle();
+      const { data: existingSo } = await supabase.from("service_orders").select("id").eq("proposal_id", p.id).maybeSingle();
       if (!existingSo) {
-        const { error: soErr } = await supabase.from("service_orders" as any).insert({
+        const { error: soErr } = await supabase.from("service_orders").insert({
           proposal_id: p.id,
           client_id: p.client_id,
           sale_value: total,
@@ -154,27 +154,27 @@ function Orcamento() {
           destination: p.departure_place ?? null,
           payment_terms: stageTerms() || terms || p.payment_terms || null,
           status: "agendado",
-        } as any);
+        });
         if (soErr) toast.error(`OS: ${soErr.message}`);
       }
-      await supabase.from("proposals" as any).update({ status: "convertida", approved_at: when } as any).eq("id", p.id);
+      await supabase.from("proposals").update({ status: "convertida", approved_at: when }).eq("id", p.id);
       // Lança automaticamente na conta corrente como entrada
-      const { data: existing } = await (supabase.from("cash_movements" as any).select("id") as any).eq("proposal_id", p.id).maybeSingle();
+      const { data: existing } = await supabase.from("cash_movements").select("id").eq("proposal_id", p.id).maybeSingle();
       const desc = ["Mtour", p.clients?.name, p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : p.tour_routes?.name || "Roteiro personalizado")]
         .filter(Boolean).join(" · ");
       const mvPayload: any = { movement_date: when.slice(0, 10), kind: "entrada", amount: total, description: desc, proposal_id: p.id };
       const { error: mvErr } = existing
-        ? await supabase.from("cash_movements" as any).update(mvPayload).eq("id", existing.id)
-        : await supabase.from("cash_movements" as any).insert(mvPayload);
+        ? await supabase.from("cash_movements").update(mvPayload).eq("id", existing.id)
+        : await supabase.from("cash_movements").insert(mvPayload);
       if (mvErr) toast.error(`Conta corrente: ${mvErr.message}`);
     } else {
       // Reverte o lançamento automático e a OS gerada se deixou de estar aprovado
-      await (supabase.from("cash_movements" as any).delete() as any).eq("proposal_id", p.id);
-      await (supabase.from("service_orders" as any).delete() as any).eq("proposal_id", p.id);
+      await supabase.from("cash_movements").delete().eq("proposal_id", p.id);
+      await supabase.from("service_orders").delete().eq("proposal_id", p.id);
     }
 
-    if (status !== "analise") await supabase.from("proposal_followups" as any).update({ done: true } as any).eq("proposal_id", p.id);
-    else await supabase.from("proposal_followups" as any).update({ done: false } as any).eq("proposal_id", p.id);
+    if (status !== "analise") await supabase.from("proposal_followups").update({ done: true }).eq("proposal_id", p.id);
+    else await supabase.from("proposal_followups").update({ done: false }).eq("proposal_id", p.id);
     toast.success(status === "aprovado" ? "Orçamento aprovado — OS/Voucher gerados e lançado na conta corrente" : status === "analise" ? "Em análise — acompanhamento diário criado" : "Orçamento recusado");
     refetch(); refetchFollowups();
     setAction("");
@@ -194,7 +194,7 @@ function Orcamento() {
               <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-1">
                 <span>{f.due_date} · {shortCode(f.proposals?.code)} · {f.proposals?.clients?.name ?? "—"}</span>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  await supabase.from("proposal_followups" as any).update({ done: true } as any).eq("id", f.id);
+                  await supabase.from("proposal_followups").update({ done: true }).eq("id", f.id);
                   refetchFollowups();
                 }}>Marcar tratado</Button>
               </div>

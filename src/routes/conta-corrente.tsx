@@ -35,15 +35,15 @@ function ContaCorrente() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyMv);
 
-  const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await (supabase.from("bank_accounts" as any).select("*") as any)).data ?? [] });
-  const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
+  const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
   const { data: mv = [] } = useQuery({
     queryKey: ["cm", accountId, year, month, kindFilter],
     queryFn: async () => {
       const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
       const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
       const end = endD.toISOString().slice(0,10);
-      let q = (supabase.from("cash_movements" as any).select("*") as any)
+      let q = supabase.from("cash_movements").select("*")
         .gte("movement_date", start).lt("movement_date", end)
         .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
@@ -57,11 +57,11 @@ function ContaCorrente() {
       const payload: any = { ...form, amount: Number(form.amount || 0) };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
-        const { error } = await supabase.from("cash_movements" as any).update(payload as any).eq("id", editing.id);
+        const { error } = await supabase.from("cash_movements").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
         payload.created_by = user!.id;
-        const { error } = await supabase.from("cash_movements" as any).insert(payload as any);
+        const { error } = await supabase.from("cash_movements").insert(payload);
         if (error) throw error;
       }
     },
@@ -75,7 +75,7 @@ function ContaCorrente() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("cash_movements" as any).delete().eq("id", id);
+      const { error } = await supabase.from("cash_movements").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Movimento removido"); qc.invalidateQueries({ queryKey: ["cm"] }); },

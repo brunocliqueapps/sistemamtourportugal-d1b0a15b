@@ -73,11 +73,11 @@ function Alertas() {
     queryKey: ["company_documents"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("company_documents" as any)
+        .from("company_documents")
         .select("*")
         .order("due_date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as Doc[];
     },
   });
 
@@ -91,10 +91,10 @@ function Alertas() {
         if (payload[k] === "" || payload[k] === undefined) payload[k] = null;
       }
       if (editing?.id) {
-        const { error } = await supabase.from("company_documents" as any).update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("company_documents").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("company_documents" as any).insert(payload);
+        const { error } = await supabase.from("company_documents").insert(payload);
         if (error) throw error;
       }
     },

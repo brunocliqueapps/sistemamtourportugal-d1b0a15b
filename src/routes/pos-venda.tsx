@@ -43,7 +43,7 @@ function PosVenda() {
 }
 
 function useSurveys() {
-  return useQuery({ queryKey: ["surveys"], queryFn: async () => (await (supabase.from("surveys" as any).select("*") as any).order("created_at",{ascending:false})).data ?? [] });
+  return useQuery({ queryKey: ["surveys"], queryFn: async () => (await supabase.from("surveys").select("*").order("created_at",{ascending:false})).data ?? [] });
 }
 
 function ResultsPanel() {
@@ -52,9 +52,9 @@ function ResultsPanel() {
   const answered = surveys.filter((s: any) => s.status === "respondido");
   const respRate = total ? Math.round((answered.length / total) * 100) : 0;
   const avg = answered.length ? +(answered.reduce((a: number, s: any) => a + Number(s.average_score || 0), 0) / answered.length).toFixed(2) : 0;
-  const npsVals = answered.map((s: any) => Number(s.nps_score)).filter((n: any) => !isNaN(n));
-  const promoters = npsVals.filter((n: any) => n >= 9).length;
-  const detractors = npsVals.filter((n: any) => n <= 6).length;
+  const npsVals = answered.map((s: any) => Number(s.nps_score)).filter((n) => !isNaN(n));
+  const promoters = npsVals.filter((n) => n >= 9).length;
+  const detractors = npsVals.filter((n) => n <= 6).length;
   const nps = npsVals.length ? Math.round(((promoters - detractors) / npsVals.length) * 100) : 0;
 
   return (
@@ -74,13 +74,13 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("surveys" as any).update({
+      const { error } = await supabase.from("surveys").update({
         client_name: editing.client_name,
         client_email: editing.client_email,
         status: editing.status,
         average_score: editing.average_score ? Number(editing.average_score) : null,
         nps_score: editing.nps_score !== "" && editing.nps_score != null ? Number(editing.nps_score) : null,
-      } as any).eq("id", editing.id);
+      }).eq("id", editing.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pesquisa atualizada"); setEditing(null); qc.invalidateQueries({ queryKey: ["surveys"] }); },
@@ -88,7 +88,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys" as any).delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["surveys"] }); },
     onError: (e: any) => toast.error(e.message),
   });
@@ -162,8 +162,8 @@ function SendPanel() {
   const [form, setForm] = useState<any>({ template_id: "", service_order_id: "", client_email: "", client_name: "" });
   const { data: surveys = [] } = useSurveys();
 
-  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await (supabase.from("survey_templates" as any).select("*") as any).eq("active", true)).data ?? [] });
-  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await (supabase.from("service_orders" as any).select("id,code,client_name,status") as any).order("service_date",{ascending:false}).limit(200)).data ?? [] });
+  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await supabase.from("survey_templates").select("*").eq("active", true)).data ?? [] });
+  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await supabase.from("service_orders").select("id,code,client_name,status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
 
   const create = useMutation({
     mutationFn: async () => {
@@ -176,9 +176,9 @@ function SendPanel() {
         status: "enviado",
         sent_at: new Date().toISOString(),
       };
-      const { data, error } = await (supabase.from("surveys" as any).insert(payload as any).select().single() as any);
+      const { data, error } = await supabase.from("surveys").insert(payload).select().single();
       if (error) throw error;
-      const url = `${window.location.origin}/pesquisa/${(data as any).token}`;
+      const url = `${window.location.origin}/pesquisa/${data.token}`;
       await navigator.clipboard.writeText(url).catch(() => {});
       toast.success("Pesquisa criada. Link copiado.");
       return data;

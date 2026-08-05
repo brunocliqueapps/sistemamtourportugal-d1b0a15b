@@ -25,8 +25,8 @@ export const Route = createFileRoute("/roteiro")({ component: Roteiro });
 function Roteiro() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await (supabase.from("regions" as any).select("id,name") as any)).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await (supabase.from("tour_routes" as any).select("id,name") as any)).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
   const names = {
     regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
     routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
@@ -35,8 +35,8 @@ function Roteiro() {
   const { data: services = [] } = useQuery({
     queryKey: ["roteiro", date],
     queryFn: async () => {
-      const { data } = await (supabase.from("service_orders" as any)
-        .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`) as any)
+      const { data } = await supabase.from("service_orders")
+        .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("start_time", { ascending: true });
       // A data da viagem (proposta) manda; a data de registo da OS é só o último recurso
       return (data ?? []).filter((s: any) => {
@@ -51,12 +51,12 @@ function Roteiro() {
   const { data: closings = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-closings", ids.join(",")],
-    queryFn: async () => (await (supabase.from("service_closings" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await supabase.from("service_closings").select("*").in("service_order_id", ids)).data ?? [],
   });
   const { data: expenses = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-exp", ids.join(",")],
-    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await supabase.from("service_expenses").select("*").in("service_order_id", ids)).data ?? [],
   });
   const { data: closers = [] } = useQuery({
     enabled: closings.length > 0,
@@ -64,7 +64,7 @@ function Roteiro() {
     queryFn: async () => {
       const uids = Array.from(new Set(closings.map((c: any) => c.closed_by).filter(Boolean)));
       if (!uids.length) return [];
-      return (await (supabase.from("profiles" as any).select("id,full_name,email") as any).in("id", uids)).data ?? [];
+      return (await supabase.from("profiles").select("id,full_name,email").in("id", uids)).data ?? [];
     },
   });
 

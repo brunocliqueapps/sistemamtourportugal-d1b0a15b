@@ -93,19 +93,19 @@ function Relatorios() {
   const { data, isLoading } = useQuery({
     queryKey: ["rep-data", from, to, driverId, vehicleId, clientId],
     queryFn: async () => {
-      let soQ = (supabase.from("service_orders" as any)
-        .select("id,oc_code,client_id,driver_id,vehicle_id,service_date,status,operation_type,sale_value,drivers(full_name),vehicles(plate),clients(name)") as any)
+      let soQ = supabase.from("service_orders")
+        .select("id,oc_code,client_id,driver_id,vehicle_id,service_date,status,operation_type,sale_value,drivers(full_name),vehicles(plate),clients(name)")
         .gte("service_date", from).lte("service_date", to);
       if (driverId !== "all") soQ = soQ.eq("driver_id", driverId);
       if (vehicleId !== "all") soQ = soQ.eq("vehicle_id", vehicleId);
       if (clientId !== "all") soQ = soQ.eq("client_id", clientId);
 
       const [leadsR, invR, soR, cmR, partR] = await Promise.all([
-        (supabase.from("leads" as any).select("id,name,origin,status,created_at") as any).gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        (supabase.from("invoices" as any).select("id,kind,total,issue_date,entity_name,status") as any).gte("issue_date", from).lte("issue_date", to),
+        supabase.from("leads").select("id,name,origin,status,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status").gte("issue_date", from).lte("issue_date", to),
         soQ,
-        (supabase.from("cash_movements" as any).select("kind,amount,created_at,description") as any).gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        supabase.from("partners" as any).select("id,name").limit(500),
+        supabase.from("cash_movements").select("kind,amount,created_at,description").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("partners").select("id,name").limit(500),
       ]);
       return {
         leads: leadsR.data ?? [], inv: invR.data ?? [], so: soR.data ?? [],

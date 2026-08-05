@@ -28,19 +28,19 @@ function TVDE() {
   const { data: shift } = useQuery({
     queryKey: ["tvde-shift"],
     queryFn: async () =>
-      (await (supabase.from("tvde_shifts" as any)
-        .select("*, vehicles(plate), drivers(full_name)") as any)
+      (await supabase.from("tvde_shifts")
+        .select("*, vehicles(plate), drivers(full_name)")
         .eq("operation_type", "tvde").is("closed_at", null)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle() as any).data,
+        .order("created_at", { ascending: false }).limit(1).maybeSingle()).data,
   });
 
   const { data: earnings = [] } = useQuery({
     queryKey: ["tvde-earnings", shift?.id], enabled: !!shift,
-    queryFn: async () => (await (supabase.from("tvde_earnings" as any).select("*") as any).eq("tvde_shift_id", (shift as any)!.id)).data ?? [],
+    queryFn: async () => (await supabase.from("tvde_earnings").select("*").eq("tvde_shift_id", shift!.id)).data ?? [],
   });
   const { data: expenses = [] } = useQuery({
     queryKey: ["tvde-exp", shift?.id], enabled: !!shift,
-    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).eq("tvde_shift_id", (shift as any)!.id)).data ?? [],
+    queryFn: async () => (await supabase.from("service_expenses").select("*").eq("tvde_shift_id", shift!.id)).data ?? [],
   });
   const { data: pmethods = [] } = useQuery({
     queryKey: ["pm-tvde"],
@@ -55,12 +55,12 @@ function TVDE() {
 
   const addEarn = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tvde_earnings" as any).insert({
-        tvde_shift_id: (shift as any)!.id, platform: earn.platform,
+      const { error } = await supabase.from("tvde_earnings").insert({
+        tvde_shift_id: shift!.id, platform: earn.platform,
         gross: Number(earn.gross) || 0, tips: Number(earn.tips) || 0, bonus: Number(earn.bonus) || 0,
         commissions: Number(earn.commissions) || 0, other_deductions: Number(earn.other_deductions) || 0,
         notes: earn.notes || null,
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Ganho registado"); qc.invalidateQueries(); setEarn(EMPTY_EARN); },
@@ -68,7 +68,7 @@ function TVDE() {
   });
 
   const delEarn = useMutation({
-    mutationFn: async (id: string) => { const { error } = await (supabase.from("tvde_earnings" as any).delete() as any).eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await supabase.from("tvde_earnings").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => qc.invalidateQueries(),
   });
 
@@ -76,21 +76,21 @@ function TVDE() {
     mutationFn: async () => {
       if (exp.category === "outra" && !exp.description) throw new Error("Descrição obrigatória para 'Outras despesas'.");
       if (!Number(exp.amount)) throw new Error("Valor obrigatório.");
-      const { data, error } = await (supabase.from("service_expenses" as any).insert({
-        tvde_shift_id: (shift as any)!.id, category: exp.category, description: exp.description || null,
+      const { data, error } = await supabase.from("service_expenses").insert({
+        tvde_shift_id: shift!.id, category: exp.category, description: exp.description || null,
         amount: Number(exp.amount), payment_method_id: exp.payment_method_id || null,
-        paid_by: user!.id, vehicle_id: (shift as any)!.vehicle_id,
-      } as any).select().single() as any);
+        paid_by: user!.id, vehicle_id: shift!.vehicle_id,
+      }).select().single();
       if (error) throw error;
       // Só lança no financeiro se paga pela empresa (não pelo motorista)
       if (!exp.paid_by_driver) {
-        await (supabase.from("cash_movements" as any).insert({
+        await supabase.from("cash_movements").insert({
           kind: "saida", amount: Number(exp.amount),
-          tvde_shift_id: (shift as any)!.id, service_expense_id: (data as any).id,
+          tvde_shift_id: shift!.id, service_expense_id: data.id,
           payment_method_id: exp.payment_method_id || null,
           description: `TVDE · ${exp.category}${exp.description ? " · " + exp.description : ""}`,
           created_by: user!.id,
-        } as any) as any);
+        });
       }
     },
     onSuccess: () => { toast.success("Despesa registada"); qc.invalidateQueries(); setExp(EMPTY_EXP); },
@@ -99,8 +99,8 @@ function TVDE() {
 
   const delExp = useMutation({
     mutationFn: async (id: string) => {
-      await (supabase.from("cash_movements" as any).delete() as any).eq("service_expense_id", id);
-      const { error } = await (supabase.from("service_expenses" as any).delete() as any).eq("id", id);
+      await supabase.from("cash_movements").delete().eq("service_expense_id", id);
+      const { error } = await supabase.from("service_expenses").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries(),
@@ -108,12 +108,12 @@ function TVDE() {
 
   const saveEarn = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.from("tvde_earnings" as any).update({
-        platform: (editEarn as any).platform,
-        gross: Number((editEarn as any).gross) || 0, tips: Number((editEarn as any).tips) || 0, bonus: Number((editEarn as any).bonus) || 0,
-        commissions: Number((editEarn as any).commissions) || 0, other_deductions: Number((editEarn as any).other_deductions) || 0,
-        notes: (editEarn as any).notes || null,
-      } as any) as any).eq("id", (editEarn as any).id);
+      const { error } = await supabase.from("tvde_earnings").update({
+        platform: editEarn.platform,
+        gross: Number(editEarn.gross) || 0, tips: Number(editEarn.tips) || 0, bonus: Number(editEarn.bonus) || 0,
+        commissions: Number(editEarn.commissions) || 0, other_deductions: Number(editEarn.other_deductions) || 0,
+        notes: editEarn.notes || null,
+      }).eq("id", editEarn.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Ganho atualizado"); setEditEarn(null); qc.invalidateQueries(); },
@@ -122,12 +122,12 @@ function TVDE() {
 
   const saveExp = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.from("service_expenses" as any).update({
-        category: (editExp as any).category,
-        description: (editExp as any).description || null,
-        amount: Number((editExp as any).amount) || 0,
-        payment_method_id: (editExp as any).payment_method_id || null,
-      } as any) as any).eq("id", (editExp as any).id);
+      const { error } = await supabase.from("service_expenses").update({
+        category: editExp.category,
+        description: editExp.description || null,
+        amount: Number(editExp.amount) || 0,
+        payment_method_id: editExp.payment_method_id || null,
+      }).eq("id", editExp.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Despesa atualizada"); setEditExp(null); qc.invalidateQueries(); },
@@ -139,20 +139,20 @@ function TVDE() {
     mutationFn: async () => {
       const kmFinal = close.km_final ? Number(close.km_final) : null;
       const closedAt = new Date().toISOString();
-      const { error } = await (supabase.from("tvde_shifts" as any).update({
+      const { error } = await supabase.from("tvde_shifts").update({
         end_time: closedAt,
         km_final: kmFinal,
         closed_at: closedAt,
         closed_by: user!.id,
-        notes: [(shift as any)!.notes, close.notes && `Acerto: ${close.notes}`, `Motorista %: ${close.driver_pct}%`].filter(Boolean).join(" · "),
-      } as any) as any).eq("id", (shift as any)!.id);
+        notes: [shift!.notes, close.notes && `Acerto: ${close.notes}`, `Motorista %: ${close.driver_pct}%`].filter(Boolean).join(" · "),
+      }).eq("id", shift!.id);
       if (error) throw error;
 
       // Lançamentos automáticos no financeiro (Conta Corrente):
       // 1) Entrada: líquido de plataformas (bruto - comissões - retenções)
       if (netPlat > 0) {
-        const { data: existing } = await (supabase.from("cash_movements" as any)
-          .select("id") as any).eq("tvde_shift_id", (shift as any)!.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+        const { data: existing } = await supabase.from("cash_movements")
+          .select("id").eq("tvde_shift_id", shift!.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
         if (!existing || existing.length === 0) {
           await supabase.from("cash_movements").insert({
             kind: "entrada", amount: Number(netPlat.toFixed(2)),
