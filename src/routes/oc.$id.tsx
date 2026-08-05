@@ -25,12 +25,12 @@ function OCDetail() {
 
   const { data: so } = useQuery({
     queryKey: ["so", id],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle()).data,
+    queryFn: async () => (await (supabase.from("service_orders" as any).select("*, clients(name,phone), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle() as any)).data,
   });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini2"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").eq("active", true)).data ?? [] });
-  const { data: pmethods = [] } = useQuery({ queryKey: ["pm"], queryFn: async () => (await supabase.from("payment_methods").select("id,name").eq("active", true)).data ?? [] });
-  const { data: closing } = useQuery({ queryKey: ["closing", id], queryFn: async () => (await supabase.from("service_closings").select("*").eq("service_order_id", id).maybeSingle()).data });
-  const { data: expenses = [] } = useQuery({ queryKey: ["exp", id], queryFn: async () => (await supabase.from("service_expenses").select("*").eq("service_order_id", id)).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini2"], queryFn: async () => (await (supabase.from("vehicles" as any).select("id,plate,brand,model").eq("active", true) as any)).data ?? [] });
+  const { data: pmethods = [] } = useQuery({ queryKey: ["pm"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("id,name").eq("active", true) as any)).data ?? [] });
+  const { data: closing } = useQuery({ queryKey: ["closing", id], queryFn: async () => (await (supabase.from("service_closings" as any).select("*").eq("service_order_id", id).maybeSingle() as any)).data });
+  const { data: expenses = [] } = useQuery({ queryKey: ["exp", id], queryFn: async () => (await (supabase.from("service_expenses" as any).select("*").eq("service_order_id", id) as any)).data ?? [] });
 
   const [close, setClose] = useState<any>({ km_initial: 0, km_final: 0, amount_received: 0, payment_method_id: "", balance_pending: 0, incidents: "" });
   const [exp, setExp] = useState<any>({ category: "estacionamento", description: "", amount: 0, payment_method_id: "" });
