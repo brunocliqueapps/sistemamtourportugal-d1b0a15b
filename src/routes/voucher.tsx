@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+
 
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
@@ -30,7 +32,9 @@ export const Route = createFileRoute("/voucher")({
 });
 
 function Voucher() {
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const [clientId, setClientId] = useState("");
+
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
 
@@ -63,7 +67,10 @@ function Voucher() {
         <div><Label>Buscar cliente</Label><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, nº cliente, NIF, email…" /></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Cliente</Label>
-            <Select value={clientId} onValueChange={(v) => { setClientId(v); setProposalId(""); }}>
+            <Select value={clientId} onValueChange={(v) => { 
+              if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
+              setClientId(v); setProposalId(""); setHasUnsavedChanges(false);
+            }}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
               <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
             </Select>
@@ -118,6 +125,7 @@ function Voucher() {
                 const { error } = await supabase.from("proposals").update({ voucher_validated_at: new Date().toISOString() }).eq("id", p.id);
                 if (error) return toast.error(error.message);
                 toast.success("Voucher validado");
+                setHasUnsavedChanges(false);
                 refetchValidated();
               }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
             </div>
