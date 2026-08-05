@@ -162,8 +162,8 @@ function SendPanel() {
   const [form, setForm] = useState<any>({ template_id: "", service_order_id: "", client_email: "", client_name: "" });
   const { data: surveys = [] } = useSurveys();
 
-  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await supabase.from("survey_templates").select("*").eq("active", true)).data ?? [] });
-  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await supabase.from("service_orders").select("id,code,client_name,status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
+  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await (supabase.from("survey_templates" as any).select("*") as any).eq("active", true)).data ?? [] });
+  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await (supabase.from("service_orders" as any).select("id,code,client_name,status") as any).order("service_date",{ascending:false}).limit(200)).data ?? [] });
 
   const create = useMutation({
     mutationFn: async () => {
