@@ -3,10 +3,12 @@ import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 
 export async function generateInvoicePdf(invoiceId: string) {
-  const [{ data: inv }, { data: company }] = await Promise.all([
+  const [{ data: invData }, { data: companyData }] = await Promise.all([
     supabase.from("invoices").select("*").eq("id", invoiceId).single(),
     supabase.from("company_settings").select("*").maybeSingle(),
   ]);
+  const inv = invData as any;
+  const company = companyData as any;
   if (!inv) throw new Error("Fatura não encontrada");
 
   const [{ data: cc }, { data: pm }, { data: vat }] = await Promise.all([
