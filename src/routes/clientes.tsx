@@ -119,24 +119,27 @@ function Clientes() {
             <TableRow>
               <TableHead>Nº Cliente</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>NIF / Passaporte</TableHead>
+              <TableHead>Pessoas</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead>Origem</TableHead>
+              <TableHead>Passaporte</TableHead>
+              <TableHead>Origem do Lead</TableHead>
               <TableHead className="w-40 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
-            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {filtered.map((c: any) => (
               <TableRow key={c.id}>
                 <TableCell className="font-mono text-xs">{shortCode(c.client_number)}</TableCell>
                 <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell>{c.nif ?? "—"}</TableCell>
+                <TableCell>{c.passengers ?? "—"}</TableCell>
                 <TableCell>{c.email ?? "—"}</TableCell>
                 <TableCell>{[c.phone_country, c.phone].filter(Boolean).join(" ") || "—"}</TableCell>
-                <TableCell>{c.origin ?? "—"}</TableCell>
+                <TableCell>{c.nif ?? "—"}</TableCell>
+                <TableCell>{[c.origin, c.origin_detail].filter(Boolean).join(" · ") || "—"}</TableCell>
+
                 <TableCell className="text-right">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(c)}>
                     <Eye className="h-4 w-4" />
