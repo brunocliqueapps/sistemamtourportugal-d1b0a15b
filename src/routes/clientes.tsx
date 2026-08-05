@@ -261,19 +261,22 @@ function Clientes() {
         record={viewing}
         fields={[
           { key: "client_number", label: "Nº Cliente", format: (v: any) => shortCode(v) },
-          { key: "name", label: "Nome" }, { key: "nif", label: "NIF / Passaporte" },
-          { key: "email", label: "Email" }, { key: "phone_country", label: "Indicativo" },
-          { key: "phone", label: "Telefone" }, { key: "origin", label: "Origem" },
-          { key: "birth_date", label: "Data de nascimento" },
-          { key: "emergency_contact", label: "Contacto de emergência" },
-          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
-          { key: "address", label: "Morada" },
+          { key: "name", label: "Nome" },
+          { key: "passengers", label: "Número de pessoas" },
           { key: "arrival_date", label: "Data de chegada" }, { key: "arrival_time", label: "Hora de chegada" },
           { key: "arrival_place", label: "Local de chegada" },
           { key: "departure_date", label: "Data de partida" }, { key: "departure_time", label: "Hora de partida" },
           { key: "departure_place", label: "Local de partida" },
-          { key: "passengers", label: "Passageiros" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
+          { key: "nif", label: "Passaporte" },
+          { key: "birth_date", label: "Data de nascimento" },
+          { key: "emergency_contact", label: "Contacto de emergência" },
+          { key: "origin", label: "Origem do Lead", format: (v, r: any) => [v, r?.origin_detail].filter(Boolean).join(" · ") || "—" },
+          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
+          { key: "address", label: "Morada" },
           { key: "notes", label: "Notas" },
+
         ]}
       />
     </div>
