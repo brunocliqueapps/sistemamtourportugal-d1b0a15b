@@ -38,9 +38,9 @@ function Fechamento() {
       const [invR, cmR, prevR, currR] = await Promise.all([
         supabase.from("invoices").select("kind,total,value_ex_vat,vat_amount,vat_deductible,vat_non_deductible,issue_date")
           .gte("issue_date", from).lte("issue_date", to),
-        supabase.from("cash_movements").select("kind,amount,movement_date").gte("movement_date", from).lte("movement_date", to),
-        supabase.from("monthly_closings").select("*").lt("period", from).order("period", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("monthly_closings").select("*").eq("period", from).maybeSingle(),
+        (supabase.from("cash_movements" as any).select("kind,amount,movement_date").gte("movement_date", from).lte("movement_date", to) as any),
+        (supabase.from("monthly_closings" as any).select("*").lt("period", from).order("period", { ascending: false }).limit(1).maybeSingle() as any),
+        (supabase.from("monthly_closings" as any).select("*").eq("period", from).maybeSingle() as any),
       ]);
       return { inv: invR.data ?? [], cm: cmR.data ?? [], prev: prevR.data, curr: currR.data };
     },
@@ -80,7 +80,7 @@ function Fechamento() {
         irc_taxable_base_est: ircBase, irc_estimate: ircEst,
         irc_payments_on_account: payAcc, irc_withholdings: withhold, irc_balance_est: ircBalance,
       };
-      const { error } = await supabase.from("monthly_closings").upsert(payload, { onConflict: "period" });
+      const { error } = await supabase.from("monthly_closings" as any).upsert(payload as any, { onConflict: "period" });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Fechamento gravado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
@@ -89,7 +89,7 @@ function Fechamento() {
 
   const lockIt = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("monthly_closings").update({ locked: true, locked_at: new Date().toISOString(), locked_by: user!.id }).eq("period", from);
+      const { error } = await supabase.from("monthly_closings" as any).update({ locked: true, locked_at: new Date().toISOString(), locked_by: user!.id } as any).eq("period", from);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Período bloqueado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
@@ -97,7 +97,7 @@ function Fechamento() {
 
   const unlockIt = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("monthly_closings").update({ locked: false, locked_at: null, locked_by: null }).eq("period", from);
+      const { error } = await supabase.from("monthly_closings" as any).update({ locked: false, locked_at: null, locked_by: null } as any).eq("period", from);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Período reaberto"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },

@@ -54,12 +54,12 @@ function Financeiro() {
       return (await q).data ?? [];
     },
   });
-  const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await supabase.from("vat_rates").select("*").eq("active", true)).data ?? [] });
-  const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await supabase.from("cost_centers").select("*").eq("active", true)).data ?? [] });
-  const { data: pm = [] } = useQuery({ queryKey: ["pmf"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
-  const { data: ba = [] } = useQuery({ queryKey: ["ba"], queryFn: async () => (await supabase.from("bank_accounts").select("*").eq("active", true)).data ?? [] });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-fin"], queryFn: async () => (await supabase.from("clients").select("id,name,nif,phone,email").order("name")).data ?? [] });
-  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-fin"], queryFn: async () => (await supabase.from("suppliers").select("id,name,nif,phone,email").order("name")).data ?? [] });
+  const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await (supabase.from("vat_rates" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await (supabase.from("cost_centers" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: pm = [] } = useQuery({ queryKey: ["pmf"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: ba = [] } = useQuery({ queryKey: ["ba"], queryFn: async () => (await (supabase.from("bank_accounts" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-fin"], queryFn: async () => (await (supabase.from("clients" as any).select("id,name,nif,phone,email").order("name") as any)).data ?? [] });
+  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-fin"], queryFn: async () => (await (supabase.from("suppliers" as any).select("id,name,nif,phone,email").order("name") as any)).data ?? [] });
   const entities = kind === "entrada" ? clients : suppliers;
 
 
@@ -98,13 +98,13 @@ function Financeiro() {
         const { data, error } = await supabase.from("invoices").insert(payload).select().single();
         if (error) throw error;
         if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
-          await supabase.from("cash_movements").insert({
+          await supabase.from("cash_movements" as any).insert({
             kind, amount: Number(payload.paid_amount || payload.total),
             invoice_id: data.id, payment_method_id: payload.payment_method_id,
             bank_account_id: payload.bank_account_id,
-            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
+            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${(data as any).code}`,
             created_by: user!.id,
-          });
+          } as any);
         }
       }
     },
@@ -118,8 +118,8 @@ function Financeiro() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("cash_movements").delete().eq("invoice_id", id);
-      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      await supabase.from("cash_movements" as any).delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Fatura removida"); qc.invalidateQueries({ queryKey: ["invoices"] }); },

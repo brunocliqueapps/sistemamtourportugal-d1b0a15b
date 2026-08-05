@@ -25,12 +25,12 @@ function OCDetail() {
 
   const { data: so } = useQuery({
     queryKey: ["so", id],
-    queryFn: async () => (await supabase.from("service_orders").select("*, clients(name,phone), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle()).data,
+    queryFn: async () => (await (supabase.from("service_orders" as any).select("*, clients(name,phone), vehicles(id,plate,brand,model)").eq("id", id).maybeSingle() as any)).data,
   });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini2"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model").eq("active", true)).data ?? [] });
-  const { data: pmethods = [] } = useQuery({ queryKey: ["pm"], queryFn: async () => (await supabase.from("payment_methods").select("id,name").eq("active", true)).data ?? [] });
-  const { data: closing } = useQuery({ queryKey: ["closing", id], queryFn: async () => (await supabase.from("service_closings").select("*").eq("service_order_id", id).maybeSingle()).data });
-  const { data: expenses = [] } = useQuery({ queryKey: ["exp", id], queryFn: async () => (await supabase.from("service_expenses").select("*").eq("service_order_id", id)).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini2"], queryFn: async () => (await (supabase.from("vehicles" as any).select("id,plate,brand,model").eq("active", true) as any)).data ?? [] });
+  const { data: pmethods = [] } = useQuery({ queryKey: ["pm"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("id,name").eq("active", true) as any)).data ?? [] });
+  const { data: closing } = useQuery({ queryKey: ["closing", id], queryFn: async () => (await (supabase.from("service_closings" as any).select("*").eq("service_order_id", id).maybeSingle() as any)).data });
+  const { data: expenses = [] } = useQuery({ queryKey: ["exp", id], queryFn: async () => (await (supabase.from("service_expenses" as any).select("*").eq("service_order_id", id) as any)).data ?? [] });
 
   const [close, setClose] = useState<any>({ km_initial: 0, km_final: 0, amount_received: 0, payment_method_id: "", balance_pending: 0, incidents: "" });
   const [exp, setExp] = useState<any>({ category: "estacionamento", description: "", amount: 0, payment_method_id: "" });
@@ -60,16 +60,16 @@ function OCDetail() {
         end_time: new Date().toISOString(),
         closed_by: user!.id,
       };
-      const { error } = await supabase.from("service_closings").upsert(payload, { onConflict: "service_order_id" });
+      const { error } = await supabase.from("service_closings" as any).upsert(payload as any, { onConflict: "service_order_id" });
       if (error) throw error;
-      await supabase.from("service_orders").update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending }).eq("id", id);
+      await supabase.from("service_orders" as any).update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending } as any).eq("id", id);
       // criar movimento de caixa (entrada)
       if (payload.amount_received > 0) {
-        await supabase.from("cash_movements").insert({
+        await supabase.from("cash_movements" as any).insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
-          description: `Recebimento OS ${shortCode(so?.oc_code)}`, created_by: user!.id,
-        });
+          description: `Recebimento OS ${shortCode((so as any)?.oc_code)}`, created_by: user!.id,
+        } as any);
       }
     },
     onSuccess: () => { toast.success("Serviço finalizado e enviado ao financeiro"); qc.invalidateQueries(); },
@@ -79,18 +79,18 @@ function OCDetail() {
   const addExp = useMutation({
     mutationFn: async () => {
       if (exp.category === "outra" && !exp.description) throw new Error("Descrição obrigatória para outras despesas.");
-      const { data, error } = await supabase.from("service_expenses").insert({
+      const { data, error } = await (supabase.from("service_expenses" as any).insert({
         service_order_id: id, category: exp.category, description: exp.description,
         amount: Number(exp.amount), payment_method_id: exp.payment_method_id || null,
-        paid_by: user!.id, vehicle_id: so?.vehicle_id,
-      }).select().single();
+        paid_by: user!.id, vehicle_id: (so as any)?.vehicle_id,
+      } as any).select().single() as any);
       if (error) throw error;
-      await supabase.from("cash_movements").insert({
+      await supabase.from("cash_movements" as any).insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
-        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode(so?.oc_code)}`,
+        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode((so as any)?.oc_code)}`,
         created_by: user!.id,
-      });
+      } as any);
     },
     onSuccess: () => { toast.success("Despesa registada"); qc.invalidateQueries(); setExp({ category: "estacionamento", description: "", amount: 0, payment_method_id: "" }); },
     onError: (e: any) => toast.error(e.message),

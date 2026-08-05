@@ -102,7 +102,7 @@ function Clientes() {
 
   const update = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
-      const { error } = await supabase.from("clients").update(patch).eq("id", id);
+      const { error } = await supabase.from("clients" as any).update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
@@ -111,7 +111,7 @@ function Clientes() {
 
   const archive = useMutation({
     mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
-      const { error } = await supabase.from("clients").update({ archived }).eq("id", id);
+      const { error } = await supabase.from("clients" as any).update({ archived } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
@@ -123,7 +123,7 @@ function Clientes() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clients").delete().eq("id", id);
+      const { error } = await supabase.from("clients" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: ["clients"] }); },
@@ -453,17 +453,17 @@ function ClientHistoryDialog({ client, onClose }: { client: any | null; onClose:
   const { data: proposals = [] } = useQuery({
     queryKey: ["client-history", "proposals", clientId],
     enabled,
-    queryFn: async () => (await supabase.from("proposals").select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("proposals" as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
   });
   const { data: orders = [] } = useQuery({
     queryKey: ["client-history", "orders", clientId],
     enabled,
-    queryFn: async () => (await supabase.from("service_orders").select("*, drivers(full_name), vehicles(plate)").eq("client_id", clientId).order("service_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("service_orders" as any).select("*, drivers(full_name), vehicles(plate)").eq("client_id", clientId).order("service_date", { ascending: false })).data ?? [],
   });
   const { data: invoices = [] } = useQuery({
     queryKey: ["client-history", "invoices", clientId],
     enabled,
-    queryFn: async () => (await supabase.from("invoices").select("*").eq("client_id", clientId).order("issue_date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("invoices" as any).select("*").eq("client_id", clientId).order("issue_date", { ascending: false })).data ?? [],
   });
 
   const totalServices = orders.length;

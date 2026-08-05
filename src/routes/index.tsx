@@ -49,8 +49,8 @@ function AuthPage() {
           </div>
         </div>
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold leading-tight">
-            Centralize <span className="text-gold">toda</span> a operação da sua agência.
+          <h1 className="text-4xl font-bold leading-tight whitespace-pre-line">
+            Could not find the 'voucher_day_notes' column of 'proposals' in the schema cache{"\n\n"}O sistema é no supabase
           </h1>
           <p className="mt-4 text-white/70 max-w-md">
             Comercial, operação, frota, financeiro e pós-venda — do lead à indicação futura, num só lugar.

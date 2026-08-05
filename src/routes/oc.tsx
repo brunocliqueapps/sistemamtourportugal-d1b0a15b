@@ -58,14 +58,14 @@ function OCList() {
   });
   const { data: validated = [] } = useQuery({
     queryKey: ["proposals-validadas-os"],
-    queryFn: async () => (await supabase.from("proposals").select(`id,client_id,${PROPOSAL_COLS},clients(*)`).not("budget_validated_at", "is", null).order("budget_validated_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals" as any).select(`id,client_id,${PROPOSAL_COLS},clients(*)`) as any).not("budget_validated_at", "is", null).order("budget_validated_at", { ascending: false })).data ?? [],
   });
-  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "os-mini"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,usage_type,owner_company").order("plate")).data ?? [] });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await supabase.from("clients").select("id,name,client_number,email").order("name")).data ?? [] });
-  const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_operational_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_operational_status").eq("active", true).order("sort")).data ?? [] });
-  const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_financial_status"], queryFn: async () => (await supabase.from("status_options").select("code,label").eq("domain", "oc_financial_status").eq("active", true).order("sort")).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await (supabase.from("regions" as any).select("id,name") as any)).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "os-mini"], queryFn: async () => (await (supabase.from("tour_routes" as any).select("id,name") as any)).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles-mini"], queryFn: async () => (await (supabase.from("vehicles" as any).select("id,plate,brand,model,usage_type,owner_company").order("plate") as any)).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: async () => (await (supabase.from("clients" as any).select("id,name,client_number,email").order("name") as any)).data ?? [] });
+  const { data: opOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_operational_status"], queryFn: async () => (await (supabase.from("status_options" as any).select("code,label").eq("domain", "oc_operational_status").eq("active", true).order("sort") as any)).data ?? [] });
+  const { data: finOpts = [] } = useQuery({ queryKey: ["status-opts", "oc_financial_status"], queryFn: async () => (await (supabase.from("status_options" as any).select("code,label").eq("domain", "oc_financial_status").eq("active", true).order("sort") as any)).data ?? [] });
 
   const operational = opOpts.length ? opOpts : OP_FALLBACK.map((c) => ({ code: c, label: c }));
   const financial = finOpts.length ? finOpts : FIN_FALLBACK.map((c) => ({ code: c, label: c }));
@@ -174,23 +174,23 @@ function OCList() {
       if (on) {
         const value = Number(row.sale_value ?? row.proposals?.total_value ?? 0);
         if (value <= 0) throw new Error("Defina o valor da OS antes de validar.");
-        const { error } = await supabase.from("service_orders").update({ validated_at: new Date().toISOString() }).eq("id", row.id);
+        const { error } = await supabase.from("service_orders" as any).update({ validated_at: new Date().toISOString() } as any).eq("id", row.id);
         if (error) throw error;
-        const { data: exists } = await supabase.from("cash_movements")
-          .select("id").eq("service_order_id", row.id).like("description", "Orçamento validado%").maybeSingle();
+        const { data: exists } = await (supabase.from("cash_movements" as any)
+          .select("id") as any).eq("service_order_id", row.id).like("description", "Orçamento validado%").maybeSingle();
         if (!exists) {
-          const { error: cmErr } = await supabase.from("cash_movements").insert({
+          const { error: cmErr } = await supabase.from("cash_movements" as any).insert({
             kind: "entrada", amount: value,
             service_order_id: row.id,
             description: `Orçamento validado · Mtour Portugal · ${row.clients?.name ?? "Cliente"} · ${row.proposals?.title ?? shortCode(row.oc_code)}`,
             created_by: user?.id ?? null,
-          });
+          } as any);
           if (cmErr) throw cmErr;
         }
       } else {
-        const { error } = await supabase.from("service_orders").update({ validated_at: null }).eq("id", row.id);
+        const { error } = await supabase.from("service_orders" as any).update({ validated_at: null } as any).eq("id", row.id);
         if (error) throw error;
-        await supabase.from("cash_movements").delete().eq("service_order_id", row.id).like("description", "Orçamento validado%");
+        await (supabase.from("cash_movements" as any).delete() as any).eq("service_order_id", row.id).like("description", "Orçamento validado%");
       }
     },
     onSuccess: (_d, v) => {

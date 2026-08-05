@@ -3,16 +3,18 @@ import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 
 export async function generateInvoicePdf(invoiceId: string) {
-  const [{ data: inv }, { data: company }] = await Promise.all([
+  const [{ data: invData }, { data: companyData }] = await Promise.all([
     supabase.from("invoices").select("*").eq("id", invoiceId).single(),
     supabase.from("company_settings").select("*").maybeSingle(),
   ]);
+  const inv = invData as any;
+  const company = companyData as any;
   if (!inv) throw new Error("Fatura não encontrada");
 
   const [{ data: cc }, { data: pm }, { data: vat }] = await Promise.all([
-    inv.cost_center_id ? supabase.from("cost_centers").select("name").eq("id", inv.cost_center_id).maybeSingle() : Promise.resolve({ data: null } as any),
-    inv.payment_method_id ? supabase.from("payment_methods").select("name").eq("id", inv.payment_method_id).maybeSingle() : Promise.resolve({ data: null } as any),
-    inv.vat_rate_id ? supabase.from("vat_rates").select("name,rate").eq("id", inv.vat_rate_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    inv.cost_center_id ? supabase.from("cost_centers" as any).select("name").eq("id", inv.cost_center_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    inv.payment_method_id ? supabase.from("payment_methods" as any).select("name").eq("id", inv.payment_method_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    inv.vat_rate_id ? supabase.from("vat_rates" as any).select("name,rate").eq("id", inv.vat_rate_id).maybeSingle() : Promise.resolve({ data: null } as any),
   ]);
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });

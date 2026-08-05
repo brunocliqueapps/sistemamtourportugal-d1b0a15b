@@ -47,11 +47,11 @@ function Agenda() {
   const periodFrom = year === "all" ? from : month === "all" ? `${year}-01-01` : `${year}-${month}-01`;
   const periodTo = year === "all" ? to : month === "all" ? `${year}-12-31` : `${year}-${month}-${String(lastDay(year, month)).padStart(2, "0")}`;
 
-  const { data: vehicles = [] } = useQuery({ queryKey: ["agenda-vehicles"], queryFn: async () => (await supabase.from("vehicles").select("id,plate,brand,model,owner_company").order("plate")).data ?? [] });
-  const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers").select("id,full_name").order("full_name")).data ?? [] });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["agenda-vehicles"], queryFn: async () => (await supabase.from("vehicles" as any).select("id,plate,brand,model,owner_company").order("plate")).data ?? [] });
+  const { data: driversList = [] } = useQuery({ queryKey: ["agenda-drivers"], queryFn: async () => (await supabase.from("drivers" as any).select("id,full_name").order("full_name")).data ?? [] });
 
-  const { data: regions = [] } = useQuery({ queryKey: ["agenda-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["agenda-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["agenda-regions"], queryFn: async () => (await supabase.from("regions" as any).select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["agenda-routes"], queryFn: async () => (await supabase.from("tour_routes" as any).select("id,name")).data ?? [] });
   const names = {
     regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
     routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
@@ -60,7 +60,7 @@ function Agenda() {
   const { data } = useQuery({
     queryKey: ["agenda", statusFilter, vehicleFilter, driverFilter],
     queryFn: async () => {
-      let q = supabase.from("service_orders")
+      let q = supabase.from("service_orders" as any)
         .select(`*, clients(name,phone,nif), drivers(full_name), vehicles(plate,brand,model,owner_company), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("service_date").order("start_time");
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
