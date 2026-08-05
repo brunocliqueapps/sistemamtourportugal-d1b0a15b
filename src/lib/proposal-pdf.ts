@@ -215,7 +215,11 @@ export async function generateBudgetPdf(id: string) {
     startY: y,
     head: [["Etapa", "%", "Valor (€)"]],
     body: stages.map((s) => [s.label, `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
-    styles: { fontSize: 9 }, headStyles: { fillColor: [176, 141, 68] }, margin: { left: 40, right: 40 },
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
+    alternateRowStyles: { fillColor: [255, 252, 245] },
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
