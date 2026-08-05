@@ -54,12 +54,12 @@ function Financeiro() {
       return (await q).data ?? [];
     },
   });
-  const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await supabase.from("vat_rates").select("*").eq("active", true)).data ?? [] });
-  const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await supabase.from("cost_centers").select("*").eq("active", true)).data ?? [] });
-  const { data: pm = [] } = useQuery({ queryKey: ["pmf"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
-  const { data: ba = [] } = useQuery({ queryKey: ["ba"], queryFn: async () => (await supabase.from("bank_accounts").select("*").eq("active", true)).data ?? [] });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-fin"], queryFn: async () => (await supabase.from("clients").select("id,name,nif,phone,email").order("name")).data ?? [] });
-  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-fin"], queryFn: async () => (await supabase.from("suppliers").select("id,name,nif,phone,email").order("name")).data ?? [] });
+  const { data: vat = [] } = useQuery({ queryKey: ["vat"], queryFn: async () => (await (supabase.from("vat_rates" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: cc = [] } = useQuery({ queryKey: ["cc"], queryFn: async () => (await (supabase.from("cost_centers" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: pm = [] } = useQuery({ queryKey: ["pmf"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: ba = [] } = useQuery({ queryKey: ["ba"], queryFn: async () => (await (supabase.from("bank_accounts" as any).select("*").eq("active", true) as any)).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-fin"], queryFn: async () => (await (supabase.from("clients" as any).select("id,name,nif,phone,email").order("name") as any)).data ?? [] });
+  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-fin"], queryFn: async () => (await (supabase.from("suppliers" as any).select("id,name,nif,phone,email").order("name") as any)).data ?? [] });
   const entities = kind === "entrada" ? clients : suppliers;
 
 
