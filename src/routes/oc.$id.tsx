@@ -60,9 +60,9 @@ function OCDetail() {
         end_time: new Date().toISOString(),
         closed_by: user!.id,
       };
-      const { error } = await supabase.from("service_closings").upsert(payload, { onConflict: "service_order_id" });
+      const { error } = await supabase.from("service_closings" as any).upsert(payload as any, { onConflict: "service_order_id" });
       if (error) throw error;
-      await supabase.from("service_orders").update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending }).eq("id", id);
+      await supabase.from("service_orders" as any).update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending } as any).eq("id", id);
       // criar movimento de caixa (entrada)
       if (payload.amount_received > 0) {
         await supabase.from("cash_movements").insert({
