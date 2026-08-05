@@ -37,13 +37,13 @@ function Comissoes() {
   });
 
   const computed = rows.map((r: any) => {
-    const v = vehicles.find((x: any) => x.id === r.vehicle_id);
-    const d = drivers.find((x: any) => x.id === r.driver_id);
+    const v = (vehicles as any[]).find((x: any) => x.id === r.vehicle_id);
+    const d = (drivers as any[]).find((x: any) => x.id === r.driver_id);
     const rental = v?.usage_type === "aluguel" ? Number(v?.rental_weekly_cost || 0) : 0;
     const pct = Number(d?.commission_pct || 0);
     const net = Number(r.net_profit || 0) - rental;
     const commission = (net > 0 ? net : 0) * (pct / 100);
-    const existing = settled.find((s: any) => s.vehicle_id === r.vehicle_id && s.driver_id === r.driver_id);
+    const existing = (settled as any[]).find((s: any) => s.vehicle_id === r.vehicle_id && s.driver_id === r.driver_id);
     return {
       ...r, vehicle: v, driver: d, rental, pct, net, commission,
       company: net - commission, paid: existing?.paid ?? false, existingId: existing?.id,
