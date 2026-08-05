@@ -583,17 +583,17 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
 
       // 3) Cash movement for received amount (idempotent — only if not registered yet)
       if (closingPayload.amount_received > 0) {
-        const { data: existing } = await supabase.from("cash_movements")
-          .select("id").eq("service_order_id", service.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+        const { data: existing } = await (supabase.from("cash_movements" as any)
+          .select("id") as any).eq("service_order_id", service.id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
         if (!existing || existing.length === 0) {
-          await supabase.from("cash_movements").insert({
+          await supabase.from("cash_movements" as any).insert({
             kind: "entrada",
             amount: closingPayload.amount_received,
             service_order_id: service.id,
             payment_method_id: closingPayload.payment_method_id,
             description: `Recebimento OS ${service.oc_code}`,
             created_by: user!.id,
-          });
+          } as any);
         }
       }
 
