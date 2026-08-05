@@ -118,9 +118,12 @@ function CompanyForm() {
         {F("city","Cidade")}{F("country","País")}
         {F("phone","Telefone")}{F("email","Email","email")}
         {F("website","Website")}{F("iban","IBAN")}
-        {F("logo_url","Logo (URL)")}
+        {F("logo_url","Logo (URL PNG)")}
+        {F("instagram_qr_url","Instagram QR Code (URL)")}
+        {F("instagram_url","Instagram (URL)")}{F("facebook_url","Facebook (URL)")}
         <div className="md:col-span-2">{F("invoice_footer","Rodapé da fatura")}</div>
       </div>
+
       <div className="mt-4"><Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>Guardar</Button></div>
     </Card>
   );
