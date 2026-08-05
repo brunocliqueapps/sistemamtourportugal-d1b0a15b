@@ -174,38 +174,9 @@ function Clientes() {
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
-              <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div>
-                  <Label>Telefone</Label>
-                  <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
-                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
-
-                    <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>NIF / Passaporte</Label><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
-                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Origem</Label>
-                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
-                    <SelectContent className="max-h-56 overflow-y-auto">
-                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact ?? ""} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-                <div><Label>País</Label><Input value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
-                <div><Label>Morada</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
+                <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
               </div>
             </div>
 
@@ -221,16 +192,56 @@ function Clientes() {
                 <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time ?? ""} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
                 <div><Label>Local de partida</Label><Input value={form.departure_place ?? ""} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
               </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Contactos e documentos</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+                <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
+                    <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passaporte</Label><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact ?? ""} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <div>
+                <Label>Origem do Lead</Label>
+                <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v, origin_detail: ORIGINS_WITH_DETAIL.includes(v) ? form.origin_detail : "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent className="max-h-56 overflow-y-auto">
+                    {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {ORIGINS_WITH_DETAIL.includes(form.origin) && (
+                <div>
+                  <Label>Descrever origem ({form.origin})</Label>
+                  <Input value={form.origin_detail ?? ""} onChange={(e) => setForm({ ...form, origin_detail: e.target.value })} placeholder="Quem indicou / qual parceria / detalhe" />
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+                <div><Label>País</Label><Input value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
+                <div><Label>Morada</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              </div>
+              <div>
+                <Label>Notas</Label>
+                <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
+                  value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
             </div>
 
-            <div className="border-t pt-3">
-              <Label>Notas</Label>
-              <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
-                value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
