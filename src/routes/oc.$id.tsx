@@ -65,11 +65,11 @@ function OCDetail() {
       await supabase.from("service_orders" as any).update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending } as any).eq("id", id);
       // criar movimento de caixa (entrada)
       if (payload.amount_received > 0) {
-        await supabase.from("cash_movements").insert({
+        await supabase.from("cash_movements" as any).insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
-          description: `Recebimento OS ${shortCode(so?.oc_code)}`, created_by: user!.id,
-        });
+          description: `Recebimento OS ${shortCode((so as any)?.oc_code)}`, created_by: user!.id,
+        } as any);
       }
     },
     onSuccess: () => { toast.success("Serviço finalizado e enviado ao financeiro"); qc.invalidateQueries(); },
