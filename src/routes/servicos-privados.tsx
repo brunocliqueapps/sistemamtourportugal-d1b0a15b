@@ -104,7 +104,7 @@ function ServicosPrivados() {
       for (const id of selectedIds) {
         const svc: any = services.find((s: any) => s.id === id);
         const sale = Number(svc?.sale_value || 0);
-        await supabase.from("service_closings").upsert({
+        await (supabase.from("service_closings" as any).upsert({
           service_order_id: id,
           end_time: nowIso,
           sale_value: sale,
@@ -113,12 +113,12 @@ function ServicosPrivados() {
           closed_at: nowIso,
           closed_by: user?.id ?? null,
           notes: "Fechamento em lote",
-        }, { onConflict: "service_order_id" });
-        await supabase.from("service_orders").update({
+        } as any, { onConflict: "service_order_id" }) as any);
+        await (supabase.from("service_orders" as any).update({
           status: "finalizado",
           amount_received: sale,
           amount_pending: 0,
-        }).eq("id", id);
+        } as any).eq("id", id) as any);
         // Lançamento automático no financeiro (Conta Corrente)
         if (sale > 0) {
           const { data: existing } = await supabase.from("cash_movements")
