@@ -174,23 +174,23 @@ function OCList() {
       if (on) {
         const value = Number(row.sale_value ?? row.proposals?.total_value ?? 0);
         if (value <= 0) throw new Error("Defina o valor da OS antes de validar.");
-        const { error } = await supabase.from("service_orders").update({ validated_at: new Date().toISOString() }).eq("id", row.id);
+        const { error } = await supabase.from("service_orders" as any).update({ validated_at: new Date().toISOString() } as any).eq("id", row.id);
         if (error) throw error;
-        const { data: exists } = await supabase.from("cash_movements")
-          .select("id").eq("service_order_id", row.id).like("description", "Orçamento validado%").maybeSingle();
+        const { data: exists } = await (supabase.from("cash_movements" as any)
+          .select("id") as any).eq("service_order_id", row.id).like("description", "Orçamento validado%").maybeSingle();
         if (!exists) {
-          const { error: cmErr } = await supabase.from("cash_movements").insert({
+          const { error: cmErr } = await supabase.from("cash_movements" as any).insert({
             kind: "entrada", amount: value,
             service_order_id: row.id,
             description: `Orçamento validado · Mtour Portugal · ${row.clients?.name ?? "Cliente"} · ${row.proposals?.title ?? shortCode(row.oc_code)}`,
             created_by: user?.id ?? null,
-          });
+          } as any);
           if (cmErr) throw cmErr;
         }
       } else {
-        const { error } = await supabase.from("service_orders").update({ validated_at: null }).eq("id", row.id);
+        const { error } = await supabase.from("service_orders" as any).update({ validated_at: null } as any).eq("id", row.id);
         if (error) throw error;
-        await supabase.from("cash_movements").delete().eq("service_order_id", row.id).like("description", "Orçamento validado%");
+        await (supabase.from("cash_movements" as any).delete() as any).eq("service_order_id", row.id).like("description", "Orçamento validado%");
       }
     },
     onSuccess: (_d, v) => {
