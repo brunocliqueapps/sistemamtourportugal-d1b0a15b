@@ -23,16 +23,19 @@ import { useNextClientNumber } from "@/lib/next-client-number";
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 
 
 
 const emptyClient = {
-  name: "", nif: "", email: "", phone: "", phone_country: "+351", origin: "",
-  birth_date: "", emergency_contact: "", city: "", country: "", address: "", notes: "",
+  name: "", passengers: "", email: "", phone: "", phone_country: "+351",
+  nif: "", birth_date: "", emergency_contact: "",
+  origin: "", origin_detail: "", city: "", country: "", address: "", notes: "",
   arrival_date: "", arrival_time: "", arrival_place: "",
-  departure_date: "", departure_time: "", departure_place: "", passengers: "",
+  departure_date: "", departure_time: "", departure_place: "",
 };
+
 
 function Clientes() {
   const qc = useQueryClient();
@@ -116,24 +119,27 @@ function Clientes() {
             <TableRow>
               <TableHead>Nº Cliente</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>NIF / Passaporte</TableHead>
+              <TableHead>Pessoas</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead>Origem</TableHead>
+              <TableHead>Passaporte</TableHead>
+              <TableHead>Origem do Lead</TableHead>
               <TableHead className="w-40 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
-            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {filtered.map((c: any) => (
               <TableRow key={c.id}>
                 <TableCell className="font-mono text-xs">{shortCode(c.client_number)}</TableCell>
                 <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell>{c.nif ?? "—"}</TableCell>
+                <TableCell>{c.passengers ?? "—"}</TableCell>
                 <TableCell>{c.email ?? "—"}</TableCell>
                 <TableCell>{[c.phone_country, c.phone].filter(Boolean).join(" ") || "—"}</TableCell>
-                <TableCell>{c.origin ?? "—"}</TableCell>
+                <TableCell>{c.nif ?? "—"}</TableCell>
+                <TableCell>{[c.origin, c.origin_detail].filter(Boolean).join(" · ") || "—"}</TableCell>
+
                 <TableCell className="text-right">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(c)}>
                     <Eye className="h-4 w-4" />
@@ -171,38 +177,9 @@ function Clientes() {
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
-              <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div>
-                  <Label>Telefone</Label>
-                  <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
-                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
-
-                    <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>NIF / Passaporte</Label><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
-                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Origem</Label>
-                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
-                    <SelectContent className="max-h-56 overflow-y-auto">
-                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact ?? ""} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-                <div><Label>País</Label><Input value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
-                <div><Label>Morada</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
+                <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
               </div>
             </div>
 
@@ -218,16 +195,56 @@ function Clientes() {
                 <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time ?? ""} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
                 <div><Label>Local de partida</Label><Input value={form.departure_place ?? ""} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
               </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Contactos e documentos</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+                <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
+                    <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passaporte</Label><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact ?? ""} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <div>
+                <Label>Origem do Lead</Label>
+                <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v, origin_detail: ORIGINS_WITH_DETAIL.includes(v) ? form.origin_detail : "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent className="max-h-56 overflow-y-auto">
+                    {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {ORIGINS_WITH_DETAIL.includes(form.origin) && (
+                <div>
+                  <Label>Descrever origem ({form.origin})</Label>
+                  <Input value={form.origin_detail ?? ""} onChange={(e) => setForm({ ...form, origin_detail: e.target.value })} placeholder="Quem indicou / qual parceria / detalhe" />
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+                <div><Label>País</Label><Input value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} /></div>
+                <div><Label>Morada</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              </div>
+              <div>
+                <Label>Notas</Label>
+                <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
+                  value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
             </div>
 
-            <div className="border-t pt-3">
-              <Label>Notas</Label>
-              <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
-                value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -247,19 +264,22 @@ function Clientes() {
         record={viewing}
         fields={[
           { key: "client_number", label: "Nº Cliente", format: (v: any) => shortCode(v) },
-          { key: "name", label: "Nome" }, { key: "nif", label: "NIF / Passaporte" },
-          { key: "email", label: "Email" }, { key: "phone_country", label: "Indicativo" },
-          { key: "phone", label: "Telefone" }, { key: "origin", label: "Origem" },
-          { key: "birth_date", label: "Data de nascimento" },
-          { key: "emergency_contact", label: "Contacto de emergência" },
-          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
-          { key: "address", label: "Morada" },
+          { key: "name", label: "Nome" },
+          { key: "passengers", label: "Número de pessoas" },
           { key: "arrival_date", label: "Data de chegada" }, { key: "arrival_time", label: "Hora de chegada" },
           { key: "arrival_place", label: "Local de chegada" },
           { key: "departure_date", label: "Data de partida" }, { key: "departure_time", label: "Hora de partida" },
           { key: "departure_place", label: "Local de partida" },
-          { key: "passengers", label: "Passageiros" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
+          { key: "nif", label: "Passaporte" },
+          { key: "birth_date", label: "Data de nascimento" },
+          { key: "emergency_contact", label: "Contacto de emergência" },
+          { key: "origin", label: "Origem do Lead", format: (v, r: any) => [v, r?.origin_detail].filter(Boolean).join(" · ") || "—" },
+          { key: "city", label: "Cidade" }, { key: "country", label: "País" },
+          { key: "address", label: "Morada" },
           { key: "notes", label: "Notas" },
+
         ]}
       />
     </div>

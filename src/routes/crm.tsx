@@ -30,8 +30,10 @@ const cols: { key: string; label: string }[] = [
 ];
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const TEMPS: { key: string; label: string; cls: string }[] = [
+  { key: "novo", label: "Novo Lead", cls: "bg-gold/15 text-gold border-gold/30" },
   { key: "frio", label: "Frio", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30" },
   { key: "morno", label: "Morno", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30" },
   { key: "quente", label: "Quente", cls: "bg-red-500/15 text-red-600 dark:text-red-300 border-red-500/30" },
@@ -41,11 +43,14 @@ const TEMPS: { key: string; label: string; cls: string }[] = [
 
 
 const empty = {
-  name: "", email: "", phone: "", phone_country: "+351", origin: "", status: "novo",
-  notes: "", lost_reason: "", temperature: "frio", nif: "", birth_date: "",
-  emergency_contact: "", arrival_date: "", arrival_time: "", arrival_place: "",
-  departure_date: "", departure_time: "", departure_place: "", passengers: "",
+  name: "", passengers: "", email: "", phone: "", phone_country: "+351",
+  nif: "", birth_date: "", emergency_contact: "",
+  origin: "", origin_detail: "", temperature: "novo", status: "novo",
+  notes: "", lost_reason: "",
+  arrival_date: "", arrival_time: "", arrival_place: "",
+  departure_date: "", departure_time: "", departure_place: "",
 };
+
 
 const FORM_KEYS = Object.keys(empty);
 
@@ -128,6 +133,8 @@ function CRM() {
       const { error } = await supabase.from("clients").insert({
         name: l.name, email: l.email || null, phone: l.phone || null, notes: l.notes || null,
         phone_country: l.phone_country || null, nif: l.nif || null, origin: l.origin || null,
+        origin_detail: l.origin_detail || null,
+
         birth_date: l.birth_date || null, emergency_contact: l.emergency_contact || null,
         arrival_date: l.arrival_date || null, arrival_time: l.arrival_time || null, arrival_place: l.arrival_place || null,
         departure_date: l.departure_date || null, departure_time: l.departure_time || null, departure_place: l.departure_place || null,
@@ -268,10 +275,11 @@ function CRM() {
               <TableRow>
                 <TableHead>Nº cliente</TableHead>
                 <TableHead>Nome</TableHead>
+                <TableHead>Pessoas</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Temperatura</TableHead>
+                <TableHead>Origem do Lead</TableHead>
+                <TableHead>Status do Lead</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -281,14 +289,16 @@ function CRM() {
                 <TableRow key={l.id} className={l.archived ? "opacity-60" : ""}>
                   <TableCell className="font-mono text-xs">{shortCode(l.client_number)}</TableCell>
                   <TableCell className="font-medium">{l.name}</TableCell>
+                  <TableCell className="text-sm">{l.passengers ?? "—"}</TableCell>
                   <TableCell className="text-sm">{l.email}</TableCell>
                   <TableCell className="text-sm">{[l.phone_country, l.phone].filter(Boolean).join(" ")}</TableCell>
-                  <TableCell className="text-sm">{l.origin}</TableCell>
+                  <TableCell className="text-sm">{[l.origin, l.origin_detail].filter(Boolean).join(" · ")}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.cls}>
                       {TEMPS.find((t) => t.key === (l.temperature ?? "frio"))?.label ?? l.temperature}
                     </Badge>
                   </TableCell>
+
                   <TableCell>
                     <Badge variant="outline">{cols.find((c) => c.key === l.status)?.label ?? l.status}</Badge>
                     {l.archived && <Badge variant="secondary" className="ml-1">Arquivado</Badge>}
@@ -343,46 +353,9 @@ function CRM() {
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do lead</h4>
 
-              <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div>
-                  <Label>Telefone</Label>
-                  <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
-                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
-
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>NIF / Passaporte</Label><Input value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
-                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
-              </div>
-              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Origem</Label>
-                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
-                    <SelectContent className="max-h-56 overflow-y-auto">
-                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Temperatura</Label>
-                  <Select value={form.temperature || "frio"} onValueChange={(v) => setForm({ ...form, temperature: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TEMPS.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div><Label>Estado</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
+                <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
               </div>
             </div>
 
@@ -398,12 +371,59 @@ function CRM() {
                 <div><Label>Hora de partida</Label><Input type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} /></div>
                 <div><Label>Local de partida</Label><Input value={form.departure_place} onChange={(e) => setForm({ ...form, departure_place: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Passageiros</Label><Input type="number" min={0} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
-              </div>
             </div>
 
             <div className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Contactos e documentos</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div>
+                  <Label>Telefone</Label>
+                  <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
+                    <PhoneCountrySelect value={form.phone_country} onChange={(v) => setForm({ ...form, phone_country: v })} />
+
+                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="912 345 678" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Passaporte</Label><Input value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
+                <div><Label>Data de nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+              </div>
+              <div><Label>Contacto de emergência</Label><Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} placeholder="Nome e telefone" /></div>
+            </div>
+
+            <div className="space-y-3 border-t pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Origem do Lead</Label>
+                  <Select value={form.origin || ""} onValueChange={(v) => setForm({ ...form, origin: v, origin_detail: ORIGINS_WITH_DETAIL.includes(v) ? form.origin_detail : "" })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                    <SelectContent className="max-h-56 overflow-y-auto">
+                      {ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status do Lead</Label>
+                  <Select value={form.temperature || "novo"} onValueChange={(v) => setForm({ ...form, temperature: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{TEMPS.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {ORIGINS_WITH_DETAIL.includes(form.origin) && (
+                <div>
+                  <Label>Descrever origem ({form.origin})</Label>
+                  <Input value={form.origin_detail ?? ""} onChange={(e) => setForm({ ...form, origin_detail: e.target.value })} placeholder="Quem indicou / qual parceria / detalhe" />
+                </div>
+              )}
+              <div><Label>Estado</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{cols.map((x) => <SelectItem key={x.key} value={x.key}>{x.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               {form.status === "perdido" && (
                 <div>
@@ -416,6 +436,7 @@ function CRM() {
                 </div>
               )}
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -432,24 +453,25 @@ function CRM() {
         fields={[
           { key: "client_number", label: "Nº de cliente", format: (v: any) => shortCode(v) },
           { key: "name", label: "Nome" },
-          { key: "email", label: "Email" },
-          { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
-          { key: "nif", label: "NIF / Passaporte" },
-          { key: "birth_date", label: "Data de nascimento" },
-          { key: "emergency_contact", label: "Contacto de emergência" },
-          { key: "origin", label: "Origem" },
-          { key: "temperature", label: "Temperatura", format: (v) => TEMPS.find((t) => t.key === v)?.label ?? v },
-          { key: "status", label: "Estado", format: (v) => cols.find((c) => c.key === v)?.label ?? v },
+          { key: "passengers", label: "Número de pessoas" },
           { key: "arrival_date", label: "Data de chegada" },
           { key: "arrival_time", label: "Hora de chegada" },
           { key: "arrival_place", label: "Local de chegada" },
           { key: "departure_date", label: "Data de partida" },
           { key: "departure_time", label: "Hora de partida" },
           { key: "departure_place", label: "Local de partida" },
-          { key: "passengers", label: "Passageiros" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Telefone", format: (v, r: any) => v ? `${r?.phone_country ?? ""} ${v}`.trim() : "—" },
+          { key: "nif", label: "Passaporte" },
+          { key: "birth_date", label: "Data de nascimento" },
+          { key: "emergency_contact", label: "Contacto de emergência" },
+          { key: "origin", label: "Origem do Lead", format: (v, r: any) => [v, r?.origin_detail].filter(Boolean).join(" · ") || "—" },
+          { key: "temperature", label: "Status do Lead", format: (v) => TEMPS.find((t) => t.key === v)?.label ?? v },
+          { key: "status", label: "Estado", format: (v) => cols.find((c) => c.key === v)?.label ?? v },
+          { key: "notes", label: "Notas" },
           { key: "lost_reason", label: "Motivo da perda" },
           { key: "archived", label: "Arquivado", format: (v) => v ? "Sim" : "Não" },
-          { key: "notes", label: "Notas" },
+
         ]}
       />
     </div>
