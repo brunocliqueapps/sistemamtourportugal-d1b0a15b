@@ -364,12 +364,12 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
   const closeShift = useMutation({
     mutationFn: async (s: any) => {
       const km = prompt("Km final (opcional):");
-      const { error } = await supabase.from("tvde_shifts").update({
+      const { error } = await (supabase.from("tvde_shifts" as any).update({
         end_time: new Date().toISOString(),
         km_final: km ? Number(km) : s.km_final,
         closed_at: new Date().toISOString(),
         closed_by: user?.id ?? null,
-      }).eq("id", s.id);
+      } as any).eq("id", s.id) as any);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Turno fechado"); qc.invalidateQueries(); },
