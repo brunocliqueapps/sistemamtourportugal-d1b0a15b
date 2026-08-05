@@ -19,8 +19,8 @@ const groups: Group[] = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   ]},
   { label: "Comercial", items: [
-    { to: "/crm", label: "CRM · Leads", icon: Users, module: "crm" },
-    { to: "/clientes", label: "Clientes", icon: Users, module: "cadastros" },
+    { to: "/clientes", label: "Clientes · CRM", icon: Users, module: "cadastros" },
+
     { to: "/propostas", label: "Proposta/Roteiro", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Orçamento", icon: Calculator, module: "propostas" },
   ]},

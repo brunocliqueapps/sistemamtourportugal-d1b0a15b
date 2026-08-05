@@ -36,9 +36,10 @@ const empty: any = {
 };
 
 const KINDS = [
-  { code: "roteiro_personalizado", label: "Roteiro Personalizado" },
-  { code: "servico_privado", label: "Serviço Privado" },
+  { code: "roteiro_personalizado", label: "Sugestão Roteiro Mtour" },
+  { code: "servico_privado", label: "Roteiro Personalizado Mtour" },
 ];
+
 
 function Propostas() {
   const { user } = useAuth();
@@ -73,14 +74,24 @@ function Propostas() {
     // O lead de origem costuma ter os dados de passageiros/viagem preenchidos
     const l: any = c?.lead_id ? (leads as any[]).find((x: any) => x.id === c.lead_id) : null;
     const pick = (k: string) => c?.[k] ?? l?.[k] ?? null;
-    setForm((f: any) => ({
-      ...f, client_id: id,
-      passengers: Number(pick("passengers")) || Number(f.passengers) || 1,
-      arrival_date: pick("arrival_date") ?? f.arrival_date, arrival_time: pick("arrival_time") ?? f.arrival_time, arrival_place: pick("arrival_place") ?? f.arrival_place,
-      departure_date: pick("departure_date") ?? f.departure_date, departure_time: pick("departure_time") ?? f.departure_time, departure_place: pick("departure_place") ?? f.departure_place,
-      responsible: f.responsible || c?.name || "",
-    }));
+    setForm((f: any) => {
+      const arrival = pick("arrival_date") ?? f.arrival_date;
+      const departure = pick("departure_date") ?? f.departure_date;
+      const start = arrival || f.itinerary_start;
+      const end = departure || f.itinerary_end;
+      return {
+        ...f, client_id: id,
+        passengers: Number(pick("passengers")) || Number(f.passengers) || 1,
+        arrival_date: arrival, arrival_time: pick("arrival_time") ?? f.arrival_time, arrival_place: pick("arrival_place") ?? f.arrival_place,
+        departure_date: departure, departure_time: pick("departure_time") ?? f.departure_time, departure_place: pick("departure_place") ?? f.departure_place,
+        responsible: f.responsible || c?.name || "",
+        itinerary_start: start, itinerary_end: end,
+        itinerary: buildDays(start, end, f.itinerary ?? []),
+        days_count: daysBetween(start, end) || null,
+      };
+    });
   }
+
 
   function setRange(patch: any) {
     setForm((f: any) => {
@@ -269,7 +280,7 @@ function Propostas() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="roteiro_personalizado">Sugestão Roteiro Mtour</SelectItem>
-                      <SelectItem value="servico_privado">Serviço Privado</SelectItem>
+                      <SelectItem value="servico_privado">Roteiro Personalizado Mtour</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -277,8 +288,8 @@ function Propostas() {
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
 
                 {form.proposal_kind === "servico_privado" ? (
-                  <div className="sm:col-span-4"><Label>Serviço privado</Label>
-                    <Textarea rows={2} placeholder="Descreva o serviço privado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
+                  <div className="sm:col-span-4"><Label>Roteiro personalizado</Label>
+                    <Textarea rows={2} placeholder="Descreva o roteiro personalizado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
                   </div>
                 ) : (<>
                   <div className="sm:col-span-2"><Label>Região</Label>
