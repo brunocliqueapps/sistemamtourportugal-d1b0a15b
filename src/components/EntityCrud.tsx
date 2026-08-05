@@ -135,7 +135,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await supabase.from(table as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: [table] }); },
