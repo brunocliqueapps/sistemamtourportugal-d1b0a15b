@@ -99,8 +99,8 @@ function TVDE() {
 
   const delExp = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("cash_movements").delete().eq("service_expense_id", id);
-      const { error } = await supabase.from("service_expenses").delete().eq("id", id);
+      await (supabase.from("cash_movements" as any).delete() as any).eq("service_expense_id", id);
+      const { error } = await (supabase.from("service_expenses" as any).delete() as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries(),
