@@ -39,7 +39,7 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
 
 /** Condições de pagamento sugeridas conforme a duração. */
 export function suggestPaymentTerms(days: number): string {
-  return "30% na aprovação da proposta · 50% pagamento inicial · 20% final do serviço";
+  return "30% na aprovação da proposta · 50% pagamento inicial · 20% pagamento final";
 }
 
 export function paymentSchedule(days: number, total: number) {
@@ -47,6 +47,6 @@ export function paymentSchedule(days: number, total: number) {
   return [
     { label: "Aprovação da Proposta", pct: 30, value: t * 0.3 },
     { label: "Pagamento Inicial", pct: 50, value: t * 0.5 },
-    { label: "Final do Serviço", pct: 20, value: t * 0.2 },
+    { label: "Pagamento Final", pct: 20, value: t * 0.2 },
   ];
 }
