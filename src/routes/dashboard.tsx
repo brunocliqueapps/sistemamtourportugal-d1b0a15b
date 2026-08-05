@@ -32,11 +32,11 @@ function Dashboard() {
     queryKey: ["dashboard-v2"],
     queryFn: async () => {
       const [leadsR, soR, invR, cmR, alertsR] = await Promise.all([
-        supabase.from("leads").select("id,status,origin,created_at"),
-        supabase.from("service_orders").select("id,oc_code,client_id,service_date,start_time,origin,destination,status,sale_value").order("service_date"),
-        supabase.from("invoices").select("kind,total,status,issue_date"),
-        supabase.from("cash_movements").select("kind,amount"),
-        supabase.from("document_alerts").select("*"),
+        (supabase.from("leads" as any).select("id,status,origin,created_at") as any),
+        (supabase.from("service_orders" as any).select("id,oc_code,client_id,service_date,start_time,origin,destination,status,sale_value").order("service_date") as any),
+        (supabase.from("invoices" as any).select("kind,total,status,issue_date") as any),
+        (supabase.from("cash_movements" as any).select("kind,amount") as any),
+        (supabase.from("document_alerts" as any).select("*") as any),
       ]);
       return {
         leads: leadsR.data ?? [],
