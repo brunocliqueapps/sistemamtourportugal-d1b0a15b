@@ -25,8 +25,8 @@ export const Route = createFileRoute("/roteiro")({ component: Roteiro });
 function Roteiro() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await (supabase.from("regions" as any).select("id,name") as any)).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await (supabase.from("tour_routes" as any).select("id,name") as any)).data ?? [] });
   const names = {
     regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
     routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
