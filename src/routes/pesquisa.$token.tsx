@@ -38,10 +38,10 @@ function PesquisaPublica() {
 
     const answersArr = questions.map((q: any) => ({ id: q.id, label: q.label, type: q.type, value: answers[q.id] ?? null }));
 
-    const { error } = await supabase.from("surveys").update({
+    const { error } = await supabase.from("surveys" as any).update({
       answers: answersArr, average_score: avg, nps_score: isNaN(npsScore as any) ? null : npsScore,
       status: "respondido", answered_at: new Date().toISOString(),
-    }).eq("token", token);
+    } as any).eq("token", token);
     if (error) return toast.error(error.message);
     setDone(true);
   };
