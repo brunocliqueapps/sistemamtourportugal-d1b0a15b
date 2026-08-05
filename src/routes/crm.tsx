@@ -30,8 +30,10 @@ const cols: { key: string; label: string }[] = [
 ];
 
 const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const TEMPS: { key: string; label: string; cls: string }[] = [
+  { key: "novo", label: "Novo Lead", cls: "bg-gold/15 text-gold border-gold/30" },
   { key: "frio", label: "Frio", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30" },
   { key: "morno", label: "Morno", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30" },
   { key: "quente", label: "Quente", cls: "bg-red-500/15 text-red-600 dark:text-red-300 border-red-500/30" },
@@ -41,11 +43,14 @@ const TEMPS: { key: string; label: string; cls: string }[] = [
 
 
 const empty = {
-  name: "", email: "", phone: "", phone_country: "+351", origin: "", status: "novo",
-  notes: "", lost_reason: "", temperature: "frio", nif: "", birth_date: "",
-  emergency_contact: "", arrival_date: "", arrival_time: "", arrival_place: "",
-  departure_date: "", departure_time: "", departure_place: "", passengers: "",
+  name: "", passengers: "", email: "", phone: "", phone_country: "+351",
+  nif: "", birth_date: "", emergency_contact: "",
+  origin: "", origin_detail: "", temperature: "novo", status: "novo",
+  notes: "", lost_reason: "",
+  arrival_date: "", arrival_time: "", arrival_place: "",
+  departure_date: "", departure_time: "", departure_place: "",
 };
+
 
 const FORM_KEYS = Object.keys(empty);
 
