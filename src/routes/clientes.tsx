@@ -95,7 +95,7 @@ function Clientes() {
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["next-client-number"] });
 
-      setOpen(false); setEditing(null); setForm(emptyClient);
+      setOpen(false); setEditing(null); setForm(emptyClient); setHasUnsavedChanges(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
