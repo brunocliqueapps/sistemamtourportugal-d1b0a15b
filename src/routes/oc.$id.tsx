@@ -85,12 +85,12 @@ function OCDetail() {
         paid_by: user!.id, vehicle_id: (so as any)?.vehicle_id,
       } as any).select().single() as any);
       if (error) throw error;
-      await supabase.from("cash_movements").insert({
+      await supabase.from("cash_movements" as any).insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
-        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode(so?.oc_code)}`,
+        description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode((so as any)?.oc_code)}`,
         created_by: user!.id,
-      });
+      } as any);
     },
     onSuccess: () => { toast.success("Despesa registada"); qc.invalidateQueries(); setExp({ category: "estacionamento", description: "", amount: 0, payment_method_id: "" }); },
     onError: (e: any) => toast.error(e.message),
