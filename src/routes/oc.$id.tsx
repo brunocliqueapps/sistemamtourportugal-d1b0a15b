@@ -79,11 +79,11 @@ function OCDetail() {
   const addExp = useMutation({
     mutationFn: async () => {
       if (exp.category === "outra" && !exp.description) throw new Error("Descrição obrigatória para outras despesas.");
-      const { data, error } = await supabase.from("service_expenses").insert({
+      const { data, error } = await (supabase.from("service_expenses" as any).insert({
         service_order_id: id, category: exp.category, description: exp.description,
         amount: Number(exp.amount), payment_method_id: exp.payment_method_id || null,
-        paid_by: user!.id, vehicle_id: so?.vehicle_id,
-      }).select().single();
+        paid_by: user!.id, vehicle_id: (so as any)?.vehicle_id,
+      } as any).select().single() as any);
       if (error) throw error;
       await supabase.from("cash_movements").insert({
         kind: "saida", amount: Number(exp.amount),
