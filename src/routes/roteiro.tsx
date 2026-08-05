@@ -51,12 +51,12 @@ function Roteiro() {
   const { data: closings = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-closings", ids.join(",")],
-    queryFn: async () => (await supabase.from("service_closings").select("*").in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_closings" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
   });
   const { data: expenses = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-exp", ids.join(",")],
-    queryFn: async () => (await supabase.from("service_expenses").select("*").in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
   });
   const { data: closers = [] } = useQuery({
     enabled: closings.length > 0,
@@ -64,7 +64,7 @@ function Roteiro() {
     queryFn: async () => {
       const uids = Array.from(new Set(closings.map((c: any) => c.closed_by).filter(Boolean)));
       if (!uids.length) return [];
-      return (await supabase.from("profiles").select("id,full_name,email").in("id", uids)).data ?? [];
+      return (await (supabase.from("profiles" as any).select("id,full_name,email") as any).in("id", uids)).data ?? [];
     },
   });
 
