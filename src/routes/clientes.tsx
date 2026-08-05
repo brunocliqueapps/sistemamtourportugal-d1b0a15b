@@ -21,6 +21,8 @@ import { PhoneCountrySelect } from "@/components/PhoneCountrySelect";
 import { useNextClientNumber } from "@/lib/next-client-number";
 import { daysBetween } from "@/lib/payment-terms";
 import { fmtDate } from "@/lib/format-date";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+
 
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
@@ -54,7 +56,9 @@ const emptyClient = {
 
 function Clientes() {
   const qc = useQueryClient();
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const [open, setOpen] = useState(false);
+
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyClient);
   const [search, setSearch] = useState("");
@@ -189,7 +193,7 @@ function Clientes() {
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Visualizar" onClick={() => setViewing(c)}><Eye className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Histórico" onClick={() => setHistoryClient(c)}><History className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-6 w-6" title="Arquivar (retirar do pipeline)" onClick={() => { if (confirm("Retirar este cliente do pipeline? Continuará visível na lista.")) archive.mutate({ id: c.id, archived: true }); }}><Archive className="h-3 w-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); setHasUnsavedChanges(false); }}><Pencil className="h-3 w-3" /></Button>
                     </div>
                   </div>
                   <Select value={c.status ?? "novo"} onValueChange={(v) => update.mutate({ id: c.id, patch: { status: v } })}>
@@ -218,7 +222,7 @@ function Clientes() {
             <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
             Mostrar apenas arquivados
           </label>
-          <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); }} className="gradient-gold text-gold-foreground">
+          <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
             <Plus className="h-4 w-4 mr-1" /> Novo cliente
           </Button>
         </div>
@@ -267,7 +271,7 @@ function Clientes() {
                       <Archive className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); }}>
+                  <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setForm({ ...emptyClient, ...c }); setOpen(true); setHasUnsavedChanges(false); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover cliente? Propostas, serviços e faturas associados também serão removidos.")) del.mutate(c.id); }}>
@@ -281,7 +285,13 @@ function Clientes() {
         </div>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => {
+        if (!v && hasUnsavedChanges) {
+          if (!confirm("Tem alterações não guardadas. Deseja sair?")) return;
+        }
+        setOpen(v);
+        if (!v) setHasUnsavedChanges(false);
+      }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} cliente</DialogTitle></DialogHeader>
           <div className="space-y-4">
@@ -299,8 +309,8 @@ function Clientes() {
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
-                <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => setForm({ ...form, passengers: e.target.value })} /></div>
+                <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
+                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => { setForm({ ...form, passengers: e.target.value }); setHasUnsavedChanges(true); }} /></div>
               </div>
             </div>
 
