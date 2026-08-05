@@ -354,7 +354,7 @@ function PrivateShiftsPanel({ from, to }: { from: string; to: string }) {
         notes: editing.notes || null,
       };
       if (editing._reopen) payload.closed_at = null;
-      const { error } = await supabase.from("tvde_shifts").update(payload).eq("id", editing.id);
+      const { error } = await (supabase.from("tvde_shifts" as any).update(payload as any) as any).eq("id", editing.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Turno atualizado"); setEditing(null); qc.invalidateQueries(); },
