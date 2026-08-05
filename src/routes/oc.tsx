@@ -119,6 +119,7 @@ function OCList() {
       status: row.status ?? "para_atendimento",
       financial_status: row.financial_status ?? "nao_faturado",
       amount_received: row.amount_received ?? 0,
+      financial_receipt_note: row.financial_receipt_note ?? "",
     });
     setHasUnsavedChanges(false);
   }
@@ -131,6 +132,7 @@ function OCList() {
       client_id: "", vehicle_id: "",
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
       amount_received: 0, service_date: new Date().toISOString().slice(0, 10),
+      financial_receipt_note: "",
     });
     setHasUnsavedChanges(false);
   }
@@ -269,6 +271,7 @@ function OCList() {
                 {prop?.budget_receipt_info && <div className="sm:col-span-3">Recebimento: {prop.budget_receipt_info}</div>}
                 {(prop?.descriptive || prop?.description) && <div className="sm:col-span-3 whitespace-pre-wrap">Descritivo: {prop.descriptive ?? prop.description}</div>}
                 {cli?.notes && <div className="sm:col-span-3 whitespace-pre-wrap">Notas do cliente: {cli.notes}</div>}
+                {s?.financial_receipt_note && <div className="sm:col-span-3 whitespace-pre-wrap">Orientação quanto ao recebimento: {s.financial_receipt_note}</div>}
               </div>
             )}
 
@@ -312,12 +315,16 @@ function OCList() {
                 </Select>
               </div>
               <div><Label>Estado financeiro</Label>
-                <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => setForm({ ...form, financial_status: v })}>
+                <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => { setForm({ ...form, financial_status: v }); setHasUnsavedChanges(true); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{financial.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {(form.financial_status === "receber_maos" || form.financial_status === "pago") && (
+              <div className="sm:col-span-2">
+                <Label>Orientação quanto ao recebimento</Label>
+                <Input placeholder="Escreva uma nota sobre o recebimento..." value={form.financial_receipt_note ?? ""} onChange={(e) => { setForm({ ...form, financial_receipt_note: e.target.value }); setHasUnsavedChanges(true); }} />
+              </div>
+              {(form.financial_status === "receber_maos" || form.financial_status === "pago" || form.financial_status === "recebimento_ato") && (
                 <div><Label>Valor recebido (€)</Label>
                   <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
                 </div>
@@ -412,6 +419,7 @@ function OCList() {
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
           { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "nao_faturado") },
+          { key: "financial_receipt_note", label: "Orientação quanto ao recebimento" },
           { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
         ]}
       />
