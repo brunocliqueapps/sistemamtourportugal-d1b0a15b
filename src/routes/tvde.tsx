@@ -108,12 +108,12 @@ function TVDE() {
 
   const saveEarn = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tvde_earnings").update({
-        platform: editEarn.platform,
-        gross: Number(editEarn.gross) || 0, tips: Number(editEarn.tips) || 0, bonus: Number(editEarn.bonus) || 0,
-        commissions: Number(editEarn.commissions) || 0, other_deductions: Number(editEarn.other_deductions) || 0,
-        notes: editEarn.notes || null,
-      }).eq("id", editEarn.id);
+      const { error } = await (supabase.from("tvde_earnings" as any).update({
+        platform: (editEarn as any).platform,
+        gross: Number((editEarn as any).gross) || 0, tips: Number((editEarn as any).tips) || 0, bonus: Number((editEarn as any).bonus) || 0,
+        commissions: Number((editEarn as any).commissions) || 0, other_deductions: Number((editEarn as any).other_deductions) || 0,
+        notes: (editEarn as any).notes || null,
+      } as any) as any).eq("id", (editEarn as any).id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Ganho atualizado"); setEditEarn(null); qc.invalidateQueries(); },
