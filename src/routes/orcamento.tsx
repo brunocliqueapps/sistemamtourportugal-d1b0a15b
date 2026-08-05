@@ -61,13 +61,13 @@ function Orcamento() {
 
   const { data: props = [], refetch } = useQuery({
     queryKey: ["proposals-orcamento"],
-    queryFn: async () => (await supabase.from("proposals").select("*, clients(*), regions(name), tour_routes(name)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals" as any).select("*, clients(*), regions(name), tour_routes(name)") as any).order("created_at", { ascending: false })).data ?? [],
   });
-  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*")).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*")).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await (supabase.from("regions" as any).select("*") as any)).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await (supabase.from("tour_routes" as any).select("*") as any)).data ?? [] });
   const { data: followups = [], refetch: refetchFollowups } = useQuery({
     queryKey: ["proposal-followups"],
-    queryFn: async () => (await supabase.from("proposal_followups").select("*, proposals(code, clients(name))").eq("done", false).order("due_date")).data ?? [],
+    queryFn: async () => (await (supabase.from("proposal_followups" as any).select("*, proposals(code, clients(name))") as any).eq("done", false).order("due_date")).data ?? [],
   });
 
   const q = search.trim().toLowerCase();
