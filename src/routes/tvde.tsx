@@ -36,11 +36,11 @@ function TVDE() {
 
   const { data: earnings = [] } = useQuery({
     queryKey: ["tvde-earnings", shift?.id], enabled: !!shift,
-    queryFn: async () => (await supabase.from("tvde_earnings").select("*").eq("tvde_shift_id", shift!.id)).data ?? [],
+    queryFn: async () => (await (supabase.from("tvde_earnings" as any).select("*") as any).eq("tvde_shift_id", (shift as any)!.id)).data ?? [],
   });
   const { data: expenses = [] } = useQuery({
     queryKey: ["tvde-exp", shift?.id], enabled: !!shift,
-    queryFn: async () => (await supabase.from("service_expenses").select("*").eq("tvde_shift_id", shift!.id)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).eq("tvde_shift_id", (shift as any)!.id)).data ?? [],
   });
   const { data: pmethods = [] } = useQuery({
     queryKey: ["pm-tvde"],
