@@ -122,12 +122,12 @@ function TVDE() {
 
   const saveExp = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("service_expenses").update({
-        category: editExp.category,
-        description: editExp.description || null,
-        amount: Number(editExp.amount) || 0,
-        payment_method_id: editExp.payment_method_id || null,
-      }).eq("id", editExp.id);
+      const { error } = await (supabase.from("service_expenses" as any).update({
+        category: (editExp as any).category,
+        description: (editExp as any).description || null,
+        amount: Number((editExp as any).amount) || 0,
+        payment_method_id: (editExp as any).payment_method_id || null,
+      } as any) as any).eq("id", (editExp as any).id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Despesa atualizada"); setEditExp(null); qc.invalidateQueries(); },
