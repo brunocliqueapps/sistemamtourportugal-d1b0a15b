@@ -599,7 +599,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
 
       // 4) Insert new expenses + matching cash_movements (auto envio ao financeiro)
       for (const e of newExpenses) {
-        const { data: ins, error: eErr } = await supabase.from("service_expenses").insert({
+        const { data: ins, error: eErr } = await (supabase.from("service_expenses" as any).insert({
           service_order_id: service.id,
           category: e.category,
           description: e.description || null,
@@ -608,17 +608,17 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
           paid_by: e.paid_by || user!.id,
           vehicle_id: e.vehicle_id || service.vehicle_id || null,
           cost_center_id: e.cost_center_id || null,
-        }).select().single();
+        } as any).select().single() as any);
         if (eErr) throw eErr;
-        await supabase.from("cash_movements").insert({
+        await supabase.from("cash_movements" as any).insert({
           kind: "saida",
           amount: Number(e.amount),
           service_order_id: service.id,
-          service_expense_id: ins.id,
+          service_expense_id: (ins as any).id,
           payment_method_id: e.payment_method_id || null,
           description: `Despesa (${e.category}) OS ${service.oc_code}${e.description ? ` · ${e.description}` : ""}`,
           created_by: user!.id,
-        });
+        } as any);
       }
     },
     onSuccess: () => {
