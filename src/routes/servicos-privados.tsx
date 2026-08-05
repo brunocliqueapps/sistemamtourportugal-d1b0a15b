@@ -498,7 +498,7 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
   const { data: existingExpenses = [] } = useQuery({
     queryKey: ["so-exp", service.id],
     enabled: open,
-    queryFn: async () => (await supabase.from("service_expenses").select("*").eq("service_order_id", service.id)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_expenses" as any).select("*") as any).eq("service_order_id", service.id)).data ?? [],
   });
 
   const nowIso = () => new Date().toISOString();
