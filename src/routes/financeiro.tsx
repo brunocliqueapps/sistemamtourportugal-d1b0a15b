@@ -98,13 +98,13 @@ function Financeiro() {
         const { data, error } = await supabase.from("invoices").insert(payload).select().single();
         if (error) throw error;
         if (payload.status === "pago" && Number(payload.paid_amount || payload.total) > 0) {
-          await supabase.from("cash_movements").insert({
+          await supabase.from("cash_movements" as any).insert({
             kind, amount: Number(payload.paid_amount || payload.total),
             invoice_id: data.id, payment_method_id: payload.payment_method_id,
             bank_account_id: payload.bank_account_id,
-            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${data.code}`,
+            description: `${kind === "entrada" ? "Recebimento" : "Pagamento"} ${(data as any).code}`,
             created_by: user!.id,
-          });
+          } as any);
         }
       }
     },
