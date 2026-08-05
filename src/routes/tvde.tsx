@@ -76,11 +76,11 @@ function TVDE() {
     mutationFn: async () => {
       if (exp.category === "outra" && !exp.description) throw new Error("Descrição obrigatória para 'Outras despesas'.");
       if (!Number(exp.amount)) throw new Error("Valor obrigatório.");
-      const { data, error } = await supabase.from("service_expenses").insert({
-        tvde_shift_id: shift!.id, category: exp.category, description: exp.description || null,
+      const { data, error } = await (supabase.from("service_expenses" as any).insert({
+        tvde_shift_id: (shift as any)!.id, category: exp.category, description: exp.description || null,
         amount: Number(exp.amount), payment_method_id: exp.payment_method_id || null,
-        paid_by: user!.id, vehicle_id: shift!.vehicle_id,
-      }).select().single();
+        paid_by: user!.id, vehicle_id: (shift as any)!.vehicle_id,
+      } as any).select().single() as any);
       if (error) throw error;
       // Só lança no financeiro se paga pela empresa (não pelo motorista)
       if (!exp.paid_by_driver) {
