@@ -17,6 +17,8 @@ import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
 import { useAuth } from "@/lib/auth-context";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+
 
 export const Route = createFileRoute("/oc")({
   component: OCList,
@@ -37,7 +39,9 @@ const FIN_FALLBACK = ["nao_faturado", "faturado", "pago"];
 
 function OCList() {
   const qc = useQueryClient();
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const { user } = useAuth();
+
   const [selected, setSelected] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -93,7 +97,7 @@ function OCList() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { toast.success(editingId ? "OS atualizada" : "OS criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); close(); },
+    onSuccess: () => { toast.success(editingId ? "OS atualizada" : "OS criada"); qc.invalidateQueries({ queryKey: ["service-orders"] }); setHasUnsavedChanges(false); close(); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -116,6 +120,7 @@ function OCList() {
       financial_status: row.financial_status ?? "nao_faturado",
       amount_received: row.amount_received ?? 0,
     });
+    setHasUnsavedChanges(false);
   }
 
   function openNew() {
@@ -127,6 +132,7 @@ function OCList() {
       operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
       amount_received: 0, service_date: new Date().toISOString().slice(0, 10),
     });
+    setHasUnsavedChanges(false);
   }
 
   function pickProposal(pid: string) {
@@ -148,7 +154,7 @@ function OCList() {
   }
 
   function close() {
-    setSelected(""); setCreating(false); setForm({}); setNewProposal("");
+    setSelected(""); setCreating(false); setForm({}); setNewProposal(""); setHasUnsavedChanges(false);
   }
 
 
@@ -214,7 +220,7 @@ function OCList() {
             <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="sm:col-span-3"><Label>Ordem de serviço</Label>
-            <Select value={selected} onValueChange={(v) => { const row = (data as any[]).find((x: any) => x.id === v); if (row) openEdit(row); }}>
+            <Select value={selected} onValueChange={(v) => { if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de OS?")) return; const row = (data as any[]).find((x: any) => x.id === v); if (row) openEdit(row); }}>
               <SelectTrigger><SelectValue placeholder="Selecionar ordem de serviço" /></SelectTrigger>
               <SelectContent>
                 {rows.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.oc_code)} · {x.clients?.name ?? "—"}</SelectItem>)}
@@ -294,7 +300,7 @@ function OCList() {
                 </Select>
               </div>
               <div><Label>Veículo</Label>
-                <Select value={form.vehicle_id ?? ""} onValueChange={(v) => setForm({ ...form, vehicle_id: v })}>
+                <Select value={form.vehicle_id ?? ""} onValueChange={(v) => { setForm({ ...form, vehicle_id: v }); setHasUnsavedChanges(true); }}>
                   <SelectTrigger><SelectValue placeholder="Selecionar veículo" /></SelectTrigger>
                   <SelectContent>{vehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}{v.owner_company ? ` — ${v.owner_company}` : ""}</SelectItem>)}</SelectContent>
                 </Select>

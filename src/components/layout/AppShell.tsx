@@ -10,6 +10,8 @@ import {
 import { useState, type ReactNode } from "react";
 import { usePermissions, type ModuleKey } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+
 
 type Item = { to: string; label: string; icon: any; module: ModuleKey };
 type Group = { label: string; items: Item[] };
@@ -58,7 +60,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const { can } = usePermissions();
   const loc = useLocation();
+  const { hasUnsavedChanges } = useUnsavedChanges();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLinkClick = (e: React.MouseEvent) => {
+    if (hasUnsavedChanges) {
+      if (!confirm("Tem alterações não guardadas que serão perdidas. Deseja sair sem guardar?")) {
+        e.preventDefault();
+        return;
+      }
+    }
+    setMobileOpen(false);
+  };
+
 
   const visibleGroups = groups
     .map((g) => ({ ...g, items: g.items.filter((i) => can(i.module)) }))
@@ -74,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               const active = loc.pathname === n.to || loc.pathname.startsWith(n.to + "/");
               const Icon = n.icon;
               return (
-                <Link key={n.to} to={n.to} onClick={() => setMobileOpen(false)}
+                <Link key={n.to} to={n.to} onClick={handleLinkClick}
                   className={`flex items-center gap-3 px-3 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-md text-sm transition-colors ${
                     active ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                            : "hover:bg-sidebar-accent text-sidebar-foreground/90"
