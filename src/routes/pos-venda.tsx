@@ -176,9 +176,9 @@ function SendPanel() {
         status: "enviado",
         sent_at: new Date().toISOString(),
       };
-      const { data, error } = await supabase.from("surveys").insert(payload).select().single();
+      const { data, error } = await (supabase.from("surveys" as any).insert(payload as any).select().single() as any);
       if (error) throw error;
-      const url = `${window.location.origin}/pesquisa/${data.token}`;
+      const url = `${window.location.origin}/pesquisa/${(data as any).token}`;
       await navigator.clipboard.writeText(url).catch(() => {});
       toast.success("Pesquisa criada. Link copiado.");
       return data;
