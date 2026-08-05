@@ -275,7 +275,7 @@ function Orcamento() {
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
-                <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
+                <div><Label>Forma de Pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} placeholder="" /></div>
               </div>
 
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
