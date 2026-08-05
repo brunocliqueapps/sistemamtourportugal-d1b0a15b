@@ -121,16 +121,16 @@ function ServicosPrivados() {
         } as any).eq("id", id) as any);
         // Lançamento automático no financeiro (Conta Corrente)
         if (sale > 0) {
-          const { data: existing } = await supabase.from("cash_movements")
-            .select("id").eq("service_order_id", id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
+          const { data: existing } = await (supabase.from("cash_movements" as any)
+            .select("id") as any).eq("service_order_id", id).eq("kind", "entrada").is("service_expense_id", null).limit(1);
           if (!existing || existing.length === 0) {
-            await supabase.from("cash_movements").insert({
+            await supabase.from("cash_movements" as any).insert({
               kind: "entrada",
               amount: sale,
               service_order_id: id,
               description: `Recebimento OS ${svc?.oc_code ?? ""} (fechamento em lote)`,
               created_by: user?.id ?? null,
-            });
+            } as any);
           }
         }
       }
