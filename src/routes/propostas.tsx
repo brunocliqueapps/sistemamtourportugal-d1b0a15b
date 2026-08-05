@@ -74,14 +74,24 @@ function Propostas() {
     // O lead de origem costuma ter os dados de passageiros/viagem preenchidos
     const l: any = c?.lead_id ? (leads as any[]).find((x: any) => x.id === c.lead_id) : null;
     const pick = (k: string) => c?.[k] ?? l?.[k] ?? null;
-    setForm((f: any) => ({
-      ...f, client_id: id,
-      passengers: Number(pick("passengers")) || Number(f.passengers) || 1,
-      arrival_date: pick("arrival_date") ?? f.arrival_date, arrival_time: pick("arrival_time") ?? f.arrival_time, arrival_place: pick("arrival_place") ?? f.arrival_place,
-      departure_date: pick("departure_date") ?? f.departure_date, departure_time: pick("departure_time") ?? f.departure_time, departure_place: pick("departure_place") ?? f.departure_place,
-      responsible: f.responsible || c?.name || "",
-    }));
+    setForm((f: any) => {
+      const arrival = pick("arrival_date") ?? f.arrival_date;
+      const departure = pick("departure_date") ?? f.departure_date;
+      const start = arrival || f.itinerary_start;
+      const end = departure || f.itinerary_end;
+      return {
+        ...f, client_id: id,
+        passengers: Number(pick("passengers")) || Number(f.passengers) || 1,
+        arrival_date: arrival, arrival_time: pick("arrival_time") ?? f.arrival_time, arrival_place: pick("arrival_place") ?? f.arrival_place,
+        departure_date: departure, departure_time: pick("departure_time") ?? f.departure_time, departure_place: pick("departure_place") ?? f.departure_place,
+        responsible: f.responsible || c?.name || "",
+        itinerary_start: start, itinerary_end: end,
+        itinerary: buildDays(start, end, f.itinerary ?? []),
+        days_count: daysBetween(start, end) || null,
+      };
+    });
   }
+
 
   function setRange(patch: any) {
     setForm((f: any) => {
