@@ -55,7 +55,7 @@ function ServicosPrivados() {
   const { data: closings = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["priv-closings", ids.join(",")],
-    queryFn: async () => (await supabase.from("service_closings").select("*").in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_closings" as any).select("*") as any).in("service_order_id", ids)).data ?? [],
   });
 
   const closingBy = (id: string) => closings.find((c: any) => c.service_order_id === id);
