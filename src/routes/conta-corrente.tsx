@@ -35,8 +35,8 @@ function ContaCorrente() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyMv);
 
-  const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
-  const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
+  const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await (supabase.from("bank_accounts" as any).select("*") as any)).data ?? [] });
+  const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await (supabase.from("payment_methods" as any).select("*").eq("active", true) as any)).data ?? [] });
   const { data: mv = [] } = useQuery({
     queryKey: ["cm", accountId, year, month, kindFilter],
     queryFn: async () => {
