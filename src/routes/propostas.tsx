@@ -280,7 +280,7 @@ function Propostas() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="roteiro_personalizado">Sugestão Roteiro Mtour</SelectItem>
-                      <SelectItem value="servico_privado">Serviço Privado</SelectItem>
+                      <SelectItem value="servico_privado">Roteiro Personalizado Mtour</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -288,8 +288,8 @@ function Propostas() {
                 <div><Label>Fim</Label><Input type="date" value={form.itinerary_end} onChange={(e) => setRange({ itinerary_end: e.target.value })} /></div>
 
                 {form.proposal_kind === "servico_privado" ? (
-                  <div className="sm:col-span-4"><Label>Serviço privado</Label>
-                    <Textarea rows={2} placeholder="Descreva o serviço privado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
+                  <div className="sm:col-span-4"><Label>Roteiro personalizado</Label>
+                    <Textarea rows={2} placeholder="Descreva o roteiro personalizado" value={form.descriptive_service ?? ""} onChange={(e) => setForm({ ...form, descriptive_service: e.target.value })} />
                   </div>
                 ) : (<>
                   <div className="sm:col-span-2"><Label>Região</Label>
