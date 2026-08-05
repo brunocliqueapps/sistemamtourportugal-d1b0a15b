@@ -43,7 +43,7 @@ function ContaCorrente() {
       const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
       const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
       const end = endD.toISOString().slice(0,10);
-      let q = supabase.from("cash_movements").select("*")
+      let q = (supabase.from("cash_movements" as any).select("*") as any)
         .gte("movement_date", start).lt("movement_date", end)
         .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
