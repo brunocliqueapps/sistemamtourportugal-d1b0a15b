@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileDown, Check } from "lucide-react";
@@ -126,7 +127,7 @@ function Voucher() {
                               placeholder="Escreva orientações específicas para este dia..."
                               value={currentNote}
                               className="min-h-[80px] text-sm"
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                                 const newNote = e.target.value;
                                 setHasUnsavedChanges(true);
                                 const newDayNotes = [...dayNotes];
@@ -154,7 +155,7 @@ function Voucher() {
               <Textarea 
                 placeholder="Escrita final para o voucher..."
                 value={p.voucher_final_note || ""}
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setHasUnsavedChanges(true);
                   p.voucher_final_note = e.target.value;
                 }}
