@@ -57,7 +57,7 @@ function ContaCorrente() {
       const payload: any = { ...form, amount: Number(form.amount || 0) };
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
-        const { error } = await supabase.from("cash_movements").update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("cash_movements" as any).update(payload as any).eq("id", editing.id);
         if (error) throw error;
       } else {
         payload.created_by = user!.id;
