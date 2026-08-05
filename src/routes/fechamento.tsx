@@ -89,7 +89,7 @@ function Fechamento() {
 
   const lockIt = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("monthly_closings").update({ locked: true, locked_at: new Date().toISOString(), locked_by: user!.id }).eq("period", from);
+      const { error } = await supabase.from("monthly_closings" as any).update({ locked: true, locked_at: new Date().toISOString(), locked_by: user!.id } as any).eq("period", from);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Período bloqueado"); qc.invalidateQueries({ queryKey: ["closing-source", ym] }); },
