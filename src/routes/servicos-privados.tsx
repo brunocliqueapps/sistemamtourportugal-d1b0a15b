@@ -570,16 +570,16 @@ function FinalizeDialog({ service, closing }: { service: any; closing?: any }) {
         closed_at: nowIso(),
         closed_by: user!.id,
       };
-      const { error: cErr } = await supabase.from("service_closings")
-        .upsert(closingPayload, { onConflict: "service_order_id" });
+      const { error: cErr } = await (supabase.from("service_closings" as any)
+        .upsert(closingPayload as any, { onConflict: "service_order_id" }) as any);
       if (cErr) throw cErr;
 
       // 2) Update OC status/receipts
-      await supabase.from("service_orders").update({
+      await (supabase.from("service_orders" as any).update({
         status: "finalizado",
         amount_received: closingPayload.amount_received,
         amount_pending: closingPayload.balance_pending,
-      }).eq("id", service.id);
+      } as any).eq("id", service.id) as any);
 
       // 3) Cash movement for received amount (idempotent — only if not registered yet)
       if (closingPayload.amount_received > 0) {
