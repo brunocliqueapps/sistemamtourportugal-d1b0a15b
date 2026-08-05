@@ -75,7 +75,7 @@ function ContaCorrente() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("cash_movements").delete().eq("id", id);
+      const { error } = await supabase.from("cash_movements" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Movimento removido"); qc.invalidateQueries({ queryKey: ["cm"] }); },
