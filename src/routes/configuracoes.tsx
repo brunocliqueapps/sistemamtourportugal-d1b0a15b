@@ -124,14 +124,14 @@ function CompanyForm() {
         const fileExt = file.name.split('.').pop();
         const filePath = `${Math.random()}.${fileExt}`;
         
-        // Ensure bucket exists or use a default 'uploads'
-        const { error: uploadError } = await supabase.storage
+        // Ensure bucket exists or use a default 'logos'
+        const { error: uploadError } = await (supabase.storage as any)
           .from('logos')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = (supabase.storage as any)
           .from('logos')
           .getPublicUrl(filePath);
 
@@ -150,10 +150,10 @@ function CompanyForm() {
         <div className="flex items-center gap-3">
           {f[k] ? (
             <div className="relative group">
-              <img src={f[k]} alt={label} className="h-20 w-auto rounded border bg-muted object-contain" />
+              <img src={f[k]} alt={label} className="h-20 w-auto rounded border bg-white object-contain p-1" />
               <button 
                 onClick={() => setF({ ...f, [k]: null })}
-                className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -163,7 +163,7 @@ function CompanyForm() {
               <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-accent transition-colors">
                 <div className="flex flex-col items-center justify-center pt-2 pb-2">
                   <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{uploading ? "A carregar..." : "Clique para upload"}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{uploading ? "A carregar..." : "Upload imagem"}</p>
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={onFileChange} disabled={uploading} />
               </label>
@@ -173,6 +173,7 @@ function CompanyForm() {
       </div>
     );
   };
+
   return (
     <Card className="p-6 max-w-3xl">
       <div className="grid md:grid-cols-2 gap-3">
