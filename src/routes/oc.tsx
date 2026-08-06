@@ -92,7 +92,7 @@ function OCList() {
       } else {
         if (!payload.operation_type) payload.operation_type = "privado";
         if (!payload.status) payload.status = "para_atendimento";
-        if (!payload.financial_status) payload.financial_status = "nao_faturado";
+        if (!payload.financial_status) payload.financial_status = "pagamento_padrao_mtour";
         const { error } = await supabase.from("service_orders").insert(payload);
         if (error) throw error;
       }
