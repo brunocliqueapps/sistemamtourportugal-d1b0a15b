@@ -163,7 +163,7 @@ function SendPanel() {
   const { data: surveys = [] } = useSurveys();
 
   const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await supabase.from("survey_templates").select("*").eq("active", true)).data ?? [] });
-  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await supabase.from("service_orders").select("id,code,client_name,status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
+  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await (supabase.from("service_orders") as any).select("id,oc_code,client_id,clients(name),status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
 
   const create = useMutation({
     mutationFn: async () => {
