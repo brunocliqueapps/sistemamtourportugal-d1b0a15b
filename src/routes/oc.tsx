@@ -35,7 +35,7 @@ export const Route = createFileRoute("/oc")({
 });
 
 const OP_FALLBACK = ["para_atendimento", "em_atendimento", "atendimento_finalizado"];
-const FIN_FALLBACK = ["nao_faturado", "faturado", "pago"];
+const FIN_FALLBACK = ["pagamento_padrao_mtour", "pagamento_a_vista", "recebimento_no_ato", "nao_faturado", "faturado", "pago"];
 
 function OCList() {
   const qc = useQueryClient();
@@ -92,7 +92,7 @@ function OCList() {
       } else {
         if (!payload.operation_type) payload.operation_type = "privado";
         if (!payload.status) payload.status = "para_atendimento";
-        if (!payload.financial_status) payload.financial_status = "nao_faturado";
+        if (!payload.financial_status) payload.financial_status = "pagamento_padrao_mtour";
         const { error } = await supabase.from("service_orders").insert(payload);
         if (error) throw error;
       }
@@ -117,7 +117,7 @@ function OCList() {
       client_id: row.client_id ?? "",
       vehicle_id: row.vehicle_id ?? "",
       status: row.status ?? "para_atendimento",
-      financial_status: row.financial_status ?? "nao_faturado",
+      financial_status: row.financial_status ?? "pagamento_padrao_mtour",
       amount_received: row.amount_received ?? 0,
       financial_receipt_note: row.financial_receipt_note ?? "",
     });
@@ -130,7 +130,7 @@ function OCList() {
     setNewProposal("");
     setForm({
       client_id: "", vehicle_id: "",
-      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
+      operation_type: "privado", status: "para_atendimento", financial_status: "pagamento_padrao_mtour",
       amount_received: 0, service_date: new Date().toISOString().slice(0, 10),
       financial_receipt_note: "",
     });
@@ -315,16 +315,16 @@ function OCList() {
                 </Select>
               </div>
               <div><Label>Estado financeiro</Label>
-                <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => { setForm({ ...form, financial_status: v }); setHasUnsavedChanges(true); }}>
+                <Select value={form.financial_status ?? "pagamento_padrao_mtour"} onValueChange={(v) => { setForm({ ...form, financial_status: v }); setHasUnsavedChanges(true); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{financial.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{financial.slice(0, 3).map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="sm:col-span-2">
                 <Label>Orientação quanto ao recebimento</Label>
                 <Input placeholder="Escreva uma nota sobre o recebimento..." value={form.financial_receipt_note ?? ""} onChange={(e) => { setForm({ ...form, financial_receipt_note: e.target.value }); setHasUnsavedChanges(true); }} />
               </div>
-              {(form.financial_status === "receber_maos" || form.financial_status === "pago" || form.financial_status === "recebimento_ato") && (
+              {(form.financial_status === "recebimento_ato") && (
                 <div><Label>Valor recebido (€)</Label>
                   <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
                 </div>
@@ -377,7 +377,7 @@ function OCList() {
                   <TableCell className="text-sm">{(r.origin ?? r.proposals?.arrival_place) || "—"} → {(r.destination ?? r.proposals?.departure_place) || "—"}</TableCell>
                   <TableCell>{r.vehicles?.plate ?? "—"}{r.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{r.vehicles.owner_company}</div> : null}</TableCell>
                   <TableCell><Badge variant="outline">{opLabel(r.status)}</Badge></TableCell>
-                  <TableCell><Badge variant={r.financial_status === "pago" ? "default" : "outline"}>{finLabel(r.financial_status ?? "nao_faturado")}</Badge></TableCell>
+                  <TableCell><Badge variant={r.financial_status === "pago" || r.financial_status === "recebimento_ato" ? "default" : "outline"}>{finLabel(r.financial_status ?? "pagamento_padrao_mtour")}</Badge></TableCell>
                   <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
 
                   <TableCell className="text-right space-x-1">
@@ -418,7 +418,7 @@ function OCList() {
           { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
-          { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "nao_faturado") },
+          { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "pagamento_padrao_mtour") },
           { key: "financial_receipt_note", label: "Orientação quanto ao recebimento" },
           { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
         ]}
