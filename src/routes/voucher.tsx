@@ -39,15 +39,15 @@ function Voucher() {
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
 
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [] });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
   const { data: props = [] } = useQuery({
     queryKey: ["proposals-voucher", clientId],
     enabled: !!clientId,
-    queryFn: async () => (await supabase.from("proposals").select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
   });
   const { data: validated = [], refetch: refetchValidated } = useQuery({
     queryKey: ["proposals-voucher-validated"],
-    queryFn: async () => (await supabase.from("proposals").select("id,code,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("id,code,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
 
 
