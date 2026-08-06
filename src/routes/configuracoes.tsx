@@ -122,16 +122,16 @@ function CompanyForm() {
       setUploading(true);
       try {
         const fileExt = file.name.split('.').pop();
-        const filePath = `${Math.random()}.${fileExt}`;
-        
+        const filePath = `brand/${crypto.randomUUID()}.${fileExt}`;
+
         const { error: uploadError } = await (supabase.storage as any)
-          .from('logos')
-          .upload(filePath, file);
+          .from('invoices')
+          .upload(filePath, file, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = (supabase.storage as any)
-          .from('logos')
+          .from('invoices')
           .getPublicUrl(filePath);
 
         setF({ ...f, [k]: publicUrl });
@@ -202,6 +202,47 @@ function CompanyForm() {
 }
 
 
+const AVATAR_STYLES = ["initials", "bottts", "adventurer", "avataaars", "identicon", "lorelei", "notionists", "thumbs"];
+const avatarUrl = (style: string, seed: string) =>
+  `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
+
+function AvatarPicker({ profile, onSaved }: { profile: any; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const seed = profile.full_name || profile.email || profile.id;
+  const options = AVATAR_STYLES.map((s) => avatarUrl(s, seed));
+
+  const pick = async (url: string | null) => {
+    const { error } = await (supabase.from("profiles") as any).update({ avatar_url: url }).eq("id", profile.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Avatar atualizado");
+    setOpen(false);
+    onSaved();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Avatar</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Escolher avatar</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-4 gap-3">
+          {options.map((u) => (
+            <button key={u} onClick={() => pick(u)}
+              className={`rounded-lg border p-2 hover:bg-accent transition-colors ${profile.avatar_url === u ? "ring-2 ring-primary" : ""}`}>
+              <img src={u} alt="Avatar" className="h-14 w-14 mx-auto rounded-full bg-muted object-cover" />
+            </button>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => pick(null)}>Remover avatar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function UsersPanel() {
   const qc = useQueryClient();
   const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await (supabase.from("profiles") as any).select("*").order("created_at", { ascending: false })).data ?? [] });
@@ -225,6 +266,7 @@ function UsersPanel() {
         </div>
         <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); }} />
       </div>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader><TableRow><TableHead>Avatar</TableHead><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
         <TableBody>
@@ -233,13 +275,16 @@ function UsersPanel() {
             return (
               <TableRow key={p.id}>
                 <TableCell>
-                  {p.avatar_url ? (
-                    <img src={p.avatar_url} alt={p.name} className="h-8 w-8 rounded-full object-cover border" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground">No img</div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt={p.full_name ?? "Avatar"} className="h-8 w-8 rounded-full object-cover border bg-muted" />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground">—</div>
+                    )}
+                    <AvatarPicker profile={p} onSaved={() => qc.invalidateQueries({ queryKey: ["profiles"] })} />
+                  </div>
                 </TableCell>
-                <TableCell>{p.full_name ?? p.name ?? "—"}</TableCell>
+                <TableCell>{p.full_name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{p.email ?? "—"}</TableCell>
                 <TableCell><span className="text-xs font-mono px-2 py-0.5 rounded bg-muted">{cur || "—"}</span></TableCell>
                 <TableCell>
@@ -251,9 +296,10 @@ function UsersPanel() {
               </TableRow>
             );
           })}
-          {profiles.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Sem utilizadores.</TableCell></TableRow>}
+          {profiles.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Sem utilizadores.</TableCell></TableRow>}
         </TableBody>
       </Table>
+      </div>
     </Card>
   );
 }
