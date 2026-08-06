@@ -35,7 +35,7 @@ export const Route = createFileRoute("/oc")({
 });
 
 const OP_FALLBACK = ["para_atendimento", "em_atendimento", "atendimento_finalizado"];
-const FIN_FALLBACK = ["nao_faturado", "faturado", "pago"];
+const FIN_FALLBACK = ["pagamento_padrao_mtour", "pagamento_a_vista", "recebimento_no_ato"];
 
 function OCList() {
   const qc = useQueryClient();
