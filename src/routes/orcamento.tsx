@@ -17,8 +17,6 @@ import { daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payme
 import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
-import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-
 
 export const Route = createFileRoute("/orcamento")({
   component: Orcamento,
@@ -37,16 +35,10 @@ export const Route = createFileRoute("/orcamento")({
 const today = () => new Date().toISOString().slice(0, 10);
 
 type Stage = { label: string; pct: any };
-const DEFAULT_STAGES: Stage[] = [
-  { label: "Aprovação da Proposta", pct: 30 },
-  { label: "Pagamento Inicial", pct: 50 },
-  { label: "Pagamento Final", pct: 20 }
-];
+const DEFAULT_STAGES: Stage[] = [{ label: "Aprovação da Proposta", pct: 40 }, { label: "Final do Serviço", pct: 60 }];
 
 function Orcamento() {
-  const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const [selected, setSelected] = useState<string>("");
-
   const [value, setValue] = useState<string>("");
   const [terms, setTerms] = useState<string>("");
   const [receipt, setReceipt] = useState<string>("");
@@ -101,7 +93,7 @@ function Orcamento() {
 
   function close() {
     setSelected(""); setAction(""); setValue(""); setTerms(""); setReceipt(""); setRefusal(""); setAnalysisInfo("");
-    setStages(DEFAULT_STAGES); setStatusDate(today()); setHasUnsavedChanges(false);
+    setStages(DEFAULT_STAGES); setStatusDate(today());
   }
 
   async function save(silent = false) {
@@ -114,7 +106,7 @@ function Orcamento() {
       })
       .eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
-    if (!silent) { toast.success("Orçamento atualizado"); setHasUnsavedChanges(false); }
+    if (!silent) toast.success("Orçamento atualizado");
     refetch();
     return true;
   }
@@ -210,11 +202,10 @@ function Orcamento() {
           </div>
           <div className="sm:col-span-3"><Label>Proposta</Label>
             <Select value={selected} onValueChange={(v) => {
-              if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de proposta?")) return;
               setSelected(v);
               const pr: any = props.find((x: any) => x.id === v);
               setValue(String(pr?.total_value ?? 0));
-              setTerms(pr?.payment_terms ?? "");
+              setTerms(pr?.payment_terms ?? suggestPaymentTerms(pr?.days_count ?? 1));
               setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
                 ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
                 : DEFAULT_STAGES);
@@ -223,7 +214,6 @@ function Orcamento() {
               setAnalysisInfo(pr?.budget_analysis_info ?? "");
               setAction("");
               setStatusDate(today());
-              setHasUnsavedChanges(false);
             }}>
 
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
@@ -280,8 +270,8 @@ function Orcamento() {
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Forma de Pagamento</Label><Input value={terms} onChange={(e) => { setTerms(e.target.value); setHasUnsavedChanges(true); }} placeholder="" /></div>
+                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} /></div>
+                <div><Label>Observações das condições de pagamento</Label><Input value={terms} onChange={(e) => setTerms(e.target.value)} /></div>
               </div>
 
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>

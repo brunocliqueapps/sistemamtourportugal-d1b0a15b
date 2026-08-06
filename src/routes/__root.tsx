@@ -17,8 +17,6 @@ import { AuthProvider, useAuth } from "../lib/auth-context";
 import { ThemeProvider } from "../lib/theme";
 import { AppShell } from "../components/layout/AppShell";
 import { Toaster } from "../components/ui/sonner";
-import { UnsavedChangesProvider } from "../lib/unsaved-changes-context";
-
 
 function NotFoundComponent() {
   return (
@@ -142,12 +140,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <UnsavedChangesProvider>
-            <AuthGate>
-              <Outlet />
-            </AuthGate>
-            <Toaster />
-          </UnsavedChangesProvider>
+          <AuthGate>
+            <Outlet />
+          </AuthGate>
+          <Toaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

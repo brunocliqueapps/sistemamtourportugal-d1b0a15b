@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { UserPlus, Upload, X } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -111,68 +110,6 @@ function CompanyForm() {
   const F = (k: string, label: string, type = "text") => (
     <div><Label>{label}</Label><Input type={type} value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>
   );
-
-  const FileUpload = ({ k, label }: { k: string, label: string }) => {
-    const [uploading, setUploading] = useState(false);
-
-    const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setUploading(true);
-      try {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${Math.random()}.${fileExt}`;
-        
-        // Ensure bucket exists or use a default 'uploads'
-        const { error: uploadError } = await supabase.storage
-          .from('logos')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('logos')
-          .getPublicUrl(filePath);
-
-        setF({ ...f, [k]: publicUrl });
-        toast.success(`${label} carregado`);
-      } catch (error: any) {
-        toast.error(`Erro no upload: ${error.message}`);
-      } finally {
-        setUploading(false);
-      }
-    };
-
-    return (
-      <div className="space-y-2">
-        <Label>{label}</Label>
-        <div className="flex items-center gap-3">
-          {f[k] ? (
-            <div className="relative group">
-              <img src={f[k]} alt={label} className="h-20 w-auto rounded border bg-muted object-contain" />
-              <button 
-                onClick={() => setF({ ...f, [k]: null })}
-                className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex-1">
-              <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-accent transition-colors">
-                <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                  <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{uploading ? "A carregar..." : "Clique para upload"}</p>
-                </div>
-                <input type="file" className="hidden" accept="image/*" onChange={onFileChange} disabled={uploading} />
-              </label>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
   return (
     <Card className="p-6 max-w-3xl">
       <div className="grid md:grid-cols-2 gap-3">
@@ -181,21 +118,9 @@ function CompanyForm() {
         {F("city","Cidade")}{F("country","País")}
         {F("phone","Telefone")}{F("email","Email","email")}
         {F("website","Website")}{F("iban","IBAN")}
-        <FileUpload k="logo_url" label="Logo da Empresa" />
-        <FileUpload k="instagram_qr_url" label="Instagram QR Code" />
-        {F("instagram_url","Instagram (URL)")}{F("facebook_url","Facebook (URL)")}
+        {F("logo_url","Logo (URL)")}
         <div className="md:col-span-2">{F("invoice_footer","Rodapé da fatura")}</div>
-        <div className="md:col-span-2">
-          <Label>Condições Gerais (Proposta Comercial)</Label>
-          <Textarea 
-            value={f.proposal_general_conditions ?? ""} 
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setF({ ...f, proposal_general_conditions: e.target.value })} 
-            rows={4}
-            placeholder="Texto de condições gerais que irá abaixo de tudo na proposta comercial..."
-          />
-        </div>
       </div>
-
       <div className="mt-4"><Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()}>Guardar</Button></div>
     </Card>
   );

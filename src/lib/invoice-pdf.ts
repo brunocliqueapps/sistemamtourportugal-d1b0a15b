@@ -17,26 +17,12 @@ export async function generateInvoicePdf(invoiceId: string) {
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
   let y = 40;
 
-  // Marca d'água
-  doc.saveGraphicsState();
-  doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
-  doc.setFont("helvetica", "bold").setFontSize(60);
-  doc.setTextColor(150);
-  doc.text("MTOUR PORTUGAL", W/2, H/2, { align: "center", angle: 45 });
-  doc.restoreGraphicsState();
-
-  // Logo Direito Superior
-  if (company?.logo_url) {
-    try { doc.addImage(company.logo_url, "PNG", W - 140, 30, 100, 45); } catch(e){}
-  }
-
   // Cabeçalho — empresa
-  doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66);
+  doc.setFont("helvetica", "bold").setFontSize(16);
   doc.text(company?.name ?? "Mtour Portugal", 40, y);
-  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+  doc.setFont("helvetica", "normal").setFontSize(9);
   y += 16;
   const emitter = [
     company?.address, [company?.postal_code, company?.city].filter(Boolean).join(" "),
@@ -44,7 +30,6 @@ export async function generateInvoicePdf(invoiceId: string) {
     company?.phone ? `Tel: ${company.phone}` : null, company?.email,
   ].filter(Boolean) as string[];
   emitter.forEach((line) => { doc.text(line, 40, y); y += 12; });
-
 
   // Título doc
   doc.setFont("helvetica", "bold").setFontSize(14);
@@ -109,24 +94,12 @@ export async function generateInvoicePdf(invoiceId: string) {
   doc.setFont("helvetica", "bold").setFontSize(14);
   doc.text(`TOTAL: € ${Number(inv.total ?? 0).toFixed(2)}`, W - 40, y, { align: "right" });
 
-  // Rodapé dinâmico
-  const footerY = doc.internal.pageSize.getHeight() - 40;
-  doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(100);
-  
-  if (company?.instagram_qr_url) {
-    try { doc.addImage(company.instagram_qr_url, "PNG", W - 80, footerY - 50, 50, 50); } catch(e){}
+  // Rodapé
+  if (company?.invoice_footer || company?.iban) {
+    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(120);
+    const foot = [company?.iban ? `IBAN: ${company.iban}` : null, company?.invoice_footer].filter(Boolean) as string[];
+    foot.forEach((l, i) => doc.text(l, 40, doc.internal.pageSize.getHeight() - 40 + i * 10));
   }
-
-  const foot = [
-    company?.iban ? `IBAN: ${company.iban}` : null,
-    company?.website,
-    company?.phone,
-    company?.instagram_url ? `Instagram: ${company.instagram_url}` : null,
-    company?.invoice_footer
-  ].filter(Boolean) as string[];
-  
-  foot.forEach((l, i) => doc.text(l, 40, footerY + i * 10));
-
 
   doc.save(`${inv.code}.pdf`);
 }
