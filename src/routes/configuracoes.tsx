@@ -241,6 +241,7 @@ function UsersPanel() {
                 </TableCell>
                 <TableCell>{p.full_name ?? p.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{p.email ?? "—"}</TableCell>
+                <TableCell><span className="text-xs font-mono px-2 py-0.5 rounded bg-muted">{cur || "—"}</span></TableCell>
                 <TableCell>
                   <Select value={cur} onValueChange={(v) => setRole.mutate({ user_id: p.id, role: v as AppRole })}>
                     <SelectTrigger className="w-40"><SelectValue placeholder="Selecionar" /></SelectTrigger>
