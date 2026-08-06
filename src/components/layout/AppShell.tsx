@@ -8,7 +8,7 @@ import {
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { usePermissions, type ModuleKey } from "@/lib/permissions";
+import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 
