@@ -418,7 +418,7 @@ function OCList() {
           { key: "vehicles", label: "Veículo", format: (v: any) => v ? `${v.plate}${v.owner_company ? " — " + v.owner_company : ""}` : "—" },
           { key: "operation_type", label: "Operação" },
           { key: "status", label: "Estado operacional", format: (v) => opLabel(v) },
-          { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "nao_faturado") },
+          { key: "financial_status", label: "Estado financeiro", format: (v) => finLabel(v ?? "pagamento_padrao_mtour") },
           { key: "financial_receipt_note", label: "Orientação quanto ao recebimento" },
           { key: "sale_value", label: "Valor", format: (v) => `€ ${Number(v || 0).toFixed(2)}` },
         ]}
