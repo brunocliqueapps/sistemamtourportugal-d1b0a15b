@@ -39,8 +39,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 type Stage = { label: string; pct: any };
 const DEFAULT_STAGES: Stage[] = [
   { label: "Aprovação da Proposta", pct: 30 },
-  { label: "Pagamento Inicial", pct: 50 },
-  { label: "Pagamento Final", pct: 20 }
+  { label: "Antes de iniciar o Serviço", pct: 60 },
+  { label: "Após Concluir o Serviço", pct: 10 }
 ];
 
 function Orcamento() {
