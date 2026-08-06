@@ -253,7 +253,7 @@ function UsersPanel() {
 
 function PermissionsMatrix() {
   const qc = useQueryClient();
-  const { data: perms = [] } = useQuery({ queryKey: ["role_permissions"], queryFn: async () => (await supabase.from("role_permissions").select("*")).data ?? [] });
+  const { data: perms = [] } = useQuery({ queryKey: ["role_permissions"], queryFn: async () => (await (supabase.from("role_permissions") as any).select("*")).data ?? [] });
 
   const toggle = useMutation({
     mutationFn: async ({ role, module, on }: { role: AppRole; module: ModuleKey; on: boolean }) => {
