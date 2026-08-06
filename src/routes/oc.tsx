@@ -324,7 +324,7 @@ function OCList() {
                 <Label>Orientação quanto ao recebimento</Label>
                 <Input placeholder="Escreva uma nota sobre o recebimento..." value={form.financial_receipt_note ?? ""} onChange={(e) => { setForm({ ...form, financial_receipt_note: e.target.value }); setHasUnsavedChanges(true); }} />
               </div>
-              {(form.financial_status === "receber_maos" || form.financial_status === "pago" || form.financial_status === "recebimento_ato") && (
+              {(form.financial_status === "recebimento_ato") && (
                 <div><Label>Valor recebido (€)</Label>
                   <Input type="number" step="0.01" value={form.amount_received ?? 0} onChange={(e) => setForm({ ...form, amount_received: e.target.value })} />
                 </div>
