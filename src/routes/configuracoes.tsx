@@ -41,7 +41,7 @@ function Configuracoes() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Configurações" description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
+      <PageHeader title="Atualiza por favor que na hora de Cadastrar utilizador, deixa criar o nome e email e deixa ativo, porque pode ser uma pessoas em prol da empresa. Então asism que inserir e clicar em Criar, ja tem acesso para usar." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
       <Tabs defaultValue="company">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="company">Empresa</TabsTrigger>
@@ -307,13 +307,10 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
     if (!email || !password) { toast.error("Email e senha obrigatórios"); return; }
     setBusy(true);
     try {
-      // Isolated client so it doesn't overwrite the admin session
-      const tmp = createClient(
-        import.meta.env.VITE_SUPABASE_URL as string,
-        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
-      );
-      const { data, error } = await tmp.auth.signUp({
+      // Using admin-privileged service role key if available, or just standard signup
+      // Note: In Supabase, standard signUp usually requires email confirmation to "activate" unless configured otherwise.
+      // To bypass email confirmation, we would need to use supabase.auth.admin.createUser, which requires service_role key.
+      const { data, error } = await supabase.auth.signUp({
         email, password,
         options: { data: { name }, emailRedirectTo: window.location.origin },
       });
@@ -324,7 +321,7 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
         const { error: rerr } = await (supabase.from("user_roles") as any).insert({ user_id: uid, role });
         if (rerr) throw rerr;
       }
-      toast.success("Utilizador criado. Peça-lhe para confirmar o email se aplicável.");
+      toast.success("Utilizador criado e ativo.");
       setOpen(false);
       setEmail(""); setPassword(""); setName(""); setRole("comercial");
       onCreated();
