@@ -184,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        {children}
+        {blocked ? Denied : children}
       </main>
     </div>
   );
