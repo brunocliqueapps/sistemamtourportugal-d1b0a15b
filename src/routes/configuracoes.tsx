@@ -258,10 +258,10 @@ function PermissionsMatrix() {
   const toggle = useMutation({
     mutationFn: async ({ role, module, on }: { role: AppRole; module: ModuleKey; on: boolean }) => {
       if (on) {
-        const { error } = await supabase.from("role_permissions").insert({ role, module });
+        const { error } = await (supabase.from("role_permissions") as any).insert({ role, module });
         if (error && !String(error.message).includes("duplicate")) throw error;
       } else {
-        const { error } = await supabase.from("role_permissions").delete().eq("role", role).eq("module", module);
+        const { error } = await (supabase.from("role_permissions") as any).delete().eq("role", role).eq("module", module);
         if (error) throw error;
       }
     },
