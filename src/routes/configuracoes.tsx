@@ -25,12 +25,12 @@ const ROLES: AppRole[] = ["admin", "comercial", "administrativo", "motorista"];
 const MODULES: { key: ModuleKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" }, { key: "agenda", label: "Agenda" },
   { key: "crm", label: "CRM · Leads" }, { key: "propostas", label: "Propostas" },
-  { key: "oc", label: "Ordens de serviço" }, { key: "operacao", label: "Turnos Motorista" },
+  { key: "voucher", label: "Voucher" }, { key: "oc", label: "Ordens de serviço" }, { key: "operacao", label: "Serviços Motorista" },
   { key: "tvde", label: "TVDE" }, { key: "financeiro", label: "Financeiro" },
   { key: "conta_corrente", label: "Conta Corrente" }, { key: "fechamento", label: "Fechamento" },
   { key: "relatorios", label: "Relatórios" }, { key: "cadastros", label: "Cadastros" },
   { key: "pos_venda", label: "Pós-Venda" }, { key: "importar", label: "Importar CSV" },
-  { key: "configuracoes", label: "Configurações" },
+  { key: "alertas", label: "Alertas" }, { key: "configuracoes", label: "Configurações" },
 ];
 
 function Configuracoes() {
@@ -254,7 +254,11 @@ function UsersPanel() {
       const { error } = await (supabase.from("user_roles") as any).insert({ user_id, role });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Papel atualizado"); qc.invalidateQueries({ queryKey: ["user_roles"] }); },
+    onSuccess: () => {
+      toast.success("Papel atualizado");
+      qc.invalidateQueries({ queryKey: ["user_roles"] });
+      qc.invalidateQueries({ queryKey: ["perms"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -318,7 +322,11 @@ function PermissionsMatrix() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["role_permissions"] }),
+    onSuccess: () => {
+      toast.success("Permissão atualizada");
+      qc.invalidateQueries({ queryKey: ["role_permissions"] });
+      qc.invalidateQueries({ queryKey: ["perms"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 

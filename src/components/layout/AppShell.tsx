@@ -58,7 +58,7 @@ const groups: Group[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  const { can, loading: permsLoading } = usePermissions();
+  const { can, loading: permsLoading, error: permsError } = usePermissions();
   const loc = useLocation();
   const { hasUnsavedChanges } = useUnsavedChanges();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     .filter((g) => g.items.length > 0);
 
   const currentModule = moduleForPath(loc.pathname);
-  const blocked = !permsLoading && !!currentModule && !can(currentModule);
+  const blocked = !permsLoading && (!!permsError || (!!currentModule && !can(currentModule)));
 
   const firstAllowed = visibleGroups[0]?.items[0]?.to;
 
@@ -184,7 +184,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        {blocked ? Denied : children}
+        {permsLoading ? (
+          <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">A validar permissões…</div>
+        ) : blocked ? Denied : children}
       </main>
     </div>
   );
