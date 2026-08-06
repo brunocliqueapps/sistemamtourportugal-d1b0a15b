@@ -130,7 +130,7 @@ function OCList() {
     setNewProposal("");
     setForm({
       client_id: "", vehicle_id: "",
-      operation_type: "privado", status: "para_atendimento", financial_status: "nao_faturado",
+      operation_type: "privado", status: "para_atendimento", financial_status: "pagamento_padrao_mtour",
       amount_received: 0, service_date: new Date().toISOString().slice(0, 10),
       financial_receipt_note: "",
     });
