@@ -97,7 +97,7 @@ function Configuracoes() {
 
 function CompanyForm() {
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ["company"], queryFn: async () => (await supabase.from("company_settings").select("*").maybeSingle()).data });
+  const { data } = useQuery({ queryKey: ["company"], queryFn: async () => (await (supabase.from("company_settings") as any).select("*").maybeSingle()).data });
   const [f, setF] = useState<any>({});
   useEffect(() => { if (data) setF(data); }, [data]);
   const save = useMutation({
