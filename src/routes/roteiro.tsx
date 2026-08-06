@@ -125,7 +125,7 @@ function Roteiro() {
               {list.map((s: any) => {
                 const closed = closingBy(s.id);
                 const exps = expensesBy(s.id);
-                const totalExp = exps.reduce((a, e: any) => a + Number(e.amount || 0), 0);
+                const totalExp = exps.reduce((a: number, e: any) => a + Number(e.amount || 0), 0);
                 const trip = tripRange(s);
                 const day = itineraryDayFor(s.proposals, date);
                 const dayText = dayLabel(s.proposals, day, names);
