@@ -205,7 +205,7 @@ function CompanyForm() {
 function UsersPanel() {
   const qc = useQueryClient();
   const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await supabase.from("profiles").select("*").order("created_at", { ascending: false })).data ?? [] });
-  const { data: userRoles = [] } = useQuery({ queryKey: ["user_roles"], queryFn: async () => (await supabase.from("user_roles").select("*")).data ?? [] });
+  const { data: userRoles = [] } = useQuery({ queryKey: ["user_roles"], queryFn: async () => (await (supabase.from("user_roles") as any).select("*")).data ?? [] });
 
   const setRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
