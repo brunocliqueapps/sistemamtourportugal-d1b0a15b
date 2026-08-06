@@ -41,7 +41,7 @@ function Configuracoes() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Atualiza por favor que na hora de Cadastrar utilizador, deixa criar o nome e email e deixa ativo, porque pode ser uma pessoas em prol da empresa. Então asism que inserir e clicar em Criar, ja tem acesso para usar." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
+      <PageHeader title="Na taleba de utilizadores, não aparece as imagens pasa saber mais coisas." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
       <Tabs defaultValue="company">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="company">Empresa</TabsTrigger>
