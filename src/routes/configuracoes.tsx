@@ -41,7 +41,7 @@ function Configuracoes() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Atualiza por favor que na hora de Cadastrar utilizador, deixa criar o nome e email e deixa ativo, porque pode ser uma pessoas em prol da empresa. Então asism que inserir e clicar em Criar, ja tem acesso para usar." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
+      <PageHeader title="Na taleba de utilizadores, não aparece as imagens pasa saber mais coisas." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
       <Tabs defaultValue="company">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="company">Empresa</TabsTrigger>
@@ -226,12 +226,19 @@ function UsersPanel() {
         <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); }} />
       </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Avatar</TableHead><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
         <TableBody>
           {profiles.map((p: any) => {
             const cur = userRoles.find((r: any) => r.user_id === p.id)?.role ?? "";
             return (
               <TableRow key={p.id}>
+                <TableCell>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt={p.name} className="h-8 w-8 rounded-full object-cover border" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground">No img</div>
+                  )}
+                </TableCell>
                 <TableCell>{p.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{p.email}</TableCell>
                 <TableCell><span className="text-xs font-mono px-2 py-0.5 rounded bg-muted">{cur || "—"}</span></TableCell>
