@@ -226,12 +226,19 @@ function UsersPanel() {
         <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); }} />
       </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Avatar</TableHead><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
         <TableBody>
           {profiles.map((p: any) => {
             const cur = userRoles.find((r: any) => r.user_id === p.id)?.role ?? "";
             return (
               <TableRow key={p.id}>
+                <TableCell>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt={p.name} className="h-8 w-8 rounded-full object-cover border" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground">No img</div>
+                  )}
+                </TableCell>
                 <TableCell>{p.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{p.email}</TableCell>
                 <TableCell><span className="text-xs font-mono px-2 py-0.5 rounded bg-muted">{cur || "—"}</span></TableCell>
