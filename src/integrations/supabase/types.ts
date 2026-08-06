@@ -500,6 +500,7 @@ export type Database = {
           nif: string | null
           phone: string | null
           postal_code: string | null
+          proposal_general_conditions: string | null
           singleton: boolean | null
           trade_name: string | null
           updated_at: string | null
@@ -524,6 +525,7 @@ export type Database = {
           nif?: string | null
           phone?: string | null
           postal_code?: string | null
+          proposal_general_conditions?: string | null
           singleton?: boolean | null
           trade_name?: string | null
           updated_at?: string | null
@@ -548,6 +550,7 @@ export type Database = {
           nif?: string | null
           phone?: string | null
           postal_code?: string | null
+          proposal_general_conditions?: string | null
           singleton?: boolean | null
           trade_name?: string | null
           updated_at?: string | null
