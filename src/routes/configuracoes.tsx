@@ -122,16 +122,16 @@ function CompanyForm() {
       setUploading(true);
       try {
         const fileExt = file.name.split('.').pop();
-        const filePath = `${Math.random()}.${fileExt}`;
-        
+        const filePath = `brand/${crypto.randomUUID()}.${fileExt}`;
+
         const { error: uploadError } = await (supabase.storage as any)
-          .from('logos')
-          .upload(filePath, file);
+          .from('invoices')
+          .upload(filePath, file, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = (supabase.storage as any)
-          .from('logos')
+          .from('invoices')
           .getPublicUrl(filePath);
 
         setF({ ...f, [k]: publicUrl });
