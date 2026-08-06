@@ -209,8 +209,8 @@ function UsersPanel() {
 
   const setRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
-      await supabase.from("user_roles").delete().eq("user_id", user_id);
-      const { error } = await supabase.from("user_roles").insert({ user_id, role });
+      await (supabase.from("user_roles") as any).delete().eq("user_id", user_id);
+      const { error } = await (supabase.from("user_roles") as any).insert({ user_id, role });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Papel atualizado"); qc.invalidateQueries({ queryKey: ["user_roles"] }); },
