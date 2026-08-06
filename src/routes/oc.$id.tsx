@@ -107,7 +107,7 @@ function OCDetail() {
       <Card className="p-5 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <Badge>{so.status}</Badge>
-          <Select value={so.status} onValueChange={(v) => patchSo.mutate({ status: v })}>
+          <Select value={so.status ?? ""} onValueChange={(v) => patchSo.mutate({ status: v })}>
             <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
             <SelectContent>{STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
