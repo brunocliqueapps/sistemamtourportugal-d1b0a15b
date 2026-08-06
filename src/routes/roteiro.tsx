@@ -225,15 +225,15 @@ function FinalizeDialog({ service }: { service: any }) {
         closed_by: user!.id,
         closed_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from("service_closings").upsert(payload, { onConflict: "service_order_id" });
+      const { error } = await (supabase.from("service_closings") as any).upsert(payload, { onConflict: "service_order_id" });
       if (error) throw error;
-      await supabase.from("service_orders").update({
+      await (supabase.from("service_orders") as any).update({
         status: "finalizado",
         amount_received: payload.amount_received,
         amount_pending: payload.balance_pending,
       }).eq("id", service.id);
       if (payload.amount_received > 0) {
-        await supabase.from("cash_movements").insert({
+        await (supabase.from("cash_movements") as any).insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: service.id,
           description: `Recebimento OS ${service.oc_code}`, created_by: user!.id,
