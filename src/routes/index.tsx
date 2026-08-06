@@ -9,6 +9,16 @@ import { Logo } from "@/components/layout/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Entrar | Mtour Portugal CRM" },
+      { name: "description", content: "Acesso ao CRM operacional da Mtour Portugal." },
+      { property: "og:title", content: "Mtour Portugal CRM" },
+      { property: "og:description", content: "Acesso ao CRM operacional da Mtour Portugal." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
 
