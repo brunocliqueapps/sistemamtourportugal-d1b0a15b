@@ -175,7 +175,7 @@ function Voucher() {
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
               <Button className="gradient-gold text-gold-foreground" onClick={async () => {
-                const { error } = await supabase.from("proposals").update({ 
+                const { error } = await (supabase.from("proposals") as any).update({ 
                   voucher_validated_at: new Date().toISOString(),
                   voucher_final_note: localFinalNote,
                   voucher_day_notes: localNotes
