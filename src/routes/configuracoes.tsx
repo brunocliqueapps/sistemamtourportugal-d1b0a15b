@@ -102,7 +102,7 @@ function CompanyForm() {
   useEffect(() => { if (data) setF(data); }, [data]);
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("company_settings").update({ ...f, updated_at: new Date().toISOString() }).eq("id", data!.id);
+      const { error } = await (supabase.from("company_settings") as any).update({ ...f, updated_at: new Date().toISOString() }).eq("id", data!.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["company"] }); },
