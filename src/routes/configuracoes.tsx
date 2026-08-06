@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { createAppUser } from "@/lib/admin-users.functions";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -364,30 +366,19 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
   const [role, setRole] = useState<AppRole>("comercial");
   const [busy, setBusy] = useState(false);
 
+  const createUser = useServerFn(createAppUser);
+
   const submit = async () => {
     if (!email || !password) { toast.error("Email e senha obrigatórios"); return; }
     setBusy(true);
     try {
-      // Using admin-privileged service role key if available, or just standard signup
-      // Note: In Supabase, standard signUp usually requires email confirmation to "activate" unless configured otherwise.
-      // To bypass email confirmation, we would need to use supabase.auth.admin.createUser, which requires service_role key.
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { name }, emailRedirectTo: window.location.origin },
-      });
-      if (error) throw error;
-      const uid = data.user?.id;
-      if (uid) {
-        await (supabase.from("user_roles") as any).delete().eq("user_id", uid);
-        const { error: rerr } = await (supabase.from("user_roles") as any).insert({ user_id: uid, role });
-        if (rerr) throw rerr;
-      }
-      toast.success("Utilizador criado e ativo.");
+      await createUser({ data: { email, password, name, role } });
+      toast.success("Utilizador criado e ativo (sem confirmação de email).");
       setOpen(false);
       setEmail(""); setPassword(""); setName(""); setRole("comercial");
       onCreated();
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message ?? "Erro ao criar utilizador");
     } finally {
       setBusy(false);
     }

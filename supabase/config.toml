@@ -1,1 +1,9 @@
 project_id = "owbrfxntriauzkhoesap"
+
+[auth]
+# Sistema interno: novos utilizadores ficam ativos sem confirmação de email
+enable_confirmations = false
+
+[auth.email]
+enable_confirmations = false
+double_confirm_changes = false
