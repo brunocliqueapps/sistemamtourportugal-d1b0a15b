@@ -320,8 +320,8 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
       if (error) throw error;
       const uid = data.user?.id;
       if (uid) {
-        await supabase.from("user_roles").delete().eq("user_id", uid);
-        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: uid, role });
+        await (supabase.from("user_roles") as any).delete().eq("user_id", uid);
+        const { error: rerr } = await (supabase.from("user_roles") as any).insert({ user_id: uid, role });
         if (rerr) throw rerr;
       }
       toast.success("Utilizador criado. Peça-lhe para confirmar o email se aplicável.");
