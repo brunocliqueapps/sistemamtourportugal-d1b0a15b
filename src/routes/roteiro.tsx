@@ -35,7 +35,7 @@ function Roteiro() {
   const { data: services = [] } = useQuery({
     queryKey: ["roteiro", date],
     queryFn: async () => {
-      const { data } = await supabase.from("service_orders")
+      const { data } = await (supabase.from("service_orders") as any)
         .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("start_time", { ascending: true });
       // A data da viagem (proposta) manda; a data de registo da OS é só o último recurso
