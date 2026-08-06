@@ -212,7 +212,7 @@ function OCList() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelos orçamentos validados ou criadas manualmente." actions={
+      <PageHeader title="Ordens de Serviço, Em Nova OS, etirar em Estado financeiro as opções Vai pagar a empresa, receber em mãos, Não faturado, faturado e Pago. Deixa apeans as tres primeiras opções." description="OSs geradas pelos orçamentos validados ou criadas manualmente." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
 
