@@ -47,7 +47,7 @@ function ContaCorrente() {
         .gte("movement_date", start).lt("movement_date", end)
         .order("movement_date", { ascending: false }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
-      if (kindFilter !== "all") q = q.eq("kind", kindFilter);
+      if (kindFilter !== "all") q = q.eq("kind", kindFilter as any);
       return (await q).data ?? [];
     },
   });
