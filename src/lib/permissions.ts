@@ -8,6 +8,38 @@ export type ModuleKey =
   | "financeiro" | "conta_corrente" | "fechamento" | "relatorios"
   | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas";
 
+/** Mapa de rota -> módulo de permissão (rotas não listadas são livres) */
+export const ROUTE_MODULES: Record<string, ModuleKey> = {
+  "/dashboard": "dashboard",
+  "/clientes": "cadastros",
+  "/propostas": "propostas",
+  "/orcamento": "propostas",
+  "/voucher": "voucher",
+  "/oc": "oc",
+  "/agenda": "agenda",
+  "/roteiro": "operacao",
+  "/servicos-privados": "operacao",
+  "/tvde": "tvde",
+  "/financeiro": "financeiro",
+  "/conta-corrente": "conta_corrente",
+  "/custos-fixos": "conta_corrente",
+  "/comissoes": "conta_corrente",
+  "/fechamento": "fechamento",
+  "/relatorios": "relatorios",
+  "/pos-venda": "pos_venda",
+  "/cadastros": "cadastros",
+  "/alertas": "alertas",
+  "/importar": "importar",
+  "/configuracoes": "configuracoes",
+};
+
+export function moduleForPath(pathname: string): ModuleKey | null {
+  const hit = Object.keys(ROUTE_MODULES)
+    .filter((p) => pathname === p || pathname.startsWith(p + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+  return hit ? ROUTE_MODULES[hit]! : null;
+}
+
 export function usePermissions() {
   const { user } = useAuth();
   const { data, isLoading } = useQuery({
