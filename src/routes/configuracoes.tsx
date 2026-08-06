@@ -124,7 +124,6 @@ function CompanyForm() {
         const fileExt = file.name.split('.').pop();
         const filePath = `${Math.random()}.${fileExt}`;
         
-        // Ensure bucket exists or use a default 'logos'
         const { error: uploadError } = await (supabase.storage as any)
           .from('logos')
           .upload(filePath, file);
