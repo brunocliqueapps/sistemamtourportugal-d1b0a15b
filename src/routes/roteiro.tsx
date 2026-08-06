@@ -169,7 +169,7 @@ function Roteiro() {
                             <div className="flex items-center gap-2"><Receipt className="w-4 h-4 text-muted-foreground" />Recebido € {Number(closed.amount_received || 0).toFixed(2)} · Pendente € {Number(closed.balance_pending || 0).toFixed(2)}</div>
                             {closed.incidents && <div className="flex items-start gap-2 text-amber-600"><AlertTriangle className="w-4 h-4 mt-0.5" /><span>{closed.incidents}</span></div>}
                             <div className="text-xs text-muted-foreground pt-1">
-                              Finalizado por <b>{closerName(closed.closed_by)}</b> em {new Date(closed.closed_at).toLocaleString("pt-PT")}
+                              Finalizado por <b>{closerName(closed.closed_by || undefined)}</b> em {closed.closed_at ? new Date(closed.closed_at).toLocaleString("pt-PT") : "—"}
                             </div>
                           </>
                         )}
