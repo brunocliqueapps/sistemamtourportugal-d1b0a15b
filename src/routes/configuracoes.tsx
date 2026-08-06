@@ -202,6 +202,7 @@ function CompanyForm() {
   );
 }
 
+
 function UsersPanel() {
   const qc = useQueryClient();
   const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await (supabase.from("profiles") as any).select("*").order("created_at", { ascending: false })).data ?? [] });
