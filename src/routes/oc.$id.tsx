@@ -42,7 +42,7 @@ function OCDetail() {
   }, [closing, so]);
 
   const patchSo = useMutation({
-    mutationFn: async (patch: any) => { const { error } = await supabase.from("service_orders").update(patch).eq("id", id); if (error) throw error; },
+    mutationFn: async (patch: any) => { const { error } = await (supabase.from("service_orders") as any).update(patch).eq("id", id); if (error) throw error; },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["so", id] }),
   });
 
@@ -60,12 +60,12 @@ function OCDetail() {
         end_time: new Date().toISOString(),
         closed_by: user!.id,
       };
-      const { error } = await supabase.from("service_closings").upsert(payload, { onConflict: "service_order_id" });
+      const { error } = await (supabase.from("service_closings") as any).upsert(payload, { onConflict: "service_order_id" });
       if (error) throw error;
-      await supabase.from("service_orders").update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending }).eq("id", id);
+      await (supabase.from("service_orders") as any).update({ status: "finalizado", amount_received: payload.amount_received, amount_pending: payload.balance_pending }).eq("id", id);
       // criar movimento de caixa (entrada)
       if (payload.amount_received > 0) {
-        await supabase.from("cash_movements").insert({
+        await (supabase.from("cash_movements") as any).insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: id, payment_method_id: payload.payment_method_id,
           description: `Recebimento OS ${shortCode(so?.oc_code)}`, created_by: user!.id,
@@ -79,13 +79,13 @@ function OCDetail() {
   const addExp = useMutation({
     mutationFn: async () => {
       if (exp.category === "outra" && !exp.description) throw new Error("Descrição obrigatória para outras despesas.");
-      const { data, error } = await supabase.from("service_expenses").insert({
+      const { data, error } = await (supabase.from("service_expenses") as any).insert({
         service_order_id: id, category: exp.category, description: exp.description,
         amount: Number(exp.amount), payment_method_id: exp.payment_method_id || null,
         paid_by: user!.id, vehicle_id: so?.vehicle_id,
       }).select().single();
       if (error) throw error;
-      await supabase.from("cash_movements").insert({
+      await (supabase.from("cash_movements") as any).insert({
         kind: "saida", amount: Number(exp.amount),
         service_order_id: id, service_expense_id: data.id, payment_method_id: exp.payment_method_id || null,
         description: `Despesa ${exp.category}${exp.description ? " · " + exp.description : ""} · OS ${shortCode(so?.oc_code)}`,
