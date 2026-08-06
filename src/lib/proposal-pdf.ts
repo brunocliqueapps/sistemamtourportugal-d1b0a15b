@@ -178,12 +178,14 @@ export async function generateProposalPdf(id: string) {
   }
 
   // Condições Gerais da Empresa
-  const { data: company } = await supabase.from("company_settings").select("proposal_general_conditions").maybeSingle();
-  if (company?.proposal_general_conditions) {
+  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
+  const cSettings = company as any;
+  if (cSettings?.proposal_general_conditions) {
     doc.setFont("helvetica", "bold").setFontSize(11);
     doc.text("Condições Gerais", 40, y); y += 14;
     doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
-    doc.splitTextToSize(company.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+    doc.splitTextToSize(cSettings.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+
       if (y > doc.internal.pageSize.getHeight() - 60) {
         doc.addPage();
         y = 40;
