@@ -315,9 +315,9 @@ function OCList() {
                 </Select>
               </div>
               <div><Label>Estado financeiro</Label>
-                <Select value={form.financial_status ?? "nao_faturado"} onValueChange={(v) => { setForm({ ...form, financial_status: v }); setHasUnsavedChanges(true); }}>
+                <Select value={form.financial_status ?? "pagamento_padrao_mtour"} onValueChange={(v) => { setForm({ ...form, financial_status: v }); setHasUnsavedChanges(true); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{financial.map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{financial.slice(0, 3).map((o: any) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="sm:col-span-2">
