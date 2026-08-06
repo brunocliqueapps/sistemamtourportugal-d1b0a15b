@@ -64,7 +64,7 @@ function Roteiro() {
     queryFn: async () => {
       const uids = Array.from(new Set(closings.map((c: any) => c.closed_by).filter(Boolean)));
       if (!uids.length) return [];
-      return (await supabase.from("profiles").select("id,full_name,email").in("id", uids)).data ?? [];
+      return (await (supabase.from("profiles") as any).select("id,full_name,email").in("id", uids)).data ?? [];
     },
   });
 
