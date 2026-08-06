@@ -117,7 +117,7 @@ function OCList() {
       client_id: row.client_id ?? "",
       vehicle_id: row.vehicle_id ?? "",
       status: row.status ?? "para_atendimento",
-      financial_status: row.financial_status ?? "nao_faturado",
+      financial_status: row.financial_status ?? "pagamento_padrao_mtour",
       amount_received: row.amount_received ?? 0,
       financial_receipt_note: row.financial_receipt_note ?? "",
     });
