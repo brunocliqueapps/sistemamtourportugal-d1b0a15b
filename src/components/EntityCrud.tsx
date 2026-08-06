@@ -73,7 +73,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: [table, "list"],
-    queryFn: async () => (await supabase.from(table).select("*").order(orderBy, { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from(table as any) as any).select("*").order(orderBy, { ascending: false })).data ?? [],
   });
 
   // Opções dinâmicas (ex.: regiões)
@@ -87,7 +87,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         const cfg = f.optionsFrom!;
         const valueKey = cfg.value ?? "id";
         const labelKey = cfg.label ?? "name";
-        const { data } = await supabase.from(cfg.table).select("*").order(cfg.orderBy ?? labelKey);
+        const { data } = await (supabase.from(cfg.table as any) as any).select("*").order(cfg.orderBy ?? labelKey);
         out[f.key] = (data ?? []).map((r: any) => ({ value: String(r[valueKey]), label: String(r[labelKey] ?? "") }));
       }
       return out;
@@ -115,10 +115,10 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         payload[f.key] = v;
       }
       if (editing?.id) {
-        const { error } = await supabase.from(table).update(payload).eq("id", editing.id);
+        const { error } = await (supabase.from(table as any) as any).update(payload as any).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { data: inserted, error } = await supabase.from(table).insert(payload).select().single();
+        const { data: inserted, error } = await (supabase.from(table as any) as any).insert(payload as any).select().single();
         if (error) throw error;
         // Auto-gerar alertas de vencimento para veículos / motoristas / funcionários
         await autoCreateExpiryAlerts(table, inserted, fields);
@@ -135,7 +135,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await (supabase.from(table as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: [table] }); },

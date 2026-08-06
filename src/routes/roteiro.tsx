@@ -25,8 +25,8 @@ export const Route = createFileRoute("/roteiro")({ component: Roteiro });
 function Roteiro() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await supabase.from("regions").select("id,name")).data ?? [] });
-  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await supabase.from("tour_routes").select("id,name")).data ?? [] });
+  const { data: regions = [] } = useQuery({ queryKey: ["roteiro-regions"], queryFn: async () => (await (supabase.from("regions") as any).select("id,name")).data ?? [] });
+  const { data: routes = [] } = useQuery({ queryKey: ["roteiro-routes"], queryFn: async () => (await (supabase.from("tour_routes") as any).select("id,name")).data ?? [] });
   const names = {
     regions: Object.fromEntries((regions as any[]).map((r: any) => [r.id, r.name])),
     routes: Object.fromEntries((routes as any[]).map((r: any) => [r.id, r.name])),
@@ -35,7 +35,7 @@ function Roteiro() {
   const { data: services = [] } = useQuery({
     queryKey: ["roteiro", date],
     queryFn: async () => {
-      const { data } = await supabase.from("service_orders")
+      const { data } = await (supabase.from("service_orders") as any)
         .select(`*, clients(name,phone,email), drivers(full_name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .order("start_time", { ascending: true });
       // A data da viagem (proposta) manda; a data de registo da OS é só o último recurso
@@ -51,12 +51,12 @@ function Roteiro() {
   const { data: closings = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-closings", ids.join(",")],
-    queryFn: async () => (await supabase.from("service_closings").select("*").in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_closings") as any).select("*").in("service_order_id", ids)).data ?? [],
   });
   const { data: expenses = [] } = useQuery({
     enabled: ids.length > 0,
     queryKey: ["roteiro-exp", ids.join(",")],
-    queryFn: async () => (await supabase.from("service_expenses").select("*").in("service_order_id", ids)).data ?? [],
+    queryFn: async () => (await (supabase.from("service_expenses") as any).select("*").in("service_order_id", ids)).data ?? [],
   });
   const { data: closers = [] } = useQuery({
     enabled: closings.length > 0,
@@ -64,7 +64,7 @@ function Roteiro() {
     queryFn: async () => {
       const uids = Array.from(new Set(closings.map((c: any) => c.closed_by).filter(Boolean)));
       if (!uids.length) return [];
-      return (await supabase.from("profiles").select("id,full_name,email").in("id", uids)).data ?? [];
+      return (await (supabase.from("profiles") as any).select("id,full_name,email").in("id", uids)).data ?? [];
     },
   });
 
@@ -77,7 +77,7 @@ function Roteiro() {
   };
 
   // group by client
-  const grouped = services.reduce<Record<string, any[]>>((acc, s: any) => {
+  const grouped = (services as any[]).reduce<Record<string, any[]>>((acc, s: any) => {
     const key = s.client_id || "sem-cliente";
     (acc[key] = acc[key] ?? []).push(s);
     return acc;
@@ -125,7 +125,7 @@ function Roteiro() {
               {list.map((s: any) => {
                 const closed = closingBy(s.id);
                 const exps = expensesBy(s.id);
-                const totalExp = exps.reduce((a, e: any) => a + Number(e.amount || 0), 0);
+                const totalExp = exps.reduce((a: number, e: any) => a + Number(e.amount || 0), 0);
                 const trip = tripRange(s);
                 const day = itineraryDayFor(s.proposals, date);
                 const dayText = dayLabel(s.proposals, day, names);
@@ -169,7 +169,7 @@ function Roteiro() {
                             <div className="flex items-center gap-2"><Receipt className="w-4 h-4 text-muted-foreground" />Recebido € {Number(closed.amount_received || 0).toFixed(2)} · Pendente € {Number(closed.balance_pending || 0).toFixed(2)}</div>
                             {closed.incidents && <div className="flex items-start gap-2 text-amber-600"><AlertTriangle className="w-4 h-4 mt-0.5" /><span>{closed.incidents}</span></div>}
                             <div className="text-xs text-muted-foreground pt-1">
-                              Finalizado por <b>{closerName(closed.closed_by)}</b> em {new Date(closed.closed_at).toLocaleString("pt-PT")}
+                              Finalizado por <b>{closerName(closed.closed_by || undefined)}</b> em {closed.closed_at ? new Date(closed.closed_at).toLocaleString("pt-PT") : "—"}
                             </div>
                           </>
                         )}
@@ -225,15 +225,15 @@ function FinalizeDialog({ service }: { service: any }) {
         closed_by: user!.id,
         closed_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from("service_closings").upsert(payload, { onConflict: "service_order_id" });
+      const { error } = await (supabase.from("service_closings") as any).upsert(payload, { onConflict: "service_order_id" });
       if (error) throw error;
-      await supabase.from("service_orders").update({
+      await (supabase.from("service_orders") as any).update({
         status: "finalizado",
         amount_received: payload.amount_received,
         amount_pending: payload.balance_pending,
       }).eq("id", service.id);
       if (payload.amount_received > 0) {
-        await supabase.from("cash_movements").insert({
+        await (supabase.from("cash_movements") as any).insert({
           kind: "entrada", amount: payload.amount_received,
           service_order_id: service.id,
           description: `Recebimento OS ${service.oc_code}`, created_by: user!.id,

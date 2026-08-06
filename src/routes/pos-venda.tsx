@@ -74,7 +74,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("surveys").update({
+      const { error } = await (supabase.from("surveys") as any).update({
         client_name: editing.client_name,
         client_email: editing.client_email,
         status: editing.status,
@@ -88,7 +88,7 @@ function SurveyTable({ surveys }: { surveys: any[] }) {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("surveys").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await (supabase.from("surveys") as any).delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["surveys"] }); },
     onError: (e: any) => toast.error(e.message),
   });
@@ -162,8 +162,8 @@ function SendPanel() {
   const [form, setForm] = useState<any>({ template_id: "", service_order_id: "", client_email: "", client_name: "" });
   const { data: surveys = [] } = useSurveys();
 
-  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await supabase.from("survey_templates").select("*").eq("active", true)).data ?? [] });
-  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await supabase.from("service_orders").select("id,code,client_name,status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
+  const { data: templates = [] } = useQuery({ queryKey: ["surveyTemplates"], queryFn: async () => (await (supabase.from("survey_templates") as any).select("*").eq("active", true)).data ?? [] });
+  const { data: ocs = [] } = useQuery({ queryKey: ["ocsForSurvey"], queryFn: async () => (await (supabase.from("service_orders") as any).select("id,oc_code,client_id,clients(name),status").order("service_date",{ascending:false}).limit(200)).data ?? [] });
 
   const create = useMutation({
     mutationFn: async () => {
@@ -176,7 +176,7 @@ function SendPanel() {
         status: "enviado",
         sent_at: new Date().toISOString(),
       };
-      const { data, error } = await supabase.from("surveys").insert(payload).select().single();
+      const { data, error } = await (supabase.from("surveys") as any).insert(payload).select().single();
       if (error) throw error;
       const url = `${window.location.origin}/pesquisa/${data.token}`;
       await navigator.clipboard.writeText(url).catch(() => {});

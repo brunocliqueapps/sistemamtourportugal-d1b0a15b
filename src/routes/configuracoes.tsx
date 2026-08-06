@@ -97,12 +97,12 @@ function Configuracoes() {
 
 function CompanyForm() {
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ["company"], queryFn: async () => (await supabase.from("company_settings").select("*").maybeSingle()).data });
+  const { data } = useQuery({ queryKey: ["company"], queryFn: async () => (await (supabase.from("company_settings") as any).select("*").maybeSingle()).data });
   const [f, setF] = useState<any>({});
   useEffect(() => { if (data) setF(data); }, [data]);
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("company_settings").update({ ...f, updated_at: new Date().toISOString() }).eq("id", data!.id);
+      const { error } = await (supabase.from("company_settings") as any).update({ ...f, updated_at: new Date().toISOString() }).eq("id", data!.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["company"] }); },
@@ -124,14 +124,13 @@ function CompanyForm() {
         const fileExt = file.name.split('.').pop();
         const filePath = `${Math.random()}.${fileExt}`;
         
-        // Ensure bucket exists or use a default 'uploads'
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await (supabase.storage as any)
           .from('logos')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = (supabase.storage as any)
           .from('logos')
           .getPublicUrl(filePath);
 
@@ -150,10 +149,10 @@ function CompanyForm() {
         <div className="flex items-center gap-3">
           {f[k] ? (
             <div className="relative group">
-              <img src={f[k]} alt={label} className="h-20 w-auto rounded border bg-muted object-contain" />
+              <img src={f[k]} alt={label} className="h-20 w-auto rounded border bg-white object-contain p-1" />
               <button 
                 onClick={() => setF({ ...f, [k]: null })}
-                className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -163,7 +162,7 @@ function CompanyForm() {
               <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-accent transition-colors">
                 <div className="flex flex-col items-center justify-center pt-2 pb-2">
                   <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{uploading ? "A carregar..." : "Clique para upload"}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{uploading ? "A carregar..." : "Upload imagem"}</p>
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={onFileChange} disabled={uploading} />
               </label>
@@ -173,6 +172,7 @@ function CompanyForm() {
       </div>
     );
   };
+
   return (
     <Card className="p-6 max-w-3xl">
       <div className="grid md:grid-cols-2 gap-3">
@@ -201,15 +201,16 @@ function CompanyForm() {
   );
 }
 
+
 function UsersPanel() {
   const qc = useQueryClient();
-  const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await supabase.from("profiles").select("*").order("created_at", { ascending: false })).data ?? [] });
-  const { data: userRoles = [] } = useQuery({ queryKey: ["user_roles"], queryFn: async () => (await supabase.from("user_roles").select("*")).data ?? [] });
+  const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await (supabase.from("profiles") as any).select("*").order("created_at", { ascending: false })).data ?? [] });
+  const { data: userRoles = [] } = useQuery({ queryKey: ["user_roles"], queryFn: async () => (await (supabase.from("user_roles") as any).select("*")).data ?? [] });
 
   const setRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
-      await supabase.from("user_roles").delete().eq("user_id", user_id);
-      const { error } = await supabase.from("user_roles").insert({ user_id, role });
+      await (supabase.from("user_roles") as any).delete().eq("user_id", user_id);
+      const { error } = await (supabase.from("user_roles") as any).insert({ user_id, role });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Papel atualizado"); qc.invalidateQueries({ queryKey: ["user_roles"] }); },
@@ -252,15 +253,15 @@ function UsersPanel() {
 
 function PermissionsMatrix() {
   const qc = useQueryClient();
-  const { data: perms = [] } = useQuery({ queryKey: ["role_permissions"], queryFn: async () => (await supabase.from("role_permissions").select("*")).data ?? [] });
+  const { data: perms = [] } = useQuery({ queryKey: ["role_permissions"], queryFn: async () => (await (supabase.from("role_permissions") as any).select("*")).data ?? [] });
 
   const toggle = useMutation({
     mutationFn: async ({ role, module, on }: { role: AppRole; module: ModuleKey; on: boolean }) => {
       if (on) {
-        const { error } = await supabase.from("role_permissions").insert({ role, module });
+        const { error } = await (supabase.from("role_permissions") as any).insert({ role, module });
         if (error && !String(error.message).includes("duplicate")) throw error;
       } else {
-        const { error } = await supabase.from("role_permissions").delete().eq("role", role).eq("module", module);
+        const { error } = await (supabase.from("role_permissions") as any).delete().eq("role", role).eq("module", module);
         if (error) throw error;
       }
     },
@@ -319,8 +320,8 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
       if (error) throw error;
       const uid = data.user?.id;
       if (uid) {
-        await supabase.from("user_roles").delete().eq("user_id", uid);
-        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: uid, role });
+        await (supabase.from("user_roles") as any).delete().eq("user_id", uid);
+        const { error: rerr } = await (supabase.from("user_roles") as any).insert({ user_id: uid, role });
         if (rerr) throw rerr;
       }
       toast.success("Utilizador criado. Peça-lhe para confirmar o email se aplicável.");
