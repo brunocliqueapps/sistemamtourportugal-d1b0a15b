@@ -58,7 +58,7 @@ const groups: Group[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  const { can } = usePermissions();
+  const { can, loading: permsLoading } = usePermissions();
   const loc = useLocation();
   const { hasUnsavedChanges } = useUnsavedChanges();
   const [mobileOpen, setMobileOpen] = useState(false);
