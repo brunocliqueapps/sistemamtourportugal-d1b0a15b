@@ -87,7 +87,7 @@ export function EntityCrud({ table, title, fields, columns, orderBy = "created_a
         const cfg = f.optionsFrom!;
         const valueKey = cfg.value ?? "id";
         const labelKey = cfg.label ?? "name";
-        const { data } = await supabase.from(cfg.table).select("*").order(cfg.orderBy ?? labelKey);
+        const { data } = await (supabase.from(cfg.table as any) as any).select("*").order(cfg.orderBy ?? labelKey);
         out[f.key] = (data ?? []).map((r: any) => ({ value: String(r[valueKey]), label: String(r[labelKey] ?? "") }));
       }
       return out;
