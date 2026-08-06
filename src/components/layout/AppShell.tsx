@@ -8,7 +8,7 @@ import {
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { usePermissions, type ModuleKey } from "@/lib/permissions";
+import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 
@@ -58,7 +58,7 @@ const groups: Group[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  const { can } = usePermissions();
+  const { can, loading: permsLoading } = usePermissions();
   const loc = useLocation();
   const { hasUnsavedChanges } = useUnsavedChanges();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -77,6 +77,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   const visibleGroups = groups
     .map((g) => ({ ...g, items: g.items.filter((i) => can(i.module)) }))
     .filter((g) => g.items.length > 0);
+
+  const currentModule = moduleForPath(loc.pathname);
+  const blocked = !permsLoading && !!currentModule && !can(currentModule);
+
+  const firstAllowed = visibleGroups[0]?.items[0]?.to;
+
+  const Denied = (
+    <div className="p-6 sm:p-10">
+      <div className="max-w-md mx-auto text-center border border-border rounded-lg p-8 bg-card">
+        <h2 className="text-lg font-semibold">Sem permissão</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          O seu perfil não tem acesso a esta página. Fale com um administrador se precisar deste módulo.
+        </p>
+        {firstAllowed && (
+          <Link to={firstAllowed} className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            Ir para uma página permitida
+          </Link>
+        )}
+      </div>
+    </div>
+  );
 
   const Nav = (
     <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
@@ -163,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        {children}
+        {blocked ? Denied : children}
       </main>
     </div>
   );
