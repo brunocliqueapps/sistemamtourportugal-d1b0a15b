@@ -41,7 +41,7 @@ function Configuracoes() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Na taleba de utilizadores, não aparece as imagens pasa saber mais coisas." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
+      <PageHeader title="Na tabela Utilizadores, não estão mostrado os atletas registados." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
       <Tabs defaultValue="company">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="company">Empresa</TabsTrigger>
