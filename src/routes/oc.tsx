@@ -377,7 +377,7 @@ function OCList() {
                   <TableCell className="text-sm">{(r.origin ?? r.proposals?.arrival_place) || "—"} → {(r.destination ?? r.proposals?.departure_place) || "—"}</TableCell>
                   <TableCell>{r.vehicles?.plate ?? "—"}{r.vehicles?.owner_company ? <div className="text-xs text-muted-foreground">{r.vehicles.owner_company}</div> : null}</TableCell>
                   <TableCell><Badge variant="outline">{opLabel(r.status)}</Badge></TableCell>
-                  <TableCell><Badge variant={r.financial_status === "pago" ? "default" : "outline"}>{finLabel(r.financial_status ?? "nao_faturado")}</Badge></TableCell>
+                  <TableCell><Badge variant={r.financial_status === "pago" || r.financial_status === "recebimento_ato" ? "default" : "outline"}>{finLabel(r.financial_status ?? "pagamento_padrao_mtour")}</Badge></TableCell>
                   <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
 
                   <TableCell className="text-right space-x-1">
