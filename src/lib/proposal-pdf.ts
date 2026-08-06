@@ -9,25 +9,83 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
-  let y = 40;
-  doc.setFont("helvetica", "bold").setFontSize(13);
+  const H = doc.internal.pageSize.getHeight();
+  
+  // Marca d'água (Texto leve no fundo)
+  doc.saveGraphicsState();
+  doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
+  doc.setFont("helvetica", "bold").setFontSize(60);
+  doc.setTextColor(150);
+  doc.text("MTOUR PORTUGAL", W / 2, H / 2, { align: "center", angle: 45 });
+  doc.restoreGraphicsState();
+
+  // Logo (Direito Superior)
+  if (c.logo_url) {
+    try {
+      doc.addImage(c.logo_url, "PNG", W - 140, 30, 100, 45);
+    } catch (e) {
+      console.error("Erro ao carregar logo", e);
+    }
+  }
+
+  let y = 45;
+  doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66); // Azul Marinho
   const title = [c.legal_name ?? c.name ?? "Mtour Portugal", c.trade_name ? `"${c.trade_name}"` : null].filter(Boolean).join(" ");
   doc.text(title, 40, y);
-  doc.setFont("helvetica", "normal").setFontSize(9);
+  
+  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
   y += 16;
   [c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
-   c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email, c.doc_header_extra]
+   c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
 
-  doc.setFont("helvetica", "bold").setFontSize(14);
-  doc.text(docTitle, W - 40, 50, { align: "right" });
-  doc.setFont("helvetica", "normal").setFontSize(10);
-  if (code) doc.text(`Nº ${code}`, W - 40, 66, { align: "right" });
-  doc.text(new Date().toLocaleDateString("pt-PT"), W - 40, 80, { align: "right" });
-  y = Math.max(y, 110);
-  doc.setDrawColor(200); doc.line(40, y, W - 40, y);
-  return y + 16;
+  // Título e Código
+  doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(176, 141, 68); // Dourado
+  doc.text(docTitle, W - 150, 95, { align: "right" });
+  doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
+  if (code) doc.text(`Nº ${code}`, W - 40, 110, { align: "right" });
+  doc.text(new Date().toLocaleDateString("pt-PT"), W - 40, 125, { align: "right" });
+  
+  y = Math.max(y, 140);
+  doc.setDrawColor(176, 141, 68); 
+  doc.setLineWidth(1.5);
+  doc.line(40, y, W - 40, y);
+
+  // Rodapé e QR Code
+  footer(doc, c);
+
+  return y + 25;
 }
+
+function footer(doc: jsPDF, c: any) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  
+  // QR Code Instagram (Direito Inferior)
+  if (c.instagram_qr_url) {
+    try {
+      doc.addImage(c.instagram_qr_url, "PNG", W - 80, H - 90, 50, 50);
+      doc.setFontSize(7).setTextColor(100);
+      doc.text("Siga-nos", W - 55, H - 35, { align: "center" });
+    } catch (e) {}
+  }
+
+  // Dados de contato centralizados no rodapé
+  doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(100);
+  const contactLines = [
+    c.website,
+    c.phone,
+    c.facebook_url ? `Facebook: ${c.facebook_url.replace("https://", "")}` : null,
+    c.instagram_url ? `Instagram: ${c.instagram_url.replace("https://", "")}` : null
+  ].filter(Boolean).join("  |  ");
+  
+  doc.text(contactLines, W / 2, H - 30, { align: "center" });
+  
+  // Copyright/Page info
+  doc.setFontSize(7);
+  doc.text(`© ${new Date().getFullYear()} Mtour Portugal - Experiências Exclusivas`, 40, H - 30);
+}
+
 
 
 async function loadProposal(id: string) {
@@ -69,7 +127,9 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
       ["Partida", fmtDate(p.departure_date) || "—", p.departure_time ?? "—", p.departure_place ?? "—"],
     ],
     styles: { fontSize: 9 },
-    headStyles: { fillColor: [16, 33, 66] },
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255], fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+
     margin: { left: 40, right: 40 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
@@ -94,7 +154,9 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa")
     ]),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
-    headStyles: { fillColor: [16, 33, 66] },
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+
     margin: { left: 40, right: 40 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
@@ -114,9 +176,26 @@ export async function generateProposalPdf(id: string) {
     doc.splitTextToSize(p.descriptive, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { doc.text(l, 40, y); y += 12; });
     y += 6;
   }
-  doc.setFont("helvetica", "bold").setFontSize(12);
+
+  // Condições Gerais da Empresa
+  const { data: company } = await supabase.from("company_settings").select("proposal_general_conditions").maybeSingle();
+  if (company?.proposal_general_conditions) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Condições Gerais", 40, y); y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+    doc.splitTextToSize(company.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+      if (y > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.text(l, 40, y); y += 12; 
+    });
+    y += 10;
+  }
+
+  doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
   doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
-  doc.setFont("helvetica", "normal").setFontSize(10);
+  doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
   doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y);
   doc.save(`Proposta-${p.code ?? p.id}.pdf`);
 }
@@ -137,7 +216,10 @@ export async function generateBudgetPdf(id: string) {
       p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
       String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
     ]],
-    styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 18;
 
@@ -150,7 +232,11 @@ export async function generateBudgetPdf(id: string) {
     startY: y,
     head: [["Etapa", "%", "Valor (€)"]],
     body: stages.map((s) => [s.label, `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
-    styles: { fontSize: 9 }, headStyles: { fillColor: [176, 141, 68] }, margin: { left: 40, right: 40 },
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
+    alternateRowStyles: { fillColor: [255, 252, 245] },
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
@@ -170,8 +256,71 @@ export async function generateVoucherPdf(id: string) {
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
   y += 8;
   y = travelBlock(doc, p, y);
-  // O voucher é apenas para o cliente: sem valores nem observações de venda.
+  
+  // No voucher, acrescentar também tudo que tem em Orçamento, inclusive os valores e formas de pagamento.
   y = itineraryBlock(doc, p, y, "Serviço contratado");
+
+  // Adicionar orientações diárias se houver
+  const dayNotes: any[] = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
+  if (dayNotes.length > 0) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Orientações Importantes", 40, y); y += 14;
+    dayNotes.forEach((dn) => {
+      if (dn.note && dn.note.trim()) {
+        doc.setFont("helvetica", "bold").setFontSize(9);
+        doc.text(`${fmtDate(dn.date)}:`, 40, y);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(dn.note, doc.internal.pageSize.getWidth() - 120);
+        doc.text(lines, 110, y);
+        y += (lines.length * 12) + 6;
+      }
+    });
+    y += 10;
+  }
+
+  // Tabela de Valores e Etapas (Igual ao Orçamento)
+  const days = p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1;
+  autoTable(doc, {
+    startY: y,
+    head: [["Descrição", "Dias", "Pessoas", "Total (€)"]],
+    body: [[
+      p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
+      String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
+    ]],
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
+    margin: { left: 40, right: 40 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 18;
+
+  doc.setFont("helvetica", "bold").setFontSize(11);
+  doc.text("Forma de Pagamento", 40, y); y += 6;
+  const stages: any[] = Array.isArray(p.payment_stages) && p.payment_stages.length
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    : paymentSchedule(days || 1, p.total_value);
+  autoTable(doc, {
+    startY: y,
+    head: [["Etapa", "%", "Valor (€)"]],
+    body: stages.map((s) => [s.label, `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
+    styles: { fontSize: 9 }, 
+    headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
+    alternateRowStyles: { fillColor: [255, 252, 245] },
+    margin: { left: 40, right: 40 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 16;
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  if (p.payment_terms) doc.text(p.payment_terms, 40, y);
+  y += 20;
+
+  if (p.voucher_final_note) {
+    doc.setFont("helvetica", "bold").setFontSize(11);
+    doc.text("Nota Final", 40, y); y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(10);
+    doc.splitTextToSize(p.voucher_final_note, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
+      doc.text(l, 40, y); y += 12; 
+    });
+  }
+
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
 }
 
@@ -193,7 +342,10 @@ export async function generateServiceOrderPdf(id: string) {
       fmtDate(s.proposals?.itinerary_start ?? s.service_date) || "—", s.start_time ?? "—", s.origin ?? "—", s.destination ?? "—",
       s.vehicles ? `${s.vehicles.plate}${s.vehicles.owner_company ? " — " + s.vehicles.owner_company : ""}` : "—",
     ]],
-    styles: { fontSize: 9 }, headStyles: { fillColor: [16, 33, 66] }, margin: { left: 40, right: 40 },
+    headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    margin: { left: 40, right: 40 },
+
   });
   y = (doc as any).lastAutoTable.finalY + 18;
   if (s.proposals) y = itineraryBlock(doc, s.proposals, y, "Serviço contratado");

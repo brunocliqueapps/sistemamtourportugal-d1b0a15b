@@ -6,14 +6,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check } from "lucide-react";
-import { useMemo, useState } from "react";
+import { FileDown, Check, Eye } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
+import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+
 
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
@@ -30,7 +33,9 @@ export const Route = createFileRoute("/voucher")({
 });
 
 function Voucher() {
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const [clientId, setClientId] = useState("");
+
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
 
@@ -48,6 +53,16 @@ function Voucher() {
 
   const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
+  const [localNotes, setLocalNotes] = useState<any[]>([]);
+  const [localFinalNote, setLocalFinalNote] = useState("");
+
+  useEffect(() => {
+    if (p) {
+      setLocalNotes(Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : []);
+      setLocalFinalNote(p.voucher_final_note || "");
+    }
+  }, [p]);
+
   const filteredClients = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return clients as any[];
@@ -63,7 +78,10 @@ function Voucher() {
         <div><Label>Buscar cliente</Label><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, nº cliente, NIF, email…" /></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Cliente</Label>
-            <Select value={clientId} onValueChange={(v) => { setClientId(v); setProposalId(""); }}>
+            <Select value={clientId} onValueChange={(v) => { 
+              if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
+              setClientId(v); setProposalId(""); setHasUnsavedChanges(false);
+            }}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
               <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
             </Select>
@@ -102,12 +120,54 @@ function Voucher() {
               <Table>
                 <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {p.itinerary.map((d: any, i: number) => (
-                    <TableRow key={i}><TableCell className="font-mono text-xs">{fmtDate(d.date)}</TableCell><TableCell className="whitespace-pre-wrap">{d.text || "—"}</TableCell></TableRow>
-                  ))}
+                  {p.itinerary.map((d: any, i: number) => {
+                    const currentNote = localNotes.find((n: any) => n.date === d.date)?.note || "";
+                    
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="align-top">
+                          <div className="font-mono text-xs">{fmtDate(d.date)}</div>
+                        </TableCell>
+                        <TableCell className="space-y-3">
+                          <div className="whitespace-pre-wrap text-sm">{d.text || "—"}</div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Orientações para este dia</Label>
+                            <Textarea 
+                              placeholder="Escreva orientações específicas para este dia..."
+                              value={currentNote}
+                              className="min-h-[80px] text-sm"
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                                const newNote = e.target.value;
+                                setHasUnsavedChanges(true);
+                                setLocalNotes(prev => {
+                                  const next = [...prev];
+                                  const idx = next.findIndex((n: any) => n.date === d.date);
+                                  if (idx >= 0) next[idx] = { ...next[idx], note: newNote };
+                                  else next.push({ date: d.date, note: newNote });
+                                  return next;
+                                });
+                              }}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
+
+            <div className="space-y-2 mt-4">
+              <Label>Nota Final</Label>
+              <Textarea 
+                placeholder="Escrita final para o voucher..."
+                value={localFinalNote}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  setHasUnsavedChanges(true);
+                  setLocalFinalNote(e.target.value);
+                }}
+              />
+            </div>
 
 
             <div className="flex flex-wrap justify-end gap-2">
@@ -115,11 +175,16 @@ function Voucher() {
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
               <Button className="gradient-gold text-gold-foreground" onClick={async () => {
-                const { error } = await supabase.from("proposals").update({ voucher_validated_at: new Date().toISOString() }).eq("id", p.id);
+                const { error } = await supabase.from("proposals").update({ 
+                  voucher_validated_at: new Date().toISOString(),
+                  voucher_final_note: localFinalNote,
+                  voucher_day_notes: localNotes
+                }).eq("id", p.id);
                 if (error) return toast.error(error.message);
-                toast.success("Voucher validado");
+                toast.success("Voucher guardado e validado");
+                setHasUnsavedChanges(false);
                 refetchValidated();
-              }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
+              }}><Check className="h-4 w-4 mr-1" /> Guardar e Validar Voucher</Button>
             </div>
           </>
         )}
@@ -128,15 +193,16 @@ function Voucher() {
       <Card className="p-4 mt-4">
         <div className="font-semibold text-sm mb-2">Vouchers validados</div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {(validated as any[]).map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
-                <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                <TableCell className="text-right space-x-1">
+                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => setProposalId(x.id)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
