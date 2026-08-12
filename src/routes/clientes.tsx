@@ -418,7 +418,23 @@ function Clientes() {
                 <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
                   value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
+              <div>
+                <Label>Responsável pelo Registo</Label>
+                <Select value={form.registered_by ?? ""} onValueChange={(v) => { setForm({ ...form, registered_by: v }); setHasUnsavedChanges(true); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                  <SelectContent>
+                    {staff.map((s: any) => <SelectItem key={s.id} value={s.label}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="pt-2 border-t text-sm text-muted-foreground">
+                Data de registo:{" "}
+                <span className="font-medium text-foreground">
+                  {editing?.created_at ? fmtDate(editing.created_at) : fmtDate(new Date().toISOString())}
+                </span>
+              </div>
             </div>
+
 
           </div>
           <DialogFooter>
