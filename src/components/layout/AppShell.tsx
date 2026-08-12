@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, FileText, Wallet, Moon, Sun, LogOut,
-  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
+  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell, MessageSquare,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
