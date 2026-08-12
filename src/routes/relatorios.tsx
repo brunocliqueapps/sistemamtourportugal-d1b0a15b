@@ -68,7 +68,7 @@ function Relatorios() {
   const [vehicleId, setVehicleId] = useState<string>("all");
   const [clientId, setClientId] = useState<string>("all");
   const [group, setGroup] = useState<Group>("month");
-  const [report, setReport] = useState<string>("faturamento");
+  const [report, setReport] = useState<string>("clientes");
 
   const applyPeriod = (p: Period) => {
     setPeriod(p);
