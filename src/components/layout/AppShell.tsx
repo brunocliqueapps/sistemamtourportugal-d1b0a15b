@@ -22,10 +22,12 @@ const groups: Group[] = [
   ]},
   { label: "Comercial", items: [
     { to: "/clientes", label: "Clientes · CRM", icon: Users, module: "cadastros" },
+    { to: "/mensagens", label: "Mensagens", icon: MessageSquare, module: "mensagens" },
 
     { to: "/roteiros-personalizados", label: "Roteiros Personalizados", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Proposta/Orçamento", icon: Calculator, module: "propostas" },
   ]},
+
   { label: "Operação", items: [
     { to: "/voucher", label: "Voucher", icon: FileText, module: "voucher" },
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
