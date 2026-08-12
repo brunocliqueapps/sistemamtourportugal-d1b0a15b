@@ -30,6 +30,7 @@ const groups: Group[] = [
     { to: "/voucher", label: "Voucher", icon: FileText, module: "voucher" },
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },
     { to: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
+    { to: "/relatorio-diario", label: "Relatório Diário", icon: BarChart3, module: "agenda" },
   ]},
   { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },

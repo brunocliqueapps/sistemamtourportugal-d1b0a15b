@@ -14,6 +14,7 @@ import { Route as TvdeRouteImport } from './routes/tvde'
 import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
 import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as RelatorioDiarioRouteImport } from './routes/relatorio-diario'
 import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
@@ -57,6 +58,11 @@ const RoteiroRoute = RoteiroRouteImport.update({
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatorioDiarioRoute = RelatorioDiarioRouteImport.update({
+  id: '/relatorio-diario',
+  path: '/relatorio-diario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PropostasRoute = PropostasRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
+  '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
+  '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
   '/propostas': typeof PropostasRoute
+  '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/pos-venda'
     | '/propostas'
+    | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/pos-venda'
     | '/propostas'
+    | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/pos-venda'
     | '/propostas'
+    | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
     | '/servicos-privados'
@@ -333,6 +345,7 @@ export interface RootRouteChildren {
   OrcamentoRoute: typeof OrcamentoRoute
   PosVendaRoute: typeof PosVendaRoute
   PropostasRoute: typeof PropostasRoute
+  RelatorioDiarioRoute: typeof RelatorioDiarioRoute
   RelatoriosRoute: typeof RelatoriosRoute
   RoteiroRoute: typeof RoteiroRoute
   ServicosPrivadosRoute: typeof ServicosPrivadosRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorio-diario': {
+      id: '/relatorio-diario'
+      path: '/relatorio-diario'
+      fullPath: '/relatorio-diario'
+      preLoaderRoute: typeof RelatorioDiarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/propostas': {
@@ -542,6 +562,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoRoute: OrcamentoRoute,
   PosVendaRoute: PosVendaRoute,
   PropostasRoute: PropostasRoute,
+  RelatorioDiarioRoute: RelatorioDiarioRoute,
   RelatoriosRoute: RelatoriosRoute,
   RoteiroRoute: RoteiroRoute,
   ServicosPrivadosRoute: ServicosPrivadosRoute,
