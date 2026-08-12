@@ -2546,6 +2546,106 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversations: {
+        Row: {
+          archived: boolean
+          client_id: string | null
+          contact_name: string | null
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          unread_count: number
+          updated_at: string
+          wa_phone: string
+        }
+        Insert: {
+          archived?: boolean
+          client_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          unread_count?: number
+          updated_at?: string
+          wa_phone: string
+        }
+        Update: {
+          archived?: boolean
+          client_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          unread_count?: number
+          updated_at?: string
+          wa_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          id: string
+          media_url: string | null
+          message_at: string
+          msg_type: string
+          sent_by: string | null
+          status: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          id?: string
+          media_url?: string | null
+          message_at?: string
+          msg_type?: string
+          sent_by?: string | null
+          status?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          id?: string
+          media_url?: string | null
+          message_at?: string
+          msg_type?: string
+          sent_by?: string | null
+          status?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       document_alerts: {
