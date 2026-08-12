@@ -6,12 +6,15 @@ export type AppRole = "admin" | "comercial" | "administrativo" | "motorista";
 export type ModuleKey =
   | "dashboard" | "agenda" | "crm" | "propostas" | "voucher" | "oc" | "operacao" | "tvde"
   | "financeiro" | "conta_corrente" | "fechamento" | "relatorios" | "relatorio_diario"
-  | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas";
+  | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas" | "mensagens";
+
 
 /** Mapa de rota -> módulo de permissão (rotas não listadas são livres) */
 export const ROUTE_MODULES: Record<string, ModuleKey> = {
   "/dashboard": "dashboard",
   "/clientes": "cadastros",
+  "/mensagens": "mensagens",
+
   "/roteiros-personalizados": "propostas",
   "/orcamento": "propostas",
   "/voucher": "voucher",

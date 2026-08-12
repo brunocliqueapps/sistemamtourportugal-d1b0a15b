@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, FileText, Wallet, Moon, Sun, LogOut,
-  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell,
+  Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell, MessageSquare,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
@@ -22,10 +22,12 @@ const groups: Group[] = [
   ]},
   { label: "Comercial", items: [
     { to: "/clientes", label: "Clientes · CRM", icon: Users, module: "cadastros" },
+    { to: "/mensagens", label: "Mensagens", icon: MessageSquare, module: "mensagens" },
 
     { to: "/roteiros-personalizados", label: "Roteiros Personalizados", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Proposta/Orçamento", icon: Calculator, module: "propostas" },
   ]},
+
   { label: "Operação", items: [
     { to: "/voucher", label: "Voucher", icon: FileText, module: "voucher" },
     { to: "/oc", label: "Ordens de Serviço", icon: ClipboardCheck, module: "oc" },

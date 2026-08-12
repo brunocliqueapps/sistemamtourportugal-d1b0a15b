@@ -32,7 +32,9 @@ const MODULES: { key: ModuleKey; label: string }[] = [
   { key: "conta_corrente", label: "Conta Corrente" }, { key: "fechamento", label: "Fechamento" },
   { key: "relatorio_diario", label: "Relatório Diário" }, { key: "relatorios", label: "Relatórios" }, { key: "cadastros", label: "Cadastros" },
   { key: "pos_venda", label: "Pós-Venda" }, { key: "importar", label: "Importar CSV" },
+  { key: "mensagens", label: "Mensagens (WhatsApp)" },
   { key: "alertas", label: "Alertas" }, { key: "configuracoes", label: "Configurações" },
+
 ];
 
 function Configuracoes() {

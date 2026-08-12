@@ -19,6 +19,7 @@ import { Route as RelatorioDiarioRouteImport } from './routes/relatorio-diario'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as OcRouteImport } from './routes/oc'
+import { Route as MensagensRouteImport } from './routes/mensagens'
 import { Route as ImportarRouteImport } from './routes/importar'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as FechamentoRouteImport } from './routes/fechamento'
@@ -34,6 +35,7 @@ import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
+import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
 const VoucherRoute = VoucherRouteImport.update({
   id: '/voucher',
@@ -83,6 +85,11 @@ const OrcamentoRoute = OrcamentoRouteImport.update({
 const OcRoute = OcRouteImport.update({
   id: '/oc',
   path: '/oc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MensagensRoute = MensagensRouteImport.update({
+  id: '/mensagens',
+  path: '/mensagens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportarRoute = ImportarRouteImport.update({
@@ -160,6 +167,12 @@ const OcIdRoute = OcIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => OcRoute,
 } as any)
+const ApiPublicWhatsappWebhookRoute =
+  ApiPublicWhatsappWebhookRouteImport.update({
+    id: '/api/public/whatsapp/webhook',
+    path: '/api/public/whatsapp/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -175,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
@@ -187,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -202,6 +217,7 @@ export interface FileRoutesByTo {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
@@ -214,6 +230,7 @@ export interface FileRoutesByTo {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
@@ -242,6 +260,7 @@ export interface FileRoutesById {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -259,6 +278,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mensagens'
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
@@ -271,6 +291,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -286,6 +307,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mensagens'
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
@@ -298,6 +320,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
     | '/'
@@ -313,6 +336,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mensagens'
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
@@ -325,6 +349,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -341,6 +366,7 @@ export interface RootRouteChildren {
   FechamentoRoute: typeof FechamentoRoute
   FinanceiroRoute: typeof FinanceiroRoute
   ImportarRoute: typeof ImportarRoute
+  MensagensRoute: typeof MensagensRoute
   OcRoute: typeof OcRouteWithChildren
   OrcamentoRoute: typeof OrcamentoRoute
   PosVendaRoute: typeof PosVendaRoute
@@ -352,6 +378,7 @@ export interface RootRouteChildren {
   TvdeRoute: typeof TvdeRoute
   VoucherRoute: typeof VoucherRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
+  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -424,6 +451,13 @@ declare module '@tanstack/react-router' {
       path: '/oc'
       fullPath: '/oc'
       preLoaderRoute: typeof OcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mensagens': {
+      id: '/mensagens'
+      path: '/mensagens'
+      fullPath: '/mensagens'
+      preLoaderRoute: typeof MensagensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/importar': {
@@ -531,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OcIdRouteImport
       parentRoute: typeof OcRoute
     }
+    '/api/public/whatsapp/webhook': {
+      id: '/api/public/whatsapp/webhook'
+      path: '/api/public/whatsapp/webhook'
+      fullPath: '/api/public/whatsapp/webhook'
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -558,6 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   FechamentoRoute: FechamentoRoute,
   FinanceiroRoute: FinanceiroRoute,
   ImportarRoute: ImportarRoute,
+  MensagensRoute: MensagensRoute,
   OcRoute: OcRouteWithChildren,
   OrcamentoRoute: OrcamentoRoute,
   PosVendaRoute: PosVendaRoute,
@@ -569,6 +611,7 @@ const rootRouteChildren: RootRouteChildren = {
   TvdeRoute: TvdeRoute,
   VoucherRoute: VoucherRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
+  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
