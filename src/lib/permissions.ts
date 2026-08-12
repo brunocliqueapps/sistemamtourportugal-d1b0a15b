@@ -17,6 +17,7 @@ export const ROUTE_MODULES: Record<string, ModuleKey> = {
   "/voucher": "voucher",
   "/oc": "oc",
   "/agenda": "agenda",
+  "/relatorio-diario": "agenda",
   "/roteiro": "operacao",
   "/servicos-privados": "operacao",
   "/tvde": "tvde",
