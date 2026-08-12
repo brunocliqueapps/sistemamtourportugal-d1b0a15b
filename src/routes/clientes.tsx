@@ -147,7 +147,14 @@ function Clientes() {
     <div className="p-4 sm:p-6 md:p-8 space-y-4">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
+      <div className="flex justify-end">
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
+          <Plus className="h-4 w-4 mr-1" /> Novo cliente
+        </Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
         {cols.map((col) => (
           <Card
             key={col.key}
