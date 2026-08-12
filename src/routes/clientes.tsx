@@ -247,10 +247,24 @@ function Clientes() {
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Registo de</Label>
+            <Input type="date" className="w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Registo até</Label>
+            <Input type="date" className="w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+          </div>
+          {(regFrom || regTo) && (
+            <Button variant="ghost" size="sm" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+          )}
         </div>
+
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
