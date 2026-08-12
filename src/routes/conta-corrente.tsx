@@ -28,29 +28,51 @@ function ContaCorrente() {
   const qc = useQueryClient();
   const [accountId, setAccountId] = useState<string>("all");
   const now = new Date();
-  const [year, setYear] = useState<number>(now.getFullYear());
-  const [month, setMonth] = useState<string>("all");
+  const [mode, setMode] = useState<"dia" | "semana" | "mes" | "ano">("mes");
+  const [refDate, setRefDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [year, setYear] = useState<number>(Math.max(2026, now.getFullYear()));
+  const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [kindFilter, setKindFilter] = useState<string>("all");
+  const [sortAsc, setSortAsc] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyMv);
 
+  const range = (() => {
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    if (mode === "dia") {
+      const d = new Date(`${refDate}T00:00:00`);
+      const next = new Date(d); next.setDate(next.getDate() + 1);
+      return { start: iso(d), end: iso(next) };
+    }
+    if (mode === "semana") {
+      const d = new Date(`${refDate}T00:00:00`);
+      const dow = (d.getDay() + 6) % 7; // segunda = 0
+      const start = new Date(d); start.setDate(start.getDate() - dow);
+      const end = new Date(start); end.setDate(end.getDate() + 7);
+      return { start: iso(start), end: iso(end) };
+    }
+    if (mode === "mes") {
+      const m = Number(month);
+      return { start: iso(new Date(year, m - 1, 1)), end: iso(new Date(year, m, 1)) };
+    }
+    return { start: iso(new Date(year, 0, 1)), end: iso(new Date(year + 1, 0, 1)) };
+  })();
+
   const { data: accounts = [] } = useQuery({ queryKey: ["ba-list"], queryFn: async () => (await supabase.from("bank_accounts").select("*")).data ?? [] });
   const { data: pm = [] } = useQuery({ queryKey: ["pm-list"], queryFn: async () => (await supabase.from("payment_methods").select("*").eq("active", true)).data ?? [] });
   const { data: mv = [] } = useQuery({
-    queryKey: ["cm", accountId, year, month, kindFilter],
+    queryKey: ["cm", accountId, range.start, range.end, kindFilter, sortAsc],
     queryFn: async () => {
-      const start = month === "all" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
-      const endD = month === "all" ? new Date(year + 1, 0, 1) : new Date(year, Number(month), 1);
-      const end = endD.toISOString().slice(0,10);
       let q = supabase.from("cash_movements").select("*")
-        .gte("movement_date", start).lt("movement_date", end)
-        .order("movement_date", { ascending: false }).limit(1000);
+        .gte("movement_date", range.start).lt("movement_date", range.end)
+        .order("movement_date", { ascending: sortAsc }).limit(1000);
       if (accountId !== "all") q = q.eq("bank_account_id", accountId);
       if (kindFilter !== "all") q = q.eq("kind", kindFilter as any);
       return (await q).data ?? [];
     },
   });
+
 
   const save = useMutation({
     mutationFn: async () => {
