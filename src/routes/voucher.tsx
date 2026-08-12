@@ -221,6 +221,16 @@ function Voucher() {
         </Table>
       </Card>
 
+      <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewUrl(""); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
+          <DialogHeader><DialogTitle>Pré-visualização do Voucher {previewTitle}</DialogTitle></DialogHeader>
+          {previewUrl ? (
+            <iframe title="Voucher PDF" src={previewUrl} className="flex-1 w-full rounded-md border bg-muted" />
+          ) : (
+            <div className="flex-1 grid place-items-center text-sm text-muted-foreground">A gerar PDF…</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
