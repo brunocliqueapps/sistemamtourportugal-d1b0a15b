@@ -246,7 +246,7 @@ export async function generateBudgetPdf(id: string) {
   doc.save(`Orcamento-${p.code ?? p.id}.pdf`);
 }
 
-export async function generateVoucherPdf(id: string, opts?: { output?: "save" | "dataurl" }) {
+export async function generateVoucherPdf(id: string, opts?: { output?: "save" | "bloburl" }) {
   const p = await loadProposal(id);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   let y = await header(doc, "VOUCHER", p.code);
@@ -323,7 +323,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     });
   }
 
-  if (opts?.output === "dataurl") return doc.output("datauristring");
+  if (opts?.output === "bloburl") return URL.createObjectURL(doc.output("blob"));
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
   return null;
 }
