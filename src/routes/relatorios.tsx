@@ -100,24 +100,30 @@ function Relatorios() {
       if (vehicleId !== "all") soQ = soQ.eq("vehicle_id", vehicleId);
       if (clientId !== "all") soQ = soQ.eq("client_id", clientId);
 
-      const [leadsR, invR, soR, cmR, partR] = await Promise.all([
-        supabase.from("leads").select("id,name,origin,status,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status").gte("issue_date", from).lte("issue_date", to),
+      const [cliR, invR, soR, cmR, partR, propR, drvR, vehR] = await Promise.all([
+        supabase.from("clients").select("id,client_number,name,origin,status,temperature,passengers,arrival_date,departure_date,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status,description").gte("issue_date", from).lte("issue_date", to),
         soQ,
         supabase.from("cash_movements").select("kind,amount,created_at,description").gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        supabase.from("partners").select("id,name").limit(500),
+        supabase.from("partners").select("id,name,partner_type,phone,email,active").limit(500),
+        supabase.from("proposals").select("id,code,title,status,total_value,created_at,clients(name)").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("drivers").select("id,full_name,active").limit(500),
+        supabase.from("vehicles").select("id,plate,brand,model,active").limit(500),
       ]);
       return {
-        leads: leadsR.data ?? [], inv: invR.data ?? [], so: soR.data ?? [],
-        cash: cmR.data ?? [], partners: partR.data ?? [],
+        clientes: (cliR.data ?? []) as any[], inv: invR.data ?? [], so: soR.data ?? [],
+        cash: cmR.data ?? [], partners: (partR.data ?? []) as any[],
+        proposals: (propR.data ?? []) as any[], drivers: (drvR.data ?? []) as any[], vehicles: (vehR.data ?? []) as any[],
       };
     },
   });
 
-  const leads = data?.leads ?? [];
+  const clientes = (data?.clientes ?? []) as any[];
   const inv = data?.inv ?? [];
   const so = data?.so ?? [];
   const cash = data?.cash ?? [];
+  const proposals = (data?.proposals ?? []) as any[];
+  const partners = (data?.partners ?? []) as any[];
 
   const receitas = inv.filter((i: any) => i.kind === "entrada");
   const despesas = inv.filter((i: any) => i.kind === "saida");
@@ -125,7 +131,8 @@ function Relatorios() {
   const totDesp = despesas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
   const inflow = cash.filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
   const outflow = cash.filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
-  const convRate = leads.length ? Math.round(leads.filter((l: any) => l.status === "fechado").length / leads.length * 100) : 0;
+  const convRate = clientes.length ? Math.round(clientes.filter((l: any) => l.status === "fechado").length / clientes.length * 100) : 0;
+
 
   // Grouping helper for SO-based reports
   const groupSO = (valueOf: (s: any) => number) => {
