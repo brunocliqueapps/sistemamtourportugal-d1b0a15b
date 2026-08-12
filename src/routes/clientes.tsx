@@ -474,6 +474,8 @@ function Clientes() {
           { key: "city", label: "Cidade" }, { key: "country", label: "País" },
           { key: "address", label: "Morada" },
           { key: "notes", label: "Notas" },
+          { key: "registered_by", label: "Responsável pelo Registo" },
+          { key: "created_at", label: "Data de registo", format: (v: any) => fmtDate(v) || "—" },
           { key: "lost_reason", label: "Motivo da perda" },
           { key: "archived", label: "Arquivado", format: (v: any) => v ? "Sim" : "Não" },
 
