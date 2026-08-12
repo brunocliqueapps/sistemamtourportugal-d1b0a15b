@@ -185,13 +185,19 @@ function ContaCorrente() {
       <Card>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Descrição</TableHead>
+            <TableHead>
+              <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortAsc((v) => !v)}>
+                Data {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+              </button>
+            </TableHead>
+            <TableHead>Tipo</TableHead><TableHead>Descrição</TableHead>
             <TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {mv.map((m: any) => (
               <TableRow key={m.id}>
-                <TableCell>{m.movement_date}</TableCell>
+                <TableCell>{fmtDate(m.movement_date)}</TableCell>
+
                 <TableCell><Badge variant={m.kind === "entrada" ? "default" : "destructive"}>{m.kind}</Badge></TableCell>
                 <TableCell>{m.description ?? "—"}</TableCell>
                 <TableCell className={`text-right font-medium ${m.kind === "entrada" ? "text-emerald-600" : "text-destructive"}`}>
