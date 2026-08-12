@@ -4,21 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Euro, ClipboardList, AlertTriangle, TrendingUp, Wallet } from "lucide-react";
+import { Users, Euro, ClipboardList, AlertTriangle, TrendingUp, Wallet, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { TRIP_PROPOSAL_COLS, tripRange, itineraryDayFor, dayLabel } from "@/lib/trip-dates";
+import { fmtDate } from "@/lib/format-date";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
 function Kpi({ icon: Icon, label, value, hint, tone }: any) {
   return (
     <Card className="p-3 sm:p-5">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-sm text-muted-foreground">{label}</div>
           <div className={`text-xl sm:text-3xl font-bold mt-1 ${tone ?? ""}`}>{value}</div>
           {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
         </div>
-        <div className="h-10 w-10 rounded-lg gradient-gold flex items-center justify-center text-gold-foreground">
+        <div className="h-10 w-10 shrink-0 rounded-lg gradient-gold flex items-center justify-center text-gold-foreground">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -28,27 +30,33 @@ function Kpi({ icon: Icon, label, value, hint, tone }: any) {
 
 function Dashboard() {
   const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+
   const { data } = useQuery({
-    queryKey: ["dashboard-v2"],
+    queryKey: ["dashboard-v3"],
     queryFn: async () => {
-      const [leadsR, soR, invR, cmR, alertsR] = await Promise.all([
-        supabase.from("leads").select("id,status,origin,created_at"),
-        supabase.from("service_orders").select("id,oc_code,client_id,service_date,start_time,origin,destination,status,sale_value").order("service_date"),
+      const [clientsR, propR, soR, invR, cmR, alertsR] = await Promise.all([
+        supabase.from("clients").select("id,name,client_number,status,temperature,archived,created_at,passengers"),
+        supabase.from("proposals").select("id,code,client_id,status,budget_status,total_value,created_at,budget_validated_at"),
+        supabase.from("service_orders").select(`id,oc_code,client_id,service_date,start_time,origin,destination,status,sale_value,proposal_id,clients(name),proposals(${TRIP_PROPOSAL_COLS})`).order("service_date"),
         supabase.from("invoices").select("kind,total,status,issue_date"),
-        supabase.from("cash_movements").select("kind,amount"),
+        supabase.from("cash_movements").select("kind,amount,movement_date"),
         supabase.from("document_alerts").select("*"),
       ]);
       return {
-        leads: leadsR.data ?? [],
+        clients: clientsR.data ?? [],
+        proposals: propR.data ?? [],
         services: soR.data ?? [],
         invoices: invR.data ?? [],
         cash: cmR.data ?? [],
         alerts: alertsR.data ?? [],
       };
     },
+    refetchOnMount: "always",
   });
 
-  const leads = data?.leads ?? [];
+  const clients = (data?.clients ?? []).filter((c: any) => !c.archived);
+  const proposals = data?.proposals ?? [];
   const services = data?.services ?? [];
   const inv = data?.invoices ?? [];
   const cash = data?.cash ?? [];
@@ -57,49 +65,83 @@ function Dashboard() {
   const inflow = cash.filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
   const outflow = cash.filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
   const balance = inflow - outflow;
-  const revenue = inv.filter((i: any) => i.kind === "entrada").reduce((a: number, i: any) => a + Number(i.total || 0), 0);
-  const todayServices = services.filter((s: any) => s.service_date === today);
+  const inflowMonth = cash.filter((c: any) => c.kind === "entrada" && String(c.movement_date ?? "").slice(0, 7) === month)
+    .reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  const outflowMonth = cash.filter((c: any) => c.kind === "saida" && String(c.movement_date ?? "").slice(0, 7) === month)
+    .reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+
+  // Serviços de hoje: pelas datas reais da viagem (proposta), com fallback à data do serviço
+  const todayServices = services.filter((s: any) => {
+    const { start, end } = tripRange(s);
+    if (start && end) return start <= today && today <= end;
+    return s.service_date === today;
+  });
   const inProgress = services.filter((s: any) => ["em_execucao", "cliente_a_bordo", "em_deslocacao"].includes(s.status));
+
+  const negotiating = clients.filter((c: any) => ["em_negociacao", "proposta_enviada"].includes(c.status ?? "novo"));
+  const negotiatingOnly = clients.filter((c: any) => (c.status ?? "novo") === "em_negociacao");
+  const newClientsMonth = clients.filter((c: any) => String(c.created_at ?? "").slice(0, 7) === month);
+
+  const approvedBudgets = proposals.filter((p: any) =>
+    p.budget_status === "aprovado" || !!p.budget_validated_at || p.status === "aprovada" || p.status === "convertida");
+  const conversion = proposals.length ? Math.round((approvedBudgets.length / proposals.length) * 100) : 0;
+  const pipelineValue = proposals
+    .filter((p: any) => !approvedBudgets.includes(p))
+    .reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
+  const approvedValue = approvedBudgets.reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
+
+  const revenue = inv.filter((i: any) => i.kind === "entrada").reduce((a: number, i: any) => a + Number(i.total || 0), 0);
+
   const soonAlerts = alerts.filter((a: any) => {
     if (!a.expiry) return false;
-    const d = new Date(a.expiry).getTime();
-    const diff = (d - Date.now()) / 86400000;
+    const diff = (new Date(a.expiry).getTime() - Date.now()) / 86400000;
     return diff < 45;
   });
 
   const revenueByMonth = Object.entries(
-    inv.filter((i: any) => i.kind === "entrada").reduce<Record<string, number>>((acc: Record<string, number>, i: any) => {
-      const k = (i.issue_date || "").slice(0, 7);
-      if (k) acc[k] = (acc[k] || 0) + Number(i.total || 0);
+    cash.filter((c: any) => c.kind === "entrada").reduce<Record<string, number>>((acc: Record<string, number>, c: any) => {
+      const k = String(c.movement_date ?? "").slice(0, 7);
+      if (k) acc[k] = (acc[k] || 0) + Number(c.amount || 0);
       return acc;
     }, {})
-  ).sort().map(([mes, valor]) => ({ mes, valor }));
+  ).sort().slice(-12).map(([mes, valor]) => ({ mes, valor }));
+
+  const clientCols = [
+    { key: "novo", label: "Novo" },
+    { key: "proposta_enviada", label: "Proposta enviada" },
+    { key: "em_negociacao", label: "Em negociação" },
+    { key: "fechado", label: "Fechado" },
+    { key: "perdido", label: "Perdido" },
+  ];
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Dashboard" description="Visão geral operacional e financeira." />
+      <PageHeader title="Dashboard" description="Visão geral operacional, comercial e financeira." />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={ClipboardList} label="Serviços hoje" value={todayServices.length} hint={`${inProgress.length} em curso`} />
-        <Kpi icon={Users} label="Leads abertos" value={leads.filter((l: any) => l.status === "novo" || l.status === "em_negociacao").length} />
-        <Kpi icon={Euro} label="Faturamento" value={`€ ${revenue.toFixed(2)}`} />
-        <Kpi icon={Wallet} label="Saldo caixa" value={`€ ${balance.toFixed(2)}`} tone={balance < 0 ? "text-destructive" : "text-emerald-600"} />
+        <Kpi icon={ClipboardList} label="Serviços hoje" value={todayServices.length} hint={`${inProgress.length} em curso · ${services.length} no total`} />
+        <Kpi icon={Users} label="Clientes em negociação" value={negotiating.length} hint={`${negotiatingOnly.length} em negociação · ${negotiating.length - negotiatingOnly.length} c/ proposta enviada`} />
+        <Kpi icon={Euro} label="Recebido (mês)" value={`€ ${inflowMonth.toFixed(2)}`} hint={`Faturado total: € ${revenue.toFixed(2)}`} />
+        <Kpi icon={Wallet} label="Saldo caixa" value={`€ ${balance.toFixed(2)}`} tone={balance < 0 ? "text-destructive" : "text-emerald-600"} hint={`Saídas mês: € ${outflowMonth.toFixed(2)}`} />
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card className="p-3 sm:p-5">
-          <div className="text-sm text-muted-foreground">Entradas</div>
+          <div className="text-sm text-muted-foreground">Entradas (total)</div>
           <div className="text-lg sm:text-2xl font-bold text-emerald-600">€ {inflow.toFixed(2)}</div>
         </Card>
         <Card className="p-3 sm:p-5">
-          <div className="text-sm text-muted-foreground">Saídas</div>
+          <div className="text-sm text-muted-foreground">Saídas (total)</div>
           <div className="text-lg sm:text-2xl font-bold text-destructive">€ {outflow.toFixed(2)}</div>
         </Card>
         <Card className="p-3 sm:p-5">
-          <div className="text-sm text-muted-foreground">Conversão CRM</div>
-          <div className="text-lg sm:text-2xl font-bold">
-            {leads.length ? Math.round((leads.filter((l: any) => l.status === "fechado").length / leads.length) * 100) : 0}%
-          </div>
+          <div className="text-sm text-muted-foreground">Conversão Proposta/Orçamento</div>
+          <div className="text-lg sm:text-2xl font-bold">{conversion}%</div>
+          <div className="text-xs text-muted-foreground mt-1">{approvedBudgets.length} de {proposals.length} aprovados</div>
+        </Card>
+        <Card className="p-3 sm:p-5">
+          <div className="text-sm text-muted-foreground">Novos clientes (mês)</div>
+          <div className="text-lg sm:text-2xl font-bold">{newClientsMonth.length}</div>
         </Card>
       </div>
 
@@ -111,15 +153,24 @@ function Dashboard() {
           </div>
           {todayServices.length === 0 && <div className="text-sm text-muted-foreground">Nenhum serviço agendado hoje.</div>}
           <div className="space-y-2">
-            {todayServices.slice(0, 6).map((s: any) => (
-              <div key={s.id} className="flex items-center justify-between text-sm border-b border-border pb-2">
-                <div>
-                  <div className="font-medium">{s.oc_code} · {s.start_time?.slice(0, 5) ?? "—"}</div>
-                  <div className="text-xs text-muted-foreground">{s.origin} → {s.destination}</div>
+            {todayServices.slice(0, 8).map((s: any) => {
+              const { start, end } = tripRange(s);
+              const day = itineraryDayFor(s.proposals, today);
+              return (
+                <div key={s.id} className="flex items-start justify-between gap-2 text-sm border-b border-border pb-2">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{s.oc_code} · {s.clients?.name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {dayLabel(s.proposals, day) || `${s.origin ?? ""} → ${s.destination ?? ""}`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {fmtDate(start)}{end && end !== start ? ` — ${fmtDate(end)}` : ""}{s.start_time ? ` · ${String(s.start_time).slice(0, 5)}` : ""}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">{s.status ?? "—"}</Badge>
                 </div>
-                <Badge variant="outline">{s.status}</Badge>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
 
@@ -136,15 +187,56 @@ function Dashboard() {
                   <div className="font-medium">{a.name}</div>
                   <div className="text-xs text-muted-foreground">{a.doc}</div>
                 </div>
-                <Badge variant="destructive">{a.expiry}</Badge>
+                <Badge variant="destructive">{fmtDate(a.expiry)}</Badge>
               </div>
             ))}
           </div>
         </Card>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="p-3 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2"><Users className="h-4 w-4" /><h3 className="font-semibold">Clientes por estado</h3></div>
+            <Link to="/clientes" className="text-sm text-primary underline">Ver clientes</Link>
+          </div>
+          <div className="space-y-2">
+            {clientCols.map((c) => {
+              const n = clients.filter((x: any) => (x.status ?? "novo") === c.key).length;
+              return (
+                <div key={c.key} className="flex items-center justify-between text-sm border-b border-border pb-2">
+                  <span>{c.label}</span>
+                  <Badge variant="secondary">{n}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2"><FileText className="h-4 w-4" /><h3 className="font-semibold">Proposta/Orçamento</h3></div>
+            <Link to="/orcamento" className="text-sm text-primary underline">Abrir</Link>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span>Total de propostas</span><Badge variant="secondary">{proposals.length}</Badge>
+            </div>
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span>Aprovados / validados</span><Badge variant="secondary">{approvedBudgets.length}</Badge>
+            </div>
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span>Valor aprovado</span><span className="font-semibold text-emerald-600">€ {approvedValue.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Valor em aberto</span><span className="font-semibold">€ {pipelineValue.toFixed(2)}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <Card className="p-3 sm:p-5">
-        <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-4 w-4" /><h3 className="font-semibold">Faturamento por mês</h3></div>
+        <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-4 w-4" /><h3 className="font-semibold">Recebimentos por mês (conta corrente)</h3></div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={revenueByMonth}>
