@@ -203,7 +203,7 @@ function Propostas() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <PageHeader title="Proposta / Roteiro" description="Gera propostas de roteiro personalizado ou serviço privado e converte em OS + Voucher + Serviço." actions={
+      <PageHeader title="Roteiros Personalizados" description="Gera propostas de roteiro personalizado ou serviço privado e converte em OS + Voucher + Serviço." actions={
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Roteiro Personalizado</Button>
       } />
 
@@ -390,7 +390,7 @@ function Propostas() {
             <div><Label>Descritivo à parte</Label><Textarea rows={3} value={form.descriptive} onChange={(e) => setForm({ ...form, descriptive: e.target.value })} /></div>
 
             <p className="text-xs text-muted-foreground">
-              O valor total e as condições de pagamento são definidos na página Orçamento.
+              O valor total e as condições de pagamento são definidos na página Proposta/Orçamento.
             </p>
 
 

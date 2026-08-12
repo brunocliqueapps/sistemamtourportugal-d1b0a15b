@@ -24,10 +24,10 @@ export const Route = createFileRoute("/orcamento")({
   component: Orcamento,
   head: () => ({
     meta: [
-      { title: "Orçamento — Mtour Portugal" },
-      { name: "description", content: "Gera orçamentos a partir das propostas com valores e condições de pagamento em PDF." },
-      { property: "og:title", content: "Orçamento — Mtour Portugal" },
-      { property: "og:description", content: "Orçamentos com valores e condições de pagamento." },
+      { title: "Proposta/Orçamento — Mtour Portugal" },
+      { name: "description", content: "Gera propostas/orçamentos a partir dos roteiros com valores e condições de pagamento em PDF." },
+      { property: "og:title", content: "Proposta/Orçamento — Mtour Portugal" },
+      { property: "og:description", content: "Propostas e orçamentos com valores e condições de pagamento." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -184,7 +184,7 @@ function Orcamento() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Orçamento" description="Puxa todos os dados da proposta, define valor, condições e aprova, coloca em análise ou recusa." />
+      <PageHeader title="Proposta/Orçamento" description="Puxa todos os dados do roteiro, define valor, condições e aprova, coloca em análise ou recusa." />
 
       {followups.length > 0 && (
         <Card className="p-4">
