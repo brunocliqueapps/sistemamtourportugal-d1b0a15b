@@ -16,7 +16,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 
 export const Route = createFileRoute("/voucher")({
@@ -39,9 +39,7 @@ function Voucher() {
 
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [previewTitle, setPreviewTitle] = useState("");
+  const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
   const { data: props = [] } = useQuery({
@@ -51,7 +49,7 @@ function Voucher() {
   });
   const { data: validated = [], refetch: refetchValidated } = useQuery({
     queryKey: ["proposals-voucher-validated"],
-    queryFn: async () => (await (supabase.from("proposals") as any).select("id,code,client_id,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
 
 
@@ -205,13 +203,7 @@ function Voucher() {
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button size="icon" variant="ghost" title="Pré-visualizar Voucher (PDF)" onClick={async () => {
-                    try {
-                      setPreviewOpen(true); setPreviewUrl(""); setPreviewTitle(shortCode(x.code) ?? "");
-                      const url = await generateVoucherPdf(x.id, { output: "bloburl" });
-                      setPreviewUrl(url ?? "");
-                    } catch (e: any) { setPreviewOpen(false); toast.error(e.message); }
-                  }}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
@@ -221,26 +213,59 @@ function Voucher() {
         </Table>
       </Card>
 
-      <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewUrl(""); }}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
-          <DialogHeader>
-            <DialogTitle>Pré-visualização do Voucher {previewTitle}</DialogTitle>
-            <DialogDescription>Espelho exato do PDF que será enviado ao cliente.</DialogDescription>
-          </DialogHeader>
-          {previewUrl ? (
-            <>
-              <object data={previewUrl} type="application/pdf" className="flex-1 w-full rounded-md border bg-muted">
-                <iframe title="Voucher PDF" src={previewUrl} className="h-full w-full" />
-              </object>
-              <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={() => window.open(previewUrl, "_blank")}>Abrir em nova aba</Button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 grid place-items-center text-sm text-muted-foreground">A gerar PDF…</div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Voucher"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Nº do Voucher", format: (v: any) => shortCode(v) },
+          { key: "clients", label: "Cliente", format: (v: any) => v?.name ?? "—" },
+          { key: "passengers", label: "Nº de pessoas" },
+          { key: "responsible", label: "Responsável" },
+          { key: "arrival_date", label: "Chegada", format: (v: any, r: any) => [fmtDate(v), r?.arrival_time, r?.arrival_place].filter(Boolean).join(" · ") || "—" },
+          { key: "departure_date", label: "Saída", format: (v: any, r: any) => [fmtDate(v), r?.departure_time, r?.departure_place].filter(Boolean).join(" · ") || "—" },
+          {
+            key: "itinerary",
+            label: "Serviços contratados",
+            fullWidth: true,
+            format: (v: any) => {
+              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              if (!list.length) return "—";
+              return (
+                <div className="space-y-2">
+                  {list.map((d: any, i: number) => (
+                    <div key={`${d.date}-${i}`} className="border-b border-border/50 pb-2 last:border-0">
+                      <div className="text-xs text-muted-foreground">Dia {i + 1} · {fmtDate(d.date) || "—"}</div>
+                      <div className="break-words">{d.text?.trim() || "—"}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            },
+          },
+          {
+            key: "voucher_day_notes",
+            label: "Orientações por dia",
+            fullWidth: true,
+            format: (v: any) => {
+              const notes = Array.isArray(v) ? v.filter((n: any) => n.note?.trim()) : [];
+              if (!notes.length) return "—";
+              return (
+                <div className="space-y-2">
+                  {notes.map((n: any, i: number) => (
+                    <div key={`${n.date}-${i}`}><span className="text-xs text-muted-foreground">{fmtDate(n.date) || "—"}</span><div>{n.note}</div></div>
+                  ))}
+                </div>
+              );
+            },
+          },
+          { key: "total_value", label: "Valor total", format: (v: any) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "payment_terms", label: "Forma de pagamento", fullWidth: true },
+          { key: "voucher_final_note", label: "Nota final", fullWidth: true },
+          { key: "voucher_validated_at", label: "Validado em", format: (v: any) => v ? new Date(v).toLocaleString("pt-PT") : "—" },
+        ]}
+      />
     </div>
   );
 }
