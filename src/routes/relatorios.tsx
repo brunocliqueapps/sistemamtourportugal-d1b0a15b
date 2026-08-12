@@ -508,6 +508,7 @@ function Relatorios() {
             </div>
           </Card>
           <MoneyTable rows={receitasSerie} label="Período" file="receitas.csv" />
+          <CashTable rows={cashEntradas} title="Entradas (Conta Corrente)" file="receitas-movimentos.csv" positive />
         </div>
       ),
     },
@@ -525,6 +526,7 @@ function Relatorios() {
             </div>
           </Card>
           <MoneyTable rows={despesasSerie} label="Período" file="despesas.csv" />
+          <CashTable rows={cashSaidas} title="Saídas (Conta Corrente)" file="despesas-movimentos.csv" />
         </div>
       ),
     },
