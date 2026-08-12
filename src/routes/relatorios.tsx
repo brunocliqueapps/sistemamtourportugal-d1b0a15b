@@ -1,3 +1,4 @@
+import { fmtDate } from "@/lib/format-date";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,7 +105,7 @@ function Relatorios() {
         supabase.from("clients").select("id,client_number,name,origin,status,temperature,passengers,arrival_date,departure_date,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
         supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status,description").gte("issue_date", from).lte("issue_date", to),
         soQ,
-        supabase.from("cash_movements").select("kind,amount,created_at,description").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("cash_movements").select("id,kind,amount,movement_date,description,invoice_number,settled").gte("movement_date", from).lte("movement_date", to).order("movement_date", { ascending: false }).limit(2000),
         supabase.from("partners").select("id,name,partner_type,phone,email,active").limit(500),
         supabase.from("proposals").select("id,code,title,status,total_value,created_at,clients(name)").gte("created_at", from).lte("created_at", to + "T23:59:59"),
         supabase.from("drivers").select("id,full_name,active").limit(500),
@@ -127,10 +128,11 @@ function Relatorios() {
 
   const receitas = inv.filter((i: any) => i.kind === "entrada");
   const despesas = inv.filter((i: any) => i.kind === "saida");
-  const totRec = receitas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
-  const totDesp = despesas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
-  const inflow = cash.filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
-  const outflow = cash.filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  const inflow = (cash as any[]).filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  const outflow = (cash as any[]).filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  // KPIs de Receitas/Despesas seguem a Conta Corrente
+  const totRec = inflow;
+  const totDesp = outflow;
   const convRate = clientes.length ? Math.round(clientes.filter((l: any) => l.status === "fechado").length / clientes.length * 100) : 0;
 
 
@@ -186,11 +188,14 @@ function Relatorios() {
 
   const totPropostas = proposals.reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
 
+  const cashGroupKey = (c: any) =>
+    groupKey(String(c.movement_date || "").slice(0, 10), group === "vehicle" || group === "driver" || group === "operation_type" ? "month" : group);
+
   const fluxo = (() => {
     const rec: Record<string, number> = {};
     const des: Record<string, number> = {};
-    for (const c of cash) {
-      const k = groupKey((c.created_at || "").slice(0, 10), group === "vehicle" || group === "driver" || group === "operation_type" ? "month" : group);
+    for (const c of cash as any[]) {
+      const k = cashGroupKey(c);
       if (c.kind === "entrada") rec[k] = (rec[k] || 0) + Number(c.amount || 0);
       else des[k] = (des[k] || 0) + Number(c.amount || 0);
     }
@@ -198,8 +203,19 @@ function Relatorios() {
     return keys.map((k) => ({ name: k, entrada: rec[k] || 0, saida: des[k] || 0, saldo: (rec[k] || 0) - (des[k] || 0) }));
   })();
 
-  const receitasSerie = groupInv(receitas);
-  const despesasSerie = groupInv(despesas);
+  // Receitas / Despesas vêm da Conta Corrente (entradas e saídas)
+  const cashEntradas = (cash as any[]).filter((c: any) => c.kind === "entrada");
+  const cashSaidas = (cash as any[]).filter((c: any) => c.kind === "saida");
+  const groupCash = (list: any[]) => {
+    const acc: Record<string, number> = {};
+    for (const c of list) {
+      const k = cashGroupKey(c);
+      acc[k] = (acc[k] || 0) + Number(c.amount || 0);
+    }
+    return Object.entries(acc).map(([name, valor]) => ({ name, valor })).sort((a, b) => a.name.localeCompare(b.name));
+  };
+  const receitasSerie = groupCash(cashEntradas);
+  const despesasSerie = groupCash(cashSaidas);
 
   const servicosPorStatus = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.status || "—"; a[k] = (a[k] || 0) + 1; return a;
@@ -262,6 +278,33 @@ function Relatorios() {
         ))}
         {!rows.length && <TableRow><TableCell colSpan={2} className="text-muted-foreground">Sem dados no período.</TableCell></TableRow>}
       </TableBody></Table>
+    </Card>
+  );
+
+  const CashTable = ({ rows, title, file, positive }: { rows: any[]; title: string; file: string; positive?: boolean }) => (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">{title}</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCsv(rows, file)}>Exportar CSV</Button>
+      </div>
+      <div className="overflow-x-auto">
+        <Table><TableHeader><TableRow>
+          <TableHead>Data</TableHead><TableHead>Descrição</TableHead>
+          <TableHead>Fatura</TableHead><TableHead className="text-right">Valor</TableHead>
+        </TableRow></TableHeader><TableBody>
+          {rows.slice(0, 300).map((c: any) => (
+            <TableRow key={c.id}>
+              <TableCell>{fmtDate(c.movement_date)}</TableCell>
+              <TableCell>{c.description || "—"}</TableCell>
+              <TableCell>{c.invoice_number || "—"}</TableCell>
+              <TableCell className={`text-right font-medium ${positive ? "text-emerald-600" : "text-destructive"}`}>
+                {positive ? "+" : "−"} € {Number(c.amount || 0).toFixed(2)}
+              </TableCell>
+            </TableRow>
+          ))}
+          {!rows.length && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem movimentos no período.</TableCell></TableRow>}
+        </TableBody></Table>
+      </div>
     </Card>
   );
 
@@ -493,6 +536,7 @@ function Relatorios() {
             </div>
           </Card>
           <MoneyTable rows={receitasSerie} label="Período" file="receitas.csv" />
+          <CashTable rows={cashEntradas} title="Entradas (Conta Corrente)" file="receitas-movimentos.csv" positive />
         </div>
       ),
     },
@@ -510,6 +554,7 @@ function Relatorios() {
             </div>
           </Card>
           <MoneyTable rows={despesasSerie} label="Período" file="despesas.csv" />
+          <CashTable rows={cashSaidas} title="Saídas (Conta Corrente)" file="despesas-movimentos.csv" />
         </div>
       ),
     },
