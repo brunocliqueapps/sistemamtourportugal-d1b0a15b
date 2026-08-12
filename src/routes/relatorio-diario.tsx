@@ -40,9 +40,9 @@ function RelatorioDiario() {
     queryFn: async () => {
       const endTs = `${to}T23:59:59.999Z`;
       const [clients, proposals, orders] = await Promise.all([
-        supabase.from("clients").select("id,created_at").gte("created_at", from).lte("created_at", endTs),
-        supabase.from("proposals").select("id,created_at").gte("created_at", from).lte("created_at", endTs),
-        supabase.from("service_orders").select("id,status,service_date,sale_value").gte("service_date", from).lte("service_date", to),
+        supabase.from("clients").select("id,created_at,name,client_number,phone,email").gte("created_at", from).lte("created_at", endTs),
+        supabase.from("proposals").select("id,created_at,code,title,total_value,status,clients(name)").gte("created_at", from).lte("created_at", endTs),
+        supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,clients(name)").gte("service_date", from).lte("service_date", to),
       ]);
       return {
         clients: clients.data ?? [],
@@ -157,6 +157,68 @@ function RelatorioDiario() {
           </TableBody>
         </Table>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <DetailList
+          title="Clientes registados"
+          empty="Sem clientes no período."
+          items={(data?.clients ?? []).map((c: any) => ({
+            id: c.id,
+            day: dayOf(c.created_at),
+            primary: [c.client_number, c.name].filter(Boolean).join(" · "),
+            secondary: [c.phone, c.email].filter(Boolean).join(" · "),
+          }))}
+        />
+        <DetailList
+          title="Orçamentos feitos"
+          empty="Sem orçamentos no período."
+          items={(data?.proposals ?? []).map((p: any) => ({
+            id: p.id,
+            day: dayOf(p.created_at),
+            primary: [p.code, p.clients?.name || p.title].filter(Boolean).join(" · "),
+            secondary: [p.status, p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
+          }))}
+        />
+        <DetailList
+          title="Serviços fechados"
+          empty="Sem serviços fechados no período."
+          items={(data?.orders ?? []).map((o: any) => ({
+            id: o.id,
+            day: dayOf(o.service_date),
+            primary: [o.oc_code, o.clients?.name].filter(Boolean).join(" · "),
+            secondary: [[o.origin, o.destination].filter(Boolean).join(" → "), o.sale_value ? `€ ${Number(o.sale_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
+          }))}
+        />
+      </div>
     </div>
+  );
+}
+
+type DetailItem = { id: string; day: string; primary: string; secondary?: string };
+
+function DetailList({ title, items, empty }: { title: string; items: DetailItem[]; empty: string }) {
+  const sorted = [...items].sort((a, b) => (a.day < b.day ? 1 : -1));
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-sm">{title}</h3>
+        <span className="text-xs text-muted-foreground">{sorted.length}</span>
+      </div>
+      {sorted.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4">{empty}</p>
+      ) : (
+        <ul className="divide-y max-h-80 overflow-y-auto">
+          {sorted.map((it) => (
+            <li key={it.id} className="py-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-medium break-words">{it.primary || "—"}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(it.day)}</span>
+              </div>
+              {it.secondary ? <div className="text-xs text-muted-foreground break-words">{it.secondary}</div> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
