@@ -12,7 +12,7 @@ export type ModuleKey =
 export const ROUTE_MODULES: Record<string, ModuleKey> = {
   "/dashboard": "dashboard",
   "/clientes": "cadastros",
-  "/propostas": "propostas",
+  "/roteiros-personalizados": "propostas",
   "/orcamento": "propostas",
   "/voucher": "voucher",
   "/oc": "oc",

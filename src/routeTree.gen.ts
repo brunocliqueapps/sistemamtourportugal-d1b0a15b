@@ -12,10 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoucherRouteImport } from './routes/voucher'
 import { Route as TvdeRouteImport } from './routes/tvde'
 import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
+import { Route as RoteirosPersonalizadosRouteImport } from './routes/roteiros-personalizados'
 import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as RelatorioDiarioRouteImport } from './routes/relatorio-diario'
-import { Route as PropostasRouteImport } from './routes/propostas'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as OcRouteImport } from './routes/oc'
@@ -50,6 +50,11 @@ const ServicosPrivadosRoute = ServicosPrivadosRouteImport.update({
   path: '/servicos-privados',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RoteirosPersonalizadosRoute = RoteirosPersonalizadosRouteImport.update({
+  id: '/roteiros-personalizados',
+  path: '/roteiros-personalizados',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoteiroRoute = RoteiroRouteImport.update({
   id: '/roteiro',
   path: '/roteiro',
@@ -63,11 +68,6 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
 const RelatorioDiarioRoute = RelatorioDiarioRouteImport.update({
   id: '/relatorio-diario',
   path: '/relatorio-diario',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PropostasRoute = PropostasRouteImport.update({
-  id: '/propostas',
-  path: '/propostas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PosVendaRoute = PosVendaRouteImport.update({
@@ -178,10 +178,10 @@ export interface FileRoutesByFullPath {
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
-  '/propostas': typeof PropostasRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/roteiros-personalizados': typeof RoteirosPersonalizadosRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
@@ -205,10 +205,10 @@ export interface FileRoutesByTo {
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
-  '/propostas': typeof PropostasRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/roteiros-personalizados': typeof RoteirosPersonalizadosRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
@@ -233,10 +233,10 @@ export interface FileRoutesById {
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
   '/pos-venda': typeof PosVendaRoute
-  '/propostas': typeof PropostasRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
   '/roteiro': typeof RoteiroRoute
+  '/roteiros-personalizados': typeof RoteirosPersonalizadosRoute
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
@@ -262,10 +262,10 @@ export interface FileRouteTypes {
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
-    | '/propostas'
     | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
+    | '/roteiros-personalizados'
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
@@ -289,10 +289,10 @@ export interface FileRouteTypes {
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
-    | '/propostas'
     | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
+    | '/roteiros-personalizados'
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
@@ -316,10 +316,10 @@ export interface FileRouteTypes {
     | '/oc'
     | '/orcamento'
     | '/pos-venda'
-    | '/propostas'
     | '/relatorio-diario'
     | '/relatorios'
     | '/roteiro'
+    | '/roteiros-personalizados'
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
@@ -344,10 +344,10 @@ export interface RootRouteChildren {
   OcRoute: typeof OcRouteWithChildren
   OrcamentoRoute: typeof OrcamentoRoute
   PosVendaRoute: typeof PosVendaRoute
-  PropostasRoute: typeof PropostasRoute
   RelatorioDiarioRoute: typeof RelatorioDiarioRoute
   RelatoriosRoute: typeof RelatoriosRoute
   RoteiroRoute: typeof RoteiroRoute
+  RoteirosPersonalizadosRoute: typeof RoteirosPersonalizadosRoute
   ServicosPrivadosRoute: typeof ServicosPrivadosRoute
   TvdeRoute: typeof TvdeRoute
   VoucherRoute: typeof VoucherRoute
@@ -377,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosPrivadosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/roteiros-personalizados': {
+      id: '/roteiros-personalizados'
+      path: '/roteiros-personalizados'
+      fullPath: '/roteiros-personalizados'
+      preLoaderRoute: typeof RoteirosPersonalizadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/roteiro': {
       id: '/roteiro'
       path: '/roteiro'
@@ -396,13 +403,6 @@ declare module '@tanstack/react-router' {
       path: '/relatorio-diario'
       fullPath: '/relatorio-diario'
       preLoaderRoute: typeof RelatorioDiarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/propostas': {
-      id: '/propostas'
-      path: '/propostas'
-      fullPath: '/propostas'
-      preLoaderRoute: typeof PropostasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pos-venda': {
@@ -561,10 +561,10 @@ const rootRouteChildren: RootRouteChildren = {
   OcRoute: OcRouteWithChildren,
   OrcamentoRoute: OrcamentoRoute,
   PosVendaRoute: PosVendaRoute,
-  PropostasRoute: PropostasRoute,
   RelatorioDiarioRoute: RelatorioDiarioRoute,
   RelatoriosRoute: RelatoriosRoute,
   RoteiroRoute: RoteiroRoute,
+  RoteirosPersonalizadosRoute: RoteirosPersonalizadosRoute,
   ServicosPrivadosRoute: ServicosPrivadosRoute,
   TvdeRoute: TvdeRoute,
   VoucherRoute: VoucherRoute,

@@ -24,7 +24,7 @@ import { generateProposalPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 
-export const Route = createFileRoute("/propostas")({ component: Propostas });
+export const Route = createFileRoute("/roteiros-personalizados")({ component: Propostas });
 
 const empty: any = {
   client_id: "", lead_id: "", status: "rascunho", proposal_kind: "roteiro_personalizado",

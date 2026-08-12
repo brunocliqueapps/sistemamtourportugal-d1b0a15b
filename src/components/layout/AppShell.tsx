@@ -23,7 +23,7 @@ const groups: Group[] = [
   { label: "Comercial", items: [
     { to: "/clientes", label: "Clientes · CRM", icon: Users, module: "cadastros" },
 
-    { to: "/propostas", label: "Roteiros Personalizados", icon: FileText, module: "propostas" },
+    { to: "/roteiros-personalizados", label: "Roteiros Personalizados", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Proposta/Orçamento", icon: Calculator, module: "propostas" },
   ]},
   { label: "Operação", items: [
