@@ -48,7 +48,7 @@ const emptyClient = {
   name: "", passengers: "", email: "", phone: "", phone_country: "+351",
   nif: "", birth_date: "", emergency_contact: "",
   origin: "", origin_detail: "", temperature: "novo", status: "novo",
-  city: "", country: "", address: "", notes: "", lost_reason: "",
+  city: "", country: "", address: "", notes: "", lost_reason: "", registered_by: "",
   arrival_date: "", arrival_time: "", arrival_place: "",
   departure_date: "", departure_time: "", departure_place: "",
 };
@@ -74,6 +74,24 @@ function Clientes() {
     queryKey: ["clients", "list"],
     queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [],
   });
+
+  // Utilizadores admin / administrativo / comercial (responsáveis pelo registo)
+  const { data: staff = [] } = useQuery({
+    queryKey: ["staff-registo"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles").select("user_id,role")
+        .in("role", ["admin", "administrativo", "comercial"] as any);
+      const ids = [...new Set((roles ?? []).map((r: any) => r.user_id))];
+      if (ids.length === 0) return [] as { id: string; label: string }[];
+      const { data: profs } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
+      return (profs ?? []).map((p: any) => ({
+        id: p.id,
+        label: p.full_name || p.email || p.id,
+      })).sort((a, b) => a.label.localeCompare(b.label));
+    },
+  });
+
 
   const save = useMutation({
     mutationFn: async () => {
@@ -147,7 +165,14 @@ function Clientes() {
     <div className="p-4 sm:p-6 md:p-8 space-y-4">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
+      <div className="flex justify-end">
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
+          <Plus className="h-4 w-4 mr-1" /> Novo cliente
+        </Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
         {cols.map((col) => (
           <Card
             key={col.key}
@@ -222,9 +247,6 @@ function Clientes() {
             <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
             Mostrar apenas arquivados
           </label>
-          <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
-            <Plus className="h-4 w-4 mr-1" /> Novo cliente
-          </Button>
         </div>
       </div>
 
@@ -396,7 +418,23 @@ function Clientes() {
                 <textarea className="w-full min-h-20 rounded-md border border-input bg-background p-2 text-sm"
                   value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
+              <div>
+                <Label>Responsável pelo Registo</Label>
+                <Select value={form.registered_by ?? ""} onValueChange={(v) => { setForm({ ...form, registered_by: v }); setHasUnsavedChanges(true); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                  <SelectContent>
+                    {staff.map((s: any) => <SelectItem key={s.id} value={s.label}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="pt-2 border-t text-sm text-muted-foreground">
+                Data de registo:{" "}
+                <span className="font-medium text-foreground">
+                  {editing?.created_at ? fmtDate(editing.created_at) : fmtDate(new Date().toISOString())}
+                </span>
+              </div>
             </div>
+
 
           </div>
           <DialogFooter>
@@ -436,6 +474,8 @@ function Clientes() {
           { key: "city", label: "Cidade" }, { key: "country", label: "País" },
           { key: "address", label: "Morada" },
           { key: "notes", label: "Notas" },
+          { key: "registered_by", label: "Responsável pelo Registo" },
+          { key: "created_at", label: "Data de registo", format: (v: any) => fmtDate(v) || "—" },
           { key: "lost_reason", label: "Motivo da perda" },
           { key: "archived", label: "Arquivado", format: (v: any) => v ? "Sim" : "Não" },
 

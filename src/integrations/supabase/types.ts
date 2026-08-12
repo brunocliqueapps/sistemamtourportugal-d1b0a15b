@@ -266,6 +266,7 @@ export type Database = {
           passengers: number | null
           phone: string | null
           phone_country: string | null
+          registered_by: string | null
           status: string | null
           temperature: string | null
           updated_at: string | null
@@ -297,6 +298,7 @@ export type Database = {
           passengers?: number | null
           phone?: string | null
           phone_country?: string | null
+          registered_by?: string | null
           status?: string | null
           temperature?: string | null
           updated_at?: string | null
@@ -328,6 +330,7 @@ export type Database = {
           passengers?: number | null
           phone?: string | null
           phone_country?: string | null
+          registered_by?: string | null
           status?: string | null
           temperature?: string | null
           updated_at?: string | null
