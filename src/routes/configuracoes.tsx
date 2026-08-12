@@ -30,7 +30,7 @@ const MODULES: { key: ModuleKey; label: string }[] = [
   { key: "voucher", label: "Voucher" }, { key: "oc", label: "Ordens de serviço" }, { key: "operacao", label: "Serviços Motorista" },
   { key: "tvde", label: "TVDE" }, { key: "financeiro", label: "Financeiro" },
   { key: "conta_corrente", label: "Conta Corrente" }, { key: "fechamento", label: "Fechamento" },
-  { key: "relatorios", label: "Relatórios" }, { key: "cadastros", label: "Cadastros" },
+  { key: "relatorio_diario", label: "Relatório Diário" }, { key: "relatorios", label: "Relatórios" }, { key: "cadastros", label: "Cadastros" },
   { key: "pos_venda", label: "Pós-Venda" }, { key: "importar", label: "Importar CSV" },
   { key: "alertas", label: "Alertas" }, { key: "configuracoes", label: "Configurações" },
 ];
@@ -43,7 +43,7 @@ function Configuracoes() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Na tabela Utilizadores, não estão mostrado os atletas registados." description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
+      <PageHeader title="Configurações" description="Painel do administrador: empresa, financeiro, utilizadores e permissões." />
       <Tabs defaultValue="company">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="company">Empresa</TabsTrigger>

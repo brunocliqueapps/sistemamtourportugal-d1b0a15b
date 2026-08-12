@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 export type AppRole = "admin" | "comercial" | "administrativo" | "motorista";
 export type ModuleKey =
   | "dashboard" | "agenda" | "crm" | "propostas" | "voucher" | "oc" | "operacao" | "tvde"
-  | "financeiro" | "conta_corrente" | "fechamento" | "relatorios"
+  | "financeiro" | "conta_corrente" | "fechamento" | "relatorios" | "relatorio_diario"
   | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas";
 
 /** Mapa de rota -> módulo de permissão (rotas não listadas são livres) */
@@ -17,7 +17,7 @@ export const ROUTE_MODULES: Record<string, ModuleKey> = {
   "/voucher": "voucher",
   "/oc": "oc",
   "/agenda": "agenda",
-  "/relatorio-diario": "agenda",
+  "/relatorio-diario": "relatorio_diario",
   "/roteiro": "operacao",
   "/servicos-privados": "operacao",
   "/tvde": "tvde",
