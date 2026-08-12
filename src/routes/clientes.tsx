@@ -75,6 +75,24 @@ function Clientes() {
     queryFn: async () => (await supabase.from("clients").select("*").order("name")).data ?? [],
   });
 
+  // Utilizadores admin / administrativo / comercial (responsáveis pelo registo)
+  const { data: staff = [] } = useQuery({
+    queryKey: ["staff-registo"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles").select("user_id,role")
+        .in("role", ["admin", "administrativo", "comercial"] as any);
+      const ids = [...new Set((roles ?? []).map((r: any) => r.user_id))];
+      if (ids.length === 0) return [] as { id: string; label: string }[];
+      const { data: profs } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
+      return (profs ?? []).map((p: any) => ({
+        id: p.id,
+        label: p.full_name || p.email || p.id,
+      })).sort((a, b) => a.label.localeCompare(b.label));
+    },
+  });
+
+
   const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form };
