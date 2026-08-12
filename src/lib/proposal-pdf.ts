@@ -274,6 +274,7 @@ export async function generateBudgetPdf(id: string) {
 
 export async function generateVoucherPdf(id: string, opts?: { output?: "save" | "bloburl" }) {
   const p = await loadProposal(id);
+  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   let y = await header(doc, "VOUCHER", p.code);
   y = clientBlock(doc, p, y);
@@ -351,6 +352,8 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
 
   y = await generalConditionsBlock(doc, y);
 
+  // Aplicar rodapé do voucher em todas as páginas
+  applyFooterToAllPages(doc, company, "voucher");
 
   if (opts?.output === "bloburl") return URL.createObjectURL(doc.output("blob"));
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
