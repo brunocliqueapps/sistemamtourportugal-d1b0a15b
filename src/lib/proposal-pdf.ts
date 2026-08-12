@@ -86,6 +86,28 @@ function footer(doc: jsPDF, c: any) {
 
 
 
+/** Condições Gerais (Configurações) — sempre no final do documento. */
+async function generalConditionsBlock(doc: jsPDF, y: number) {
+  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
+  const text = (company as any)?.proposal_general_conditions;
+  if (!text) return y;
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  y += 24;
+  if (y > H - 120) { doc.addPage(); y = 60; }
+  doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66);
+  doc.text("Mtour Portugal", 40, y); y += 8;
+  doc.setDrawColor(176, 141, 68).setLineWidth(1);
+  doc.line(40, y, W - 40, y); y += 16;
+  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+  doc.splitTextToSize(String(text), W - 80).forEach((l: string) => {
+    if (y > H - 60) { doc.addPage(); y = 60; }
+    doc.text(l, 40, y); y += 12;
+  });
+  doc.setTextColor(0);
+  return y + 10;
+}
+
 async function loadProposal(id: string) {
   const { data } = await supabase
     .from("proposals")
