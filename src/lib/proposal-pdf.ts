@@ -197,28 +197,12 @@ export async function generateProposalPdf(id: string) {
     y += 6;
   }
 
-  // Condições Gerais da Empresa
-  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
-  const cSettings = company as any;
-  if (cSettings?.proposal_general_conditions) {
-    doc.setFont("helvetica", "bold").setFontSize(11);
-    doc.text("Condições Gerais", 40, y); y += 14;
-    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
-    doc.splitTextToSize(cSettings.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
-
-      if (y > doc.internal.pageSize.getHeight() - 60) {
-        doc.addPage();
-        y = 40;
-      }
-      doc.text(l, 40, y); y += 12; 
-    });
-    y += 10;
-  }
-
   doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
   doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
-  doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y);
+  doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y); y += 12;
+
+  y = await generalConditionsBlock(doc, y);
   doc.save(`Proposta-${p.code ?? p.id}.pdf`);
 }
 
