@@ -19,10 +19,10 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   doc.text("MTOUR PORTUGAL", W / 2, H / 2, { align: "center", angle: 45 });
   doc.restoreGraphicsState();
 
-  // Logo (Direito Superior)
+  // Logo (Direito Superior) — quadrado
   if (c.logo_url) {
     try {
-      doc.addImage(c.logo_url, "PNG", W - 140, 30, 100, 45);
+      doc.addImage(c.logo_url, "PNG", W - 110, 28, 70, 70);
     } catch (e) {
       console.error("Erro ao carregar logo", e);
     }
@@ -30,12 +30,11 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
 
   let y = 45;
   doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66); // Azul Marinho
-  const title = [c.legal_name ?? c.name ?? "Mtour Portugal", c.trade_name ? `"${c.trade_name}"` : null].filter(Boolean).join(" ");
-  doc.text(title, 40, y);
-  
+  doc.text(String(c.trade_name ?? c.name ?? "Mtour Portugal"), 40, y);
+
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
   y += 16;
-  [c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
+  [c.legal_name, c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
    c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
 
@@ -51,7 +50,16 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   doc.setLineWidth(1.5);
   doc.line(40, y, W - 40, y);
 
-  // Rodapé e QR Code
+  // QR Code do Instagram — ao lado direito do bloco do cliente
+  if (c.instagram_qr_url) {
+    try {
+      doc.addImage(c.instagram_qr_url, "PNG", W - 100, y + 20, 60, 60);
+      doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(120);
+      doc.text("Siga-nos", W - 70, y + 90, { align: "center" });
+    } catch (e) {}
+  }
+
+  // Rodapé
   footer(doc, c);
 
   return y + 25;
@@ -60,30 +68,20 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
 function footer(doc: jsPDF, c: any) {
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
-  
-  // QR Code Instagram (Direito Inferior)
-  if (c.instagram_qr_url) {
-    try {
-      doc.addImage(c.instagram_qr_url, "PNG", W - 80, H - 90, 50, 50);
-      doc.setFontSize(7).setTextColor(100);
-      doc.text("Siga-nos", W - 55, H - 35, { align: "center" });
-    } catch (e) {}
-  }
 
-  // Dados de contato centralizados no rodapé
+  // Dados de contato centralizados no rodapé (sem telefone — já consta no cabeçalho)
   doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(100);
   const contactLines = [
     c.website,
-    c.phone,
     c.facebook_url ? `Facebook: ${c.facebook_url.replace("https://", "")}` : null,
     c.instagram_url ? `Instagram: ${c.instagram_url.replace("https://", "")}` : null
   ].filter(Boolean).join("  |  ");
-  
-  doc.text(contactLines, W / 2, H - 30, { align: "center" });
-  
-  // Copyright/Page info
+
+  doc.text(contactLines, W / 2, H - 42, { align: "center" });
+
+  // Copyright
   doc.setFontSize(7);
-  doc.text(`© ${new Date().getFullYear()} Mtour Portugal - Experiências Exclusivas`, 40, H - 30);
+  doc.text(`© ${new Date().getFullYear()} Mtour Portugal - Experiências Exclusivas`, W / 2, H - 28, { align: "center" });
 }
 
 
