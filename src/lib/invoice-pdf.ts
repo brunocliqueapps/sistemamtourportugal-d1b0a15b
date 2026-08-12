@@ -111,21 +111,21 @@ export async function generateInvoicePdf(invoiceId: string) {
   doc.text(`TOTAL: € ${Number(inv.total ?? 0).toFixed(2)}`, W - 40, y, { align: "right" });
 
   // Rodapé dinâmico
-  const footerY = doc.internal.pageSize.getHeight() - 40;
+  const footerY = doc.internal.pageSize.getHeight() - 50;
   doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(100);
-  
+
+  // QR do Instagram ao lado direito do bloco da entidade
   if (company?.instagram_qr_url) {
-    try { doc.addImage(company.instagram_qr_url, "PNG", W - 80, footerY - 50, 50, 50); } catch(e){}
+    try { doc.addImage(company.instagram_qr_url, "PNG", W - 100, 150, 60, 60); } catch(e){}
   }
 
   const foot = [
     company?.iban ? `IBAN: ${company.iban}` : null,
     company?.website,
-    company?.phone,
     company?.instagram_url ? `Instagram: ${company.instagram_url}` : null,
     company?.invoice_footer
   ].filter(Boolean) as string[];
-  
+
   foot.forEach((l, i) => doc.text(l, 40, footerY + i * 10));
 
 
