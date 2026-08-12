@@ -84,6 +84,27 @@ function footer(doc: jsPDF, c: any) {
   doc.text(`© ${new Date().getFullYear()} Mtour Portugal - Experiências Exclusivas`, W / 2, H - 28, { align: "center" });
 }
 
+function footerVoucher(doc: jsPDF, c: any) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(100);
+  const website = c.website || "https://mtourportugal.com/";
+  const instagram = c.instagram_url || "www.instagram.com/mtourportugal?utm_source=qr";
+  const line1 = `${website} | Instagram: ${instagram.replace("https://", "")}`;
+  doc.text(line1, W / 2, H - 42, { align: "center" });
+  doc.setFontSize(7);
+  doc.text(`© ${new Date().getFullYear()} Mtour Portugal - Experiências Exclusivas`, W / 2, H - 28, { align: "center" });
+}
+
+function applyFooterToAllPages(doc: jsPDF, company: any, mode: "default" | "voucher" = "default") {
+  const total = doc.getNumberOfPages();
+  const fn = mode === "voucher" ? footerVoucher : footer;
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    fn(doc, company);
+  }
+}
+
 
 
 /** Condições Gerais (Configurações) — sempre no final do documento. */
