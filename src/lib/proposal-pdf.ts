@@ -328,6 +328,9 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     });
   }
 
+  y = await generalConditionsBlock(doc, y);
+
+
   if (opts?.output === "bloburl") return URL.createObjectURL(doc.output("blob"));
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
   return null;
