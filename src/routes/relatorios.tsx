@@ -704,7 +704,7 @@ function Relatorios() {
         <KPI label="Despesas" value={`€ ${totDesp.toFixed(2)}`} tone="text-destructive" />
         <KPI label="Saldo caixa" value={`€ ${(inflow - outflow).toFixed(2)}`} tone={inflow - outflow < 0 ? "text-destructive" : "text-emerald-600"} />
         <KPI label="Serviços" value={so.length} />
-        <KPI label="Leads · Conv." value={`${leads.length} · ${convRate}%`} />
+        <KPI label="Clientes · Conv." value={`${clientes.length} · ${convRate}%`} />
       </div>
 
       <Tabs defaultValue="relatorios">
