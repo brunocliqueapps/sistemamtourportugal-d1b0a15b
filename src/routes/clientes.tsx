@@ -64,6 +64,9 @@ function Clientes() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyClient);
   const [search, setSearch] = useState("");
+  const [regFrom, setRegFrom] = useState("");
+  const [regTo, setRegTo] = useState("");
+
   const [historyClient, setHistoryClient] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [showArchivedList, setShowArchivedList] = useState(false);
