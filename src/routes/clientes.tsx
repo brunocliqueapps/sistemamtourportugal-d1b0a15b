@@ -32,10 +32,12 @@ const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const cols: { key: string; label: string }[] = [
   { key: "novo", label: "Novo" },
+  { key: "proposta_enviada", label: "Proposta enviada" },
   { key: "em_negociacao", label: "Em negociação" },
   { key: "fechado", label: "Fechado" },
   { key: "perdido", label: "Perdido" },
 ];
+
 
 const TEMPS: { key: string; label: string; cls: string }[] = [
   { key: "novo", label: "Novo Lead", cls: "bg-gold/15 text-gold border-gold/30" },
