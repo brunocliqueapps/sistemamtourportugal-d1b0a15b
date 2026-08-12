@@ -32,10 +32,12 @@ const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const cols: { key: string; label: string }[] = [
   { key: "novo", label: "Novo" },
+  { key: "proposta_enviada", label: "Proposta enviada" },
   { key: "em_negociacao", label: "Em negociação" },
   { key: "fechado", label: "Fechado" },
   { key: "perdido", label: "Perdido" },
 ];
+
 
 const TEMPS: { key: string; label: string; cls: string }[] = [
   { key: "novo", label: "Novo Lead", cls: "bg-gold/15 text-gold border-gold/30" },
@@ -62,6 +64,9 @@ function Clientes() {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(emptyClient);
   const [search, setSearch] = useState("");
+  const [regFrom, setRegFrom] = useState("");
+  const [regTo, setRegTo] = useState("");
+
   const [historyClient, setHistoryClient] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [showArchivedList, setShowArchivedList] = useState(false);
@@ -157,9 +162,13 @@ function Clientes() {
 
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
+    const reg = String(c.created_at ?? "").slice(0, 10);
+    if (regFrom && (!reg || reg < regFrom)) return false;
+    if (regTo && (!reg || reg > regTo)) return false;
     const q = search.toLowerCase();
     return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
   });
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-4">
@@ -171,7 +180,7 @@ function Clientes() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 
         {cols.map((col) => (
           <Card
@@ -238,10 +247,24 @@ function Clientes() {
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Registo de</Label>
+            <Input type="date" className="w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Registo até</Label>
+            <Input type="date" className="w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+          </div>
+          {(regFrom || regTo) && (
+            <Button variant="ghost" size="sm" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+          )}
         </div>
+
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
