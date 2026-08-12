@@ -48,7 +48,7 @@ const emptyClient = {
   name: "", passengers: "", email: "", phone: "", phone_country: "+351",
   nif: "", birth_date: "", emergency_contact: "",
   origin: "", origin_detail: "", temperature: "novo", status: "novo",
-  city: "", country: "", address: "", notes: "", lost_reason: "",
+  city: "", country: "", address: "", notes: "", lost_reason: "", registered_by: "",
   arrival_date: "", arrival_time: "", arrival_place: "",
   departure_date: "", departure_time: "", departure_place: "",
 };
