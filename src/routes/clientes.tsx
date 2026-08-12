@@ -229,9 +229,6 @@ function Clientes() {
             <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
             Mostrar apenas arquivados
           </label>
-          <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
-            <Plus className="h-4 w-4 mr-1" /> Novo cliente
-          </Button>
         </div>
       </div>
 
