@@ -360,8 +360,8 @@ function Mensagens() {
               <Send className="h-4 w-4 mr-2" /> Enviar
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
+
       </Dialog>
     </div>
   );
