@@ -127,10 +127,11 @@ function Relatorios() {
 
   const receitas = inv.filter((i: any) => i.kind === "entrada");
   const despesas = inv.filter((i: any) => i.kind === "saida");
-  const totRec = receitas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
-  const totDesp = despesas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
-  const inflow = cash.filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
-  const outflow = cash.filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  const inflow = (cash as any[]).filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  const outflow = (cash as any[]).filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
+  // KPIs de Receitas/Despesas seguem a Conta Corrente
+  const totRec = inflow;
+  const totDesp = outflow;
   const convRate = clientes.length ? Math.round(clientes.filter((l: any) => l.status === "fechado").length / clientes.length * 100) : 0;
 
 
