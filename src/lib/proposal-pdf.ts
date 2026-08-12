@@ -29,7 +29,7 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   }
 
   let y = 45;
-  doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66); // Azul Marinho
+  doc.setFont("helvetica", "bold").setFontSize(18).setTextColor(16, 33, 66); // Azul Marinho — destaque nome comercial
   doc.text(String(c.trade_name ?? c.name ?? "Mtour Portugal"), 40, y);
 
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
@@ -96,7 +96,7 @@ async function generalConditionsBlock(doc: jsPDF, y: number) {
   y += 24;
   if (y > H - 120) { doc.addPage(); y = 60; }
   doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66);
-  doc.text("Mtour Portugal", 40, y); y += 8;
+  doc.text("Condições Gerais", 40, y); y += 8;
   doc.setDrawColor(176, 141, 68).setLineWidth(1);
   doc.line(40, y, W - 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
