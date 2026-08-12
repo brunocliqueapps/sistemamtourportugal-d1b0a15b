@@ -16,6 +16,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 export const Route = createFileRoute("/voucher")({
@@ -38,6 +39,9 @@ function Voucher() {
 
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewTitle, setPreviewTitle] = useState("");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
   const { data: props = [] } = useQuery({
