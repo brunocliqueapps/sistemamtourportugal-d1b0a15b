@@ -16,7 +16,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 export const Route = createFileRoute("/voucher")({
@@ -223,9 +223,19 @@ function Voucher() {
 
       <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewUrl(""); }}>
         <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
-          <DialogHeader><DialogTitle>Pré-visualização do Voucher {previewTitle}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do Voucher {previewTitle}</DialogTitle>
+            <DialogDescription>Espelho exato do PDF que será enviado ao cliente.</DialogDescription>
+          </DialogHeader>
           {previewUrl ? (
-            <iframe title="Voucher PDF" src={previewUrl} className="flex-1 w-full rounded-md border bg-muted" />
+            <>
+              <object data={previewUrl} type="application/pdf" className="flex-1 w-full rounded-md border bg-muted">
+                <iframe title="Voucher PDF" src={previewUrl} className="h-full w-full" />
+              </object>
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => window.open(previewUrl, "_blank")}>Abrir em nova aba</Button>
+              </div>
+            </>
           ) : (
             <div className="flex-1 grid place-items-center text-sm text-muted-foreground">A gerar PDF…</div>
           )}
