@@ -74,6 +74,48 @@ function RelatorioDiario() {
     { clients: 0, proposals: 0, closed: 0, value: 0 },
   );
 
+  const details = useMemo(() => {
+    const byDay = (a: DetailItem, b: DetailItem) => (a.day < b.day ? 1 : -1);
+    return [
+      {
+        title: "Clientes registados",
+        empty: "Sem clientes no período.",
+        items: (data?.clients ?? [])
+          .map((c: any) => ({
+            id: c.id,
+            day: dayOf(c.created_at),
+            primary: [c.client_number, c.name].filter(Boolean).join(" · "),
+            secondary: [c.phone, c.email].filter(Boolean).join(" · "),
+          }))
+          .sort(byDay),
+      },
+      {
+        title: "Orçamentos feitos",
+        empty: "Sem orçamentos no período.",
+        items: (data?.proposals ?? [])
+          .map((p: any) => ({
+            id: p.id,
+            day: dayOf(p.created_at),
+            primary: [p.code, p.clients?.name || p.title].filter(Boolean).join(" · "),
+            secondary: [p.status, p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
+          }))
+          .sort(byDay),
+      },
+      {
+        title: "Serviços fechados",
+        empty: "Sem serviços fechados no período.",
+        items: (data?.orders ?? [])
+          .map((o: any) => ({
+            id: o.id,
+            day: dayOf(o.service_date),
+            primary: [o.oc_code, o.clients?.name].filter(Boolean).join(" · "),
+            secondary: [[o.origin, o.destination].filter(Boolean).join(" → "), o.sale_value ? `€ ${Number(o.sale_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
+          }))
+          .sort(byDay),
+      },
+    ];
+  }, [data]);
+
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -89,6 +131,22 @@ function RelatorioDiario() {
       headStyles: { fillColor: [16, 42, 78] },
       footStyles: { fillColor: [200, 164, 92], textColor: 20 },
     });
+
+    details.forEach((section) => {
+      const startY = ((doc as any).lastAutoTable?.finalY ?? 32) + 10;
+      autoTable(doc, {
+        startY,
+        head: [[{ content: `${section.title} (${section.items.length})`, colSpan: 3 }]],
+        body:
+          section.items.length === 0
+            ? [[{ content: section.empty, colSpan: 3 }]]
+            : section.items.map((it) => [fmtDate(it.day), it.primary || "—", it.secondary || ""]),
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [16, 42, 78] },
+        columnStyles: { 0: { cellWidth: 26 }, 1: { cellWidth: 70 } },
+      });
+    });
+
     doc.save(`relatorio-diario-${from}_${to}.pdf`);
   };
 
@@ -158,37 +216,10 @@ function RelatorioDiario() {
         </Table>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <DetailList
-          title="Clientes registados"
-          empty="Sem clientes no período."
-          items={(data?.clients ?? []).map((c: any) => ({
-            id: c.id,
-            day: dayOf(c.created_at),
-            primary: [c.client_number, c.name].filter(Boolean).join(" · "),
-            secondary: [c.phone, c.email].filter(Boolean).join(" · "),
-          }))}
-        />
-        <DetailList
-          title="Orçamentos feitos"
-          empty="Sem orçamentos no período."
-          items={(data?.proposals ?? []).map((p: any) => ({
-            id: p.id,
-            day: dayOf(p.created_at),
-            primary: [p.code, p.clients?.name || p.title].filter(Boolean).join(" · "),
-            secondary: [p.status, p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
-          }))}
-        />
-        <DetailList
-          title="Serviços fechados"
-          empty="Sem serviços fechados no período."
-          items={(data?.orders ?? []).map((o: any) => ({
-            id: o.id,
-            day: dayOf(o.service_date),
-            primary: [o.oc_code, o.clients?.name].filter(Boolean).join(" · "),
-            secondary: [[o.origin, o.destination].filter(Boolean).join(" → "), o.sale_value ? `€ ${Number(o.sale_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
-          }))}
-        />
+      <div className="space-y-4">
+        {details.map((section) => (
+          <DetailList key={section.title} title={section.title} empty={section.empty} items={section.items} />
+        ))}
       </div>
     </div>
   );
