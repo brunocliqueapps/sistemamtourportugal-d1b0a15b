@@ -186,11 +186,14 @@ function Relatorios() {
 
   const totPropostas = proposals.reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
 
+  const cashGroupKey = (c: any) =>
+    groupKey(String(c.movement_date || "").slice(0, 10), group === "vehicle" || group === "driver" || group === "operation_type" ? "month" : group);
+
   const fluxo = (() => {
     const rec: Record<string, number> = {};
     const des: Record<string, number> = {};
-    for (const c of cash) {
-      const k = groupKey((c.created_at || "").slice(0, 10), group === "vehicle" || group === "driver" || group === "operation_type" ? "month" : group);
+    for (const c of cash as any[]) {
+      const k = cashGroupKey(c);
       if (c.kind === "entrada") rec[k] = (rec[k] || 0) + Number(c.amount || 0);
       else des[k] = (des[k] || 0) + Number(c.amount || 0);
     }
@@ -198,8 +201,19 @@ function Relatorios() {
     return keys.map((k) => ({ name: k, entrada: rec[k] || 0, saida: des[k] || 0, saldo: (rec[k] || 0) - (des[k] || 0) }));
   })();
 
-  const receitasSerie = groupInv(receitas);
-  const despesasSerie = groupInv(despesas);
+  // Receitas / Despesas vêm da Conta Corrente (entradas e saídas)
+  const cashEntradas = (cash as any[]).filter((c: any) => c.kind === "entrada");
+  const cashSaidas = (cash as any[]).filter((c: any) => c.kind === "saida");
+  const groupCash = (list: any[]) => {
+    const acc: Record<string, number> = {};
+    for (const c of list) {
+      const k = cashGroupKey(c);
+      acc[k] = (acc[k] || 0) + Number(c.amount || 0);
+    }
+    return Object.entries(acc).map(([name, valor]) => ({ name, valor })).sort((a, b) => a.name.localeCompare(b.name));
+  };
+  const receitasSerie = groupCash(cashEntradas);
+  const despesasSerie = groupCash(cashSaidas);
 
   const servicosPorStatus = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.status || "—"; a[k] = (a[k] || 0) + 1; return a;
