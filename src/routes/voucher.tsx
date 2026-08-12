@@ -208,7 +208,7 @@ function Voucher() {
                   <Button size="icon" variant="ghost" title="Pré-visualizar Voucher (PDF)" onClick={async () => {
                     try {
                       setPreviewOpen(true); setPreviewUrl(""); setPreviewTitle(shortCode(x.code) ?? "");
-                      const url = await generateVoucherPdf(x.id, { output: "dataurl" });
+                      const url = await generateVoucherPdf(x.id, { output: "bloburl" });
                       setPreviewUrl(url ?? "");
                     } catch (e: any) { setPreviewOpen(false); toast.error(e.message); }
                   }}><Eye className="h-4 w-4" /></Button>
