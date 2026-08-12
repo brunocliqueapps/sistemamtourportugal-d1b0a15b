@@ -280,6 +280,33 @@ function Relatorios() {
     </Card>
   );
 
+  const CashTable = ({ rows, title, file, positive }: { rows: any[]; title: string; file: string; positive?: boolean }) => (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">{title}</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCsv(rows, file)}>Exportar CSV</Button>
+      </div>
+      <div className="overflow-x-auto">
+        <Table><TableHeader><TableRow>
+          <TableHead>Data</TableHead><TableHead>Descrição</TableHead>
+          <TableHead>Fatura</TableHead><TableHead className="text-right">Valor</TableHead>
+        </TableRow></TableHeader><TableBody>
+          {rows.slice(0, 300).map((c: any) => (
+            <TableRow key={c.id}>
+              <TableCell>{fmtDate(c.movement_date)}</TableCell>
+              <TableCell>{c.description || "—"}</TableCell>
+              <TableCell>{c.invoice_number || "—"}</TableCell>
+              <TableCell className={`text-right font-medium ${positive ? "text-emerald-600" : "text-destructive"}`}>
+                {positive ? "+" : "−"} € {Number(c.amount || 0).toFixed(2)}
+              </TableCell>
+            </TableRow>
+          ))}
+          {!rows.length && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem movimentos no período.</TableCell></TableRow>}
+        </TableBody></Table>
+      </div>
+    </Card>
+  );
+
   const reports: Record<string, { title: string; render: () => ReactNode }> = {
     clientes: {
       title: "Clientes",
