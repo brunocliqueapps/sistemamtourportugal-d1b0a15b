@@ -201,7 +201,14 @@ function Voucher() {
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => setProposalId(x.id)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => {
+                    if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
+                    setHasUnsavedChanges(false);
+                    setSearch("");
+                    if (x.client_id) setClientId(x.client_id);
+                    setProposalId(x.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
