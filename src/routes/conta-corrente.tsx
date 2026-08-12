@@ -122,26 +122,41 @@ function ContaCorrente() {
     : Number(accounts.find((x: any) => x.id === accountId)?.opening_balance || 0);
   const balance = opening + inflow - outflow;
 
-  const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i);
+  const years = Array.from({ length: 6 }, (_, i) => 2026 + i);
   const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Conta Corrente" description="Extrato de entradas e saídas." actions={
         <div className="flex flex-wrap gap-2">
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+          <Select value={mode} onValueChange={(v) => setMode(v as any)}>
             <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ano todo</SelectItem>
-              {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+              <SelectItem value="dia">Dia</SelectItem>
+              <SelectItem value="semana">Semana</SelectItem>
+              <SelectItem value="mes">Mês</SelectItem>
+              <SelectItem value="ano">Ano</SelectItem>
             </SelectContent>
           </Select>
+          {(mode === "dia" || mode === "semana") && (
+            <Input type="date" className="w-40" value={refDate} onChange={(e) => setRefDate(e.target.value)} />
+          )}
+          {(mode === "mes" || mode === "ano") && (
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          {mode === "mes" && (
+            <Select value={month} onValueChange={setMonth}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {months.map((m, i) => <SelectItem key={i} value={String(i+1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={accountId} onValueChange={setAccountId}>
-            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-56"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as contas</SelectItem>
               {accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
@@ -158,6 +173,7 @@ function ContaCorrente() {
           <Button className="gradient-gold text-gold-foreground" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo movimento</Button>
         </div>
       } />
+
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Saldo inicial</div><div className="text-xl font-bold">€ {opening.toFixed(2)}</div></Card>
