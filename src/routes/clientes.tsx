@@ -162,9 +162,13 @@ function Clientes() {
 
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
+    const reg = String(c.created_at ?? "").slice(0, 10);
+    if (regFrom && (!reg || reg < regFrom)) return false;
+    if (regTo && (!reg || reg > regTo)) return false;
     const q = search.toLowerCase();
     return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
   });
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-4">
