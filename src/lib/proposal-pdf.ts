@@ -246,7 +246,8 @@ export async function generateBudgetPdf(id: string) {
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
-  if (p.payment_terms) doc.text(p.payment_terms, 40, y);
+  if (p.payment_terms) { doc.text(p.payment_terms, 40, y); y += 12; }
+  y = await generalConditionsBlock(doc, y);
   doc.save(`Orcamento-${p.code ?? p.id}.pdf`);
 }
 
