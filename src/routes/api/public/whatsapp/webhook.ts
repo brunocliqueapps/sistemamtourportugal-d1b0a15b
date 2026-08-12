@@ -111,7 +111,6 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
                     archived: false,
                   })
                   .eq("id", convId);
-                await sb.rpc("noop_placeholder").catch?.(() => {});
               } else {
                 const { data: created } = await sb
                   .from("whatsapp_conversations")
