@@ -156,14 +156,18 @@ function Relatorios() {
     return Object.entries(acc).map(([name, valor]) => ({ name, valor })).sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const origemLeads = Object.entries(leads.reduce<Record<string, number>>((a, l: any) => {
+  const origemClientes = Object.entries(clientes.reduce<Record<string, number>>((a: Record<string, number>, l: any) => {
     const k = l.origin || "Sem origem"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
-  const funil = ["novo", "em_negociacao", "proposta_enviada", "fechado", "perdido"].map((s) => ({
-    name: s.replace("_", " "),
-    value: leads.filter((l: any) => l.status === s).length,
+  const funil = ["novo", "proposta_enviada", "em_negociacao", "fechado", "perdido"].map((s) => ({
+    name: s.replace(/_/g, " "),
+    value: clientes.filter((l: any) => l.status === s).length,
   }));
+
+  const temperatura = Object.entries(clientes.reduce<Record<string, number>>((a: Record<string, number>, c: any) => {
+    const k = c.temperature || "—"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
   const clientesRank = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = (s.clients as any)?.name || "—"; a[k] = (a[k] || 0) + Number(s.sale_value || 0); return a;
@@ -174,7 +178,13 @@ function Relatorios() {
 
   const opTipo = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.operation_type || "—"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const propostasPorStatus = Object.entries(proposals.reduce<Record<string, number>>((a: Record<string, number>, p: any) => {
+    const k = p.status || "—"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const totPropostas = proposals.reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
 
   const fluxo = (() => {
     const rec: Record<string, number> = {};
@@ -193,10 +203,15 @@ function Relatorios() {
 
   const servicosPorStatus = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.status || "—"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
-  const parceirosCount = data?.partners?.length ?? 0;
+  const parceirosPorTipo = Object.entries(partners.reduce<Record<string, number>>((a: Record<string, number>, p: any) => {
+    const k = p.partner_type || p.type || "Outros"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const parceirosCount = partners.length;
   const clientesAtivos = new Set(so.map((s: any) => s.client_id).filter(Boolean)).size;
+
 
   const exportCsv = (rows: any[], filename: string) => {
     if (!rows.length) return;
