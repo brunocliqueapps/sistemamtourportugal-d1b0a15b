@@ -16,6 +16,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 export const Route = createFileRoute("/voucher")({
@@ -38,6 +39,9 @@ function Voucher() {
 
   const [proposalId, setProposalId] = useState("");
   const [search, setSearch] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewTitle, setPreviewTitle] = useState("");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
   const { data: props = [] } = useQuery({
@@ -201,13 +205,12 @@ function Voucher() {
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
                 <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => {
-                    if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
-                    setHasUnsavedChanges(false);
-                    setSearch("");
-                    if (x.client_id) setClientId(x.client_id);
-                    setProposalId(x.id);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  <Button size="icon" variant="ghost" title="Pré-visualizar Voucher (PDF)" onClick={async () => {
+                    try {
+                      setPreviewOpen(true); setPreviewUrl(""); setPreviewTitle(shortCode(x.code) ?? "");
+                      const url = await generateVoucherPdf(x.id, { output: "dataurl" });
+                      setPreviewUrl(url ?? "");
+                    } catch (e: any) { setPreviewOpen(false); toast.error(e.message); }
                   }}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
@@ -218,6 +221,16 @@ function Voucher() {
         </Table>
       </Card>
 
+      <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewUrl(""); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
+          <DialogHeader><DialogTitle>Pré-visualização do Voucher {previewTitle}</DialogTitle></DialogHeader>
+          {previewUrl ? (
+            <iframe title="Voucher PDF" src={previewUrl} className="flex-1 w-full rounded-md border bg-muted" />
+          ) : (
+            <div className="flex-1 grid place-items-center text-sm text-muted-foreground">A gerar PDF…</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
