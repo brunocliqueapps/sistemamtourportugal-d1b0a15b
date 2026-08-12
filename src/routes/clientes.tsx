@@ -171,21 +171,23 @@ function Clientes() {
 
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-4 min-w-0">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
       <div className="flex justify-end">
-        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0 sm:overflow-visible">
+      <div className="flex gap-4 snap-x snap-mandatory sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 
         {cols.map((col) => (
           <Card
             key={col.key}
-            className={`p-4 transition-colors ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            className={`p-4 transition-colors w-[80vw] max-w-[20rem] shrink-0 snap-start sm:w-auto sm:max-w-none ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+
             onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
             onDragLeave={() => setDragOverCol((prev) => (prev === col.key ? null : prev))}
             onDrop={(e) => {
