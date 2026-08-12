@@ -68,7 +68,7 @@ function Relatorios() {
   const [vehicleId, setVehicleId] = useState<string>("all");
   const [clientId, setClientId] = useState<string>("all");
   const [group, setGroup] = useState<Group>("month");
-  const [report, setReport] = useState<string>("faturamento");
+  const [report, setReport] = useState<string>("clientes");
 
   const applyPeriod = (p: Period) => {
     setPeriod(p);
@@ -100,24 +100,30 @@ function Relatorios() {
       if (vehicleId !== "all") soQ = soQ.eq("vehicle_id", vehicleId);
       if (clientId !== "all") soQ = soQ.eq("client_id", clientId);
 
-      const [leadsR, invR, soR, cmR, partR] = await Promise.all([
-        supabase.from("leads").select("id,name,origin,status,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status").gte("issue_date", from).lte("issue_date", to),
+      const [cliR, invR, soR, cmR, partR, propR, drvR, vehR] = await Promise.all([
+        supabase.from("clients").select("id,client_number,name,origin,status,temperature,passengers,arrival_date,departure_date,created_at").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("invoices").select("id,kind,total,issue_date,entity_name,status,description").gte("issue_date", from).lte("issue_date", to),
         soQ,
         supabase.from("cash_movements").select("kind,amount,created_at,description").gte("created_at", from).lte("created_at", to + "T23:59:59"),
-        supabase.from("partners").select("id,name").limit(500),
+        supabase.from("partners").select("id,name,partner_type,phone,email,active").limit(500),
+        supabase.from("proposals").select("id,code,title,status,total_value,created_at,clients(name)").gte("created_at", from).lte("created_at", to + "T23:59:59"),
+        supabase.from("drivers").select("id,full_name,active").limit(500),
+        supabase.from("vehicles").select("id,plate,brand,model,active").limit(500),
       ]);
       return {
-        leads: leadsR.data ?? [], inv: invR.data ?? [], so: soR.data ?? [],
-        cash: cmR.data ?? [], partners: partR.data ?? [],
+        clientes: (cliR.data ?? []) as any[], inv: invR.data ?? [], so: soR.data ?? [],
+        cash: cmR.data ?? [], partners: (partR.data ?? []) as any[],
+        proposals: (propR.data ?? []) as any[], drivers: (drvR.data ?? []) as any[], vehicles: (vehR.data ?? []) as any[],
       };
     },
   });
 
-  const leads = data?.leads ?? [];
+  const clientes = (data?.clientes ?? []) as any[];
   const inv = data?.inv ?? [];
   const so = data?.so ?? [];
   const cash = data?.cash ?? [];
+  const proposals = (data?.proposals ?? []) as any[];
+  const partners = (data?.partners ?? []) as any[];
 
   const receitas = inv.filter((i: any) => i.kind === "entrada");
   const despesas = inv.filter((i: any) => i.kind === "saida");
@@ -125,7 +131,8 @@ function Relatorios() {
   const totDesp = despesas.reduce((a: number, i: any) => a + Number(i.total || 0), 0);
   const inflow = cash.filter((c: any) => c.kind === "entrada").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
   const outflow = cash.filter((c: any) => c.kind === "saida").reduce((a: number, c: any) => a + Number(c.amount || 0), 0);
-  const convRate = leads.length ? Math.round(leads.filter((l: any) => l.status === "fechado").length / leads.length * 100) : 0;
+  const convRate = clientes.length ? Math.round(clientes.filter((l: any) => l.status === "fechado").length / clientes.length * 100) : 0;
+
 
   // Grouping helper for SO-based reports
   const groupSO = (valueOf: (s: any) => number) => {
@@ -149,14 +156,18 @@ function Relatorios() {
     return Object.entries(acc).map(([name, valor]) => ({ name, valor })).sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const origemLeads = Object.entries(leads.reduce<Record<string, number>>((a, l: any) => {
+  const origemClientes = Object.entries(clientes.reduce<Record<string, number>>((a: Record<string, number>, l: any) => {
     const k = l.origin || "Sem origem"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
-  const funil = ["novo", "em_negociacao", "proposta_enviada", "fechado", "perdido"].map((s) => ({
-    name: s.replace("_", " "),
-    value: leads.filter((l: any) => l.status === s).length,
+  const funil = ["novo", "proposta_enviada", "em_negociacao", "fechado", "perdido"].map((s) => ({
+    name: s.replace(/_/g, " "),
+    value: clientes.filter((l: any) => l.status === s).length,
   }));
+
+  const temperatura = Object.entries(clientes.reduce<Record<string, number>>((a: Record<string, number>, c: any) => {
+    const k = c.temperature || "—"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
   const clientesRank = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = (s.clients as any)?.name || "—"; a[k] = (a[k] || 0) + Number(s.sale_value || 0); return a;
@@ -167,7 +178,13 @@ function Relatorios() {
 
   const opTipo = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.operation_type || "—"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const propostasPorStatus = Object.entries(proposals.reduce<Record<string, number>>((a: Record<string, number>, p: any) => {
+    const k = p.status || "—"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const totPropostas = proposals.reduce((a: number, p: any) => a + Number(p.total_value || 0), 0);
 
   const fluxo = (() => {
     const rec: Record<string, number> = {};
@@ -186,10 +203,15 @@ function Relatorios() {
 
   const servicosPorStatus = Object.entries(so.reduce<Record<string, number>>((a, s: any) => {
     const k = s.status || "—"; a[k] = (a[k] || 0) + 1; return a;
-  }, {})).map(([name, value]) => ({ name, value }));
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
 
-  const parceirosCount = data?.partners?.length ?? 0;
+  const parceirosPorTipo = Object.entries(partners.reduce<Record<string, number>>((a: Record<string, number>, p: any) => {
+    const k = p.partner_type || p.type || "Outros"; a[k] = (a[k] || 0) + 1; return a;
+  }, {})).map(([name, value]) => ({ name, value: Number(value) }));
+
+  const parceirosCount = partners.length;
   const clientesAtivos = new Set(so.map((s: any) => s.client_id).filter(Boolean)).size;
+
 
   const exportCsv = (rows: any[], filename: string) => {
     if (!rows.length) return;
@@ -200,46 +222,154 @@ function Relatorios() {
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
   };
 
+  const Pizza = ({ data: d, offset = 0 }: { data: { name: string; value: number }[]; offset?: number }) => (
+    <div className="h-72">
+      <ResponsiveContainer><PieChart>
+        <Pie data={d} dataKey="value" nameKey="name" outerRadius={90} label>
+          {d.map((_, i) => <Cell key={i} fill={colors[(i + offset) % colors.length]} />)}
+        </Pie><Legend /></PieChart></ResponsiveContainer>
+    </div>
+  );
+
+  const CountTable = ({ rows, label, unit = "Total", file }: { rows: { name: string; value: number }[]; label: string; unit?: string; file: string }) => (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">{label}</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCsv(rows, file)}>Exportar CSV</Button>
+      </div>
+      <Table><TableHeader><TableRow>
+        <TableHead>{label}</TableHead><TableHead className="text-right">{unit}</TableHead>
+      </TableRow></TableHeader><TableBody>
+        {rows.map((r) => (
+          <TableRow key={r.name}><TableCell>{r.name}</TableCell><TableCell className="text-right">{r.value}</TableCell></TableRow>
+        ))}
+        {!rows.length && <TableRow><TableCell colSpan={2} className="text-muted-foreground">Sem dados no período.</TableCell></TableRow>}
+      </TableBody></Table>
+    </Card>
+  );
+
+  const MoneyTable = ({ rows, label, file }: { rows: { name: string; valor: number }[]; label: string; file: string }) => (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">{label}</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCsv(rows, file)}>Exportar CSV</Button>
+      </div>
+      <Table><TableHeader><TableRow>
+        <TableHead>{label}</TableHead><TableHead className="text-right">Valor</TableHead>
+      </TableRow></TableHeader><TableBody>
+        {rows.map((r) => (
+          <TableRow key={r.name}><TableCell>{r.name}</TableCell><TableCell className="text-right">€ {Number(r.valor || 0).toFixed(2)}</TableCell></TableRow>
+        ))}
+        {!rows.length && <TableRow><TableCell colSpan={2} className="text-muted-foreground">Sem dados no período.</TableCell></TableRow>}
+      </TableBody></Table>
+    </Card>
+  );
+
   const reports: Record<string, { title: string; render: () => ReactNode }> = {
-    leads: {
-      title: "Leads",
+    clientes: {
+      title: "Clientes",
       render: () => (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KPI label="Clientes registados" value={clientes.length} />
+            <KPI label="Clientes com serviços" value={clientesAtivos} />
+            <KPI label="Ticket médio" value={`€ ${(clientesAtivos ? totRec / clientesAtivos : 0).toFixed(2)}`} />
+            <KPI label="Conversão" value={`${convRate}%`} tone="text-emerald-600" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="p-5"><h3 className="font-semibold mb-4">Origem dos clientes</h3><Pizza data={origemClientes} /></Card>
+            <Card className="p-5"><h3 className="font-semibold mb-4">Pipeline (estado)</h3>
+              <div className="h-72">
+                <ResponsiveContainer><BarChart data={funil}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
+                  <Bar dataKey="value" fill={colors[1]} radius={[6, 6, 0, 0]} />
+                </BarChart></ResponsiveContainer>
+              </div>
+            </Card>
+            <CountTable rows={origemClientes} label="Origem" unit="Clientes" file="clientes-origem.csv" />
+            <CountTable rows={temperatura} label="Status do lead" unit="Clientes" file="clientes-status.csv" />
+          </div>
           <Card className="p-5">
-            <h3 className="font-semibold mb-4">Origem dos leads</h3>
-            <div className="h-72">
-              <ResponsiveContainer><PieChart>
-                <Pie data={origemLeads} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {origemLeads.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
-                </Pie><Legend />
-              </PieChart></ResponsiveContainer>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Top clientes por faturação</h3>
+              <Button variant="outline" size="sm" onClick={() => exportCsv(clientesRank, "clientes-top.csv")}>Exportar CSV</Button>
             </div>
-          </Card>
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Funil</h3>
-            <div className="h-72">
-              <ResponsiveContainer><BarChart data={funil}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
-                <Bar dataKey="value" fill={colors[1]} radius={[6, 6, 0, 0]} />
+            <div className="h-80">
+              <ResponsiveContainer><BarChart data={clientesRank} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={160} /><Tooltip />
+                <Bar dataKey="valor" fill={colors[5]} />
               </BarChart></ResponsiveContainer>
             </div>
           </Card>
-          <Card className="p-5 md:col-span-2">
+          <MoneyTable rows={clientesRank} label="Cliente" file="clientes-faturacao.csv" />
+          <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Lista de leads</h3>
-              <Button variant="outline" size="sm" onClick={() => exportCsv(leads, "leads.csv")}>Exportar CSV</Button>
+              <h3 className="font-semibold">Lista de clientes registados</h3>
+              <Button variant="outline" size="sm" onClick={() => exportCsv(clientes, "clientes.csv")}>Exportar CSV</Button>
             </div>
-            <Table><TableHeader><TableRow>
-              <TableHead>Nome</TableHead><TableHead>Origem</TableHead><TableHead>Status</TableHead><TableHead>Data</TableHead>
-            </TableRow></TableHeader><TableBody>
-              {leads.slice(0, 100).map((l: any) => (
-                <TableRow key={l.id}>
-                  <TableCell>{l.name}</TableCell><TableCell>{l.origin || "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{l.status}</Badge></TableCell>
-                  <TableCell>{(l.created_at || "").slice(0, 10)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody></Table>
+            <div className="overflow-x-auto">
+              <Table><TableHeader><TableRow>
+                <TableHead>Nº</TableHead><TableHead>Nome</TableHead><TableHead>Pessoas</TableHead>
+                <TableHead>Chegada</TableHead><TableHead>Partida</TableHead>
+                <TableHead>Origem</TableHead><TableHead>Estado</TableHead><TableHead>Registo</TableHead>
+              </TableRow></TableHeader><TableBody>
+                {clientes.slice(0, 200).map((c: any) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-mono text-xs">{c.client_number || "—"}</TableCell>
+                    <TableCell>{c.name}</TableCell>
+                    <TableCell>{c.passengers ?? "—"}</TableCell>
+                    <TableCell>{c.arrival_date || "—"}</TableCell>
+                    <TableCell>{c.departure_date || "—"}</TableCell>
+                    <TableCell>{c.origin || "—"}</TableCell>
+                    <TableCell><Badge variant="outline">{c.status || "—"}</Badge></TableCell>
+                    <TableCell>{(c.created_at || "").slice(0, 10)}</TableCell>
+                  </TableRow>
+                ))}
+                {!clientes.length && <TableRow><TableCell colSpan={8} className="text-muted-foreground">Sem clientes no período.</TableCell></TableRow>}
+              </TableBody></Table>
+            </div>
+          </Card>
+        </div>
+      ),
+    },
+    propostas: {
+      title: "Propostas / Orçamentos",
+      render: () => (
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <KPI label="Propostas" value={proposals.length} />
+            <KPI label="Valor total" value={`€ ${totPropostas.toFixed(2)}`} />
+            <KPI label="Aprovadas" value={proposals.filter((p: any) => p.status === "aprovada" || p.status === "convertida").length} />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="p-5"><h3 className="font-semibold mb-4">Propostas por estado</h3><Pizza data={propostasPorStatus} offset={2} /></Card>
+            <CountTable rows={propostasPorStatus} label="Estado" unit="Propostas" file="propostas-estado.csv" />
+          </div>
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Lista de propostas</h3>
+              <Button variant="outline" size="sm" onClick={() => exportCsv(proposals.map((p: any) => ({
+                codigo: p.code, titulo: p.title, cliente: (p.clients as any)?.name, estado: p.status, valor: p.total_value, data: (p.created_at || "").slice(0, 10),
+              })), "propostas.csv")}>Exportar CSV</Button>
+            </div>
+            <div className="overflow-x-auto">
+              <Table><TableHeader><TableRow>
+                <TableHead>Código</TableHead><TableHead>Título</TableHead><TableHead>Cliente</TableHead>
+                <TableHead>Estado</TableHead><TableHead>Data</TableHead><TableHead className="text-right">Valor</TableHead>
+              </TableRow></TableHeader><TableBody>
+                {proposals.slice(0, 200).map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs">{p.code || "—"}</TableCell>
+                    <TableCell>{p.title || "—"}</TableCell>
+                    <TableCell>{(p.clients as any)?.name || "—"}</TableCell>
+                    <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                    <TableCell>{(p.created_at || "").slice(0, 10)}</TableCell>
+                    <TableCell className="text-right">€ {Number(p.total_value || 0).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {!proposals.length && <TableRow><TableCell colSpan={6} className="text-muted-foreground">Sem propostas no período.</TableCell></TableRow>}
+              </TableBody></Table>
+            </div>
           </Card>
         </div>
       ),
@@ -247,11 +377,14 @@ function Relatorios() {
     conversao: {
       title: "Conversão de vendas",
       render: () => (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <KPI label="Leads" value={leads.length} />
-          <KPI label="Fechados" value={leads.filter((l: any) => l.status === "fechado").length} />
-          <KPI label="Conversão" value={`${convRate}%`} tone="text-emerald-600" />
-          <Card className="p-5 md:col-span-3">
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KPI label="Clientes" value={clientes.length} />
+            <KPI label="Propostas" value={proposals.length} />
+            <KPI label="Fechados" value={clientes.filter((l: any) => l.status === "fechado").length} />
+            <KPI label="Conversão" value={`${convRate}%`} tone="text-emerald-600" />
+          </div>
+          <Card className="p-5">
             <h3 className="font-semibold mb-4">Funil de conversão</h3>
             <div className="h-72">
               <ResponsiveContainer><BarChart data={funil} layout="vertical">
@@ -260,6 +393,7 @@ function Relatorios() {
               </BarChart></ResponsiveContainer>
             </div>
           </Card>
+          <CountTable rows={funil} label="Etapa do funil" unit="Clientes" file="funil.csv" />
         </div>
       ),
     },
@@ -267,48 +401,39 @@ function Relatorios() {
       title: "Serviços e Operação",
       render: () => (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-5"><h3 className="font-semibold mb-4">Serviços por estado</h3>
-            <div className="h-72">
-              <ResponsiveContainer><PieChart>
-                <Pie data={servicosPorStatus} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {servicosPorStatus.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
-                </Pie><Legend /></PieChart></ResponsiveContainer>
-            </div>
-          </Card>
-          <Card className="p-5"><h3 className="font-semibold mb-4">Tipo de operação</h3>
-            <div className="h-72">
-              <ResponsiveContainer><PieChart>
-                <Pie data={opTipo} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {opTipo.map((_, i) => <Cell key={i} fill={colors[(i + 2) % colors.length]} />)}
-                </Pie><Legend /></PieChart></ResponsiveContainer>
-            </div>
-          </Card>
+          <Card className="p-5"><h3 className="font-semibold mb-4">Serviços por estado</h3><Pizza data={servicosPorStatus} /></Card>
+          <Card className="p-5"><h3 className="font-semibold mb-4">Tipo de operação</h3><Pizza data={opTipo} offset={2} /></Card>
+          <CountTable rows={servicosPorStatus} label="Estado" unit="Serviços" file="servicos-estado.csv" />
+          <CountTable rows={opTipo} label="Tipo de operação" unit="Serviços" file="servicos-tipo.csv" />
           <Card className="p-5 md:col-span-2">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Ordens de serviço</h3>
               <Button variant="outline" size="sm" onClick={() => exportCsv(so.map((s: any) => ({
-                oc: s.oc_code, data: s.service_date, cliente: (s.clients as any)?.name, motorista: (s.drivers as any)?.full_name,
+                os: s.oc_code, data: s.service_date, cliente: (s.clients as any)?.name, motorista: (s.drivers as any)?.full_name,
                 veiculo: (s.vehicles as any)?.plate, tipo: s.operation_type, status: s.status, valor: s.sale_value,
               })), "servicos.csv")}>Exportar CSV</Button>
             </div>
-            <Table><TableHeader><TableRow>
-              <TableHead>OS</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead>
-              <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead><TableHead>Tipo</TableHead>
-              <TableHead>Status</TableHead><TableHead className="text-right">Valor</TableHead>
-            </TableRow></TableHeader><TableBody>
-              {so.slice(0, 100).map((s: any) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-mono text-xs">{s.oc_code}</TableCell>
-                  <TableCell>{s.service_date}</TableCell>
-                  <TableCell>{(s.clients as any)?.name || "—"}</TableCell>
-                  <TableCell>{(s.drivers as any)?.full_name || "—"}</TableCell>
-                  <TableCell>{(s.vehicles as any)?.plate || "—"}</TableCell>
-                  <TableCell>{s.operation_type || "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
-                  <TableCell className="text-right">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody></Table>
+            <div className="overflow-x-auto">
+              <Table><TableHeader><TableRow>
+                <TableHead>OS</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead>
+                <TableHead>Motorista</TableHead><TableHead>Veículo</TableHead><TableHead>Tipo</TableHead>
+                <TableHead>Status</TableHead><TableHead className="text-right">Valor</TableHead>
+              </TableRow></TableHeader><TableBody>
+                {so.slice(0, 200).map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-mono text-xs">{s.oc_code}</TableCell>
+                    <TableCell>{s.service_date}</TableCell>
+                    <TableCell>{(s.clients as any)?.name || "—"}</TableCell>
+                    <TableCell>{(s.drivers as any)?.full_name || "—"}</TableCell>
+                    <TableCell>{(s.vehicles as any)?.plate || "—"}</TableCell>
+                    <TableCell>{s.operation_type || "—"}</TableCell>
+                    <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
+                    <TableCell className="text-right">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {!so.length && <TableRow><TableCell colSpan={8} className="text-muted-foreground">Sem serviços no período.</TableCell></TableRow>}
+              </TableBody></Table>
+            </div>
           </Card>
         </div>
       ),
@@ -316,8 +441,8 @@ function Relatorios() {
     faturamento: {
       title: "Faturamento",
       render: () => (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-5 md:col-span-2">
+        <div className="grid gap-4">
+          <Card className="p-5">
             <h3 className="font-semibold mb-4">Receitas vs Despesas</h3>
             <div className="h-72">
               <ResponsiveContainer><BarChart data={receitasSerie.map((r) => ({
@@ -328,25 +453,28 @@ function Relatorios() {
               </BarChart></ResponsiveContainer>
             </div>
           </Card>
-          <Card className="p-5 md:col-span-2">
+          <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Faturas</h3>
               <Button variant="outline" size="sm" onClick={() => exportCsv(inv, "faturas.csv")}>Exportar CSV</Button>
             </div>
-            <Table><TableHeader><TableRow>
-              <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Entidade</TableHead>
-              <TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead>
-            </TableRow></TableHeader><TableBody>
-              {inv.slice(0, 100).map((i: any) => (
-                <TableRow key={i.id}>
-                  <TableCell>{i.issue_date}</TableCell>
-                  <TableCell><Badge variant={i.kind === "entrada" ? "default" : "secondary"}>{i.kind}</Badge></TableCell>
-                  <TableCell>{i.entity_name || "—"}</TableCell>
-                  <TableCell>{i.status}</TableCell>
-                  <TableCell className="text-right">€ {Number(i.total || 0).toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody></Table>
+            <div className="overflow-x-auto">
+              <Table><TableHeader><TableRow>
+                <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Entidade</TableHead>
+                <TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead>
+              </TableRow></TableHeader><TableBody>
+                {inv.slice(0, 200).map((i: any) => (
+                  <TableRow key={i.id}>
+                    <TableCell>{i.issue_date}</TableCell>
+                    <TableCell><Badge variant={i.kind === "entrada" ? "default" : "secondary"}>{i.kind}</Badge></TableCell>
+                    <TableCell>{i.entity_name || "—"}</TableCell>
+                    <TableCell>{i.status}</TableCell>
+                    <TableCell className="text-right">€ {Number(i.total || 0).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {!inv.length && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem faturas no período.</TableCell></TableRow>}
+              </TableBody></Table>
+            </div>
           </Card>
         </div>
       ),
@@ -354,29 +482,35 @@ function Relatorios() {
     receitas: {
       title: "Receitas",
       render: () => (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Receitas</h3>
-          <div className="h-72">
-            <ResponsiveContainer><AreaChart data={receitasSerie}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
-              <Area type="monotone" dataKey="valor" stroke={colors[1]} fill={colors[1]} fillOpacity={0.3} />
-            </AreaChart></ResponsiveContainer>
-          </div>
-        </Card>
+        <div className="grid gap-4">
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Receitas</h3>
+            <div className="h-72">
+              <ResponsiveContainer><AreaChart data={receitasSerie}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
+                <Area type="monotone" dataKey="valor" stroke={colors[1]} fill={colors[1]} fillOpacity={0.3} />
+              </AreaChart></ResponsiveContainer>
+            </div>
+          </Card>
+          <MoneyTable rows={receitasSerie} label="Período" file="receitas.csv" />
+        </div>
       ),
     },
     despesas: {
       title: "Despesas",
       render: () => (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Despesas</h3>
-          <div className="h-72">
-            <ResponsiveContainer><AreaChart data={despesasSerie}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
-              <Area type="monotone" dataKey="valor" stroke={colors[4]} fill={colors[4]} fillOpacity={0.3} />
-            </AreaChart></ResponsiveContainer>
-          </div>
-        </Card>
+        <div className="grid gap-4">
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Despesas</h3>
+            <div className="h-72">
+              <ResponsiveContainer><AreaChart data={despesasSerie}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="name" /><YAxis /><Tooltip />
+                <Area type="monotone" dataKey="valor" stroke={colors[4]} fill={colors[4]} fillOpacity={0.3} />
+              </AreaChart></ResponsiveContainer>
+            </div>
+          </Card>
+          <MoneyTable rows={despesasSerie} label="Período" file="despesas.csv" />
+        </div>
       ),
     },
     fluxo: {
@@ -411,6 +545,7 @@ function Relatorios() {
                   <TableCell className={`text-right font-semibold ${f.saldo < 0 ? "text-destructive" : ""}`}>€ {f.saldo.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
+              {!fluxo.length && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem movimentos no período.</TableCell></TableRow>}
             </TableBody></Table>
           </Card>
         </div>
@@ -419,59 +554,66 @@ function Relatorios() {
     motoristas: {
       title: "Motoristas",
       render: () => (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Faturação por motorista</h3>
-          <div className="h-80">
-            <ResponsiveContainer><BarChart data={motoristas} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={140} /><Tooltip />
-              <Bar dataKey="valor" fill={colors[0]} />
-            </BarChart></ResponsiveContainer>
-          </div>
-        </Card>
+        <div className="grid gap-4">
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Faturação por motorista</h3>
+            <div className="h-80">
+              <ResponsiveContainer><BarChart data={motoristas} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={140} /><Tooltip />
+                <Bar dataKey="valor" fill={colors[0]} />
+              </BarChart></ResponsiveContainer>
+            </div>
+          </Card>
+          <MoneyTable rows={motoristas} label="Motorista" file="motoristas.csv" />
+        </div>
       ),
     },
     veiculos: {
       title: "Veículos",
       render: () => (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Faturação por veículo</h3>
-          <div className="h-80">
-            <ResponsiveContainer><BarChart data={veiculos} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={140} /><Tooltip />
-              <Bar dataKey="valor" fill={colors[2]} />
-            </BarChart></ResponsiveContainer>
-          </div>
-        </Card>
+        <div className="grid gap-4">
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Faturação por veículo</h3>
+            <div className="h-80">
+              <ResponsiveContainer><BarChart data={veiculos} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={140} /><Tooltip />
+                <Bar dataKey="valor" fill={colors[2]} />
+              </BarChart></ResponsiveContainer>
+            </div>
+          </Card>
+          <MoneyTable rows={veiculos} label="Veículo" file="veiculos.csv" />
+        </div>
       ),
     },
     parceiros: {
       title: "Parceiros",
       render: () => (
-        <div className="grid gap-4 md:grid-cols-2">
-          <KPI label="Parceiros ativos" value={parceirosCount} />
-          <KPI label="Receita parceiros (faturas)" value={`€ ${totRec.toFixed(2)}`} hint="Filtra por entidade nas faturas" />
-        </div>
-      ),
-    },
-    clientes: {
-      title: "Clientes",
-      render: () => (
         <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <KPI label="Clientes ativos no período" value={clientesAtivos} />
-            <KPI label="Ticket médio" value={`€ ${(clientesAtivos ? totRec / clientesAtivos : 0).toFixed(2)}`} />
-            <KPI label="Serviços totais" value={so.length} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <KPI label="Parceiros ativos" value={parceirosCount} />
+            <KPI label="Receita no período" value={`€ ${totRec.toFixed(2)}`} />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="p-5"><h3 className="font-semibold mb-4">Parceiros por tipo</h3><Pizza data={parceirosPorTipo} offset={3} /></Card>
+            <CountTable rows={parceirosPorTipo} label="Tipo" unit="Parceiros" file="parceiros-tipo.csv" />
           </div>
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Top clientes por faturação</h3>
-              <Button variant="outline" size="sm" onClick={() => exportCsv(clientesRank, "clientes.csv")}>Exportar CSV</Button>
+              <h3 className="font-semibold">Lista de parceiros</h3>
+              <Button variant="outline" size="sm" onClick={() => exportCsv(partners, "parceiros.csv")}>Exportar CSV</Button>
             </div>
-            <div className="h-80">
-              <ResponsiveContainer><BarChart data={clientesRank} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis type="number" /><YAxis dataKey="name" type="category" width={160} /><Tooltip />
-                <Bar dataKey="valor" fill={colors[5]} />
-              </BarChart></ResponsiveContainer>
+            <div className="overflow-x-auto">
+              <Table><TableHeader><TableRow>
+                <TableHead>Nome</TableHead><TableHead>Tipo</TableHead><TableHead>Email</TableHead><TableHead>Telefone</TableHead>
+              </TableRow></TableHeader><TableBody>
+                {partners.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell>{p.name}</TableCell><TableCell>{p.partner_type || p.type || "—"}</TableCell>
+                    <TableCell>{p.email || "—"}</TableCell><TableCell>{p.phone || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {!partners.length && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem parceiros.</TableCell></TableRow>}
+              </TableBody></Table>
             </div>
           </Card>
         </div>
@@ -481,29 +623,13 @@ function Relatorios() {
       title: "Origem das vendas",
       render: () => (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Origem dos leads convertidos</h3>
-            <div className="h-72">
-              <ResponsiveContainer><PieChart>
-                <Pie data={origemLeads} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {origemLeads.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
-                </Pie><Legend /></PieChart></ResponsiveContainer>
-            </div>
-          </Card>
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Distribuição</h3>
-            <Table><TableHeader><TableRow>
-              <TableHead>Origem</TableHead><TableHead className="text-right">Leads</TableHead>
-            </TableRow></TableHeader><TableBody>
-              {origemLeads.map((o) => (
-                <TableRow key={o.name}><TableCell>{o.name}</TableCell><TableCell className="text-right">{o.value}</TableCell></TableRow>
-              ))}
-            </TableBody></Table>
-          </Card>
+          <Card className="p-5"><h3 className="font-semibold mb-4">Origem dos clientes</h3><Pizza data={origemClientes} /></Card>
+          <CountTable rows={origemClientes} label="Origem" unit="Clientes" file="origem-vendas.csv" />
         </div>
       ),
     },
   };
+
 
   const resultData = useMemo(() => {
     const acc: Record<string, { servicos: number; receita: number }> = {};
@@ -578,7 +704,7 @@ function Relatorios() {
         <KPI label="Despesas" value={`€ ${totDesp.toFixed(2)}`} tone="text-destructive" />
         <KPI label="Saldo caixa" value={`€ ${(inflow - outflow).toFixed(2)}`} tone={inflow - outflow < 0 ? "text-destructive" : "text-emerald-600"} />
         <KPI label="Serviços" value={so.length} />
-        <KPI label="Leads · Conv." value={`${leads.length} · ${convRate}%`} />
+        <KPI label="Clientes · Conv." value={`${clientes.length} · ${convRate}%`} />
       </div>
 
       <Tabs defaultValue="relatorios">
