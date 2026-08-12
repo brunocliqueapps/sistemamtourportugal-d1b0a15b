@@ -247,25 +247,27 @@ function Clientes() {
           </Card>
         ))}
       </div>
+      </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="relative w-full sm:w-72">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+          <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
-            <Input type="date" className="w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo até</Label>
-            <Input type="date" className="w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
           </div>
           {(regFrom || regTo) && (
-            <Button variant="ghost" size="sm" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
           )}
         </div>
+
 
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
