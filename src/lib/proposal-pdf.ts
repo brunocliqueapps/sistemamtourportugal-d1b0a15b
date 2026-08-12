@@ -86,6 +86,28 @@ function footer(doc: jsPDF, c: any) {
 
 
 
+/** Condições Gerais (Configurações) — sempre no final do documento. */
+async function generalConditionsBlock(doc: jsPDF, y: number) {
+  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
+  const text = (company as any)?.proposal_general_conditions;
+  if (!text) return y;
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  y += 24;
+  if (y > H - 120) { doc.addPage(); y = 60; }
+  doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66);
+  doc.text("Mtour Portugal", 40, y); y += 8;
+  doc.setDrawColor(176, 141, 68).setLineWidth(1);
+  doc.line(40, y, W - 40, y); y += 16;
+  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+  doc.splitTextToSize(String(text), W - 80).forEach((l: string) => {
+    if (y > H - 60) { doc.addPage(); y = 60; }
+    doc.text(l, 40, y); y += 12;
+  });
+  doc.setTextColor(0);
+  return y + 10;
+}
+
 async function loadProposal(id: string) {
   const { data } = await supabase
     .from("proposals")
@@ -175,28 +197,12 @@ export async function generateProposalPdf(id: string) {
     y += 6;
   }
 
-  // Condições Gerais da Empresa
-  const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
-  const cSettings = company as any;
-  if (cSettings?.proposal_general_conditions) {
-    doc.setFont("helvetica", "bold").setFontSize(11);
-    doc.text("Condições Gerais", 40, y); y += 14;
-    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
-    doc.splitTextToSize(cSettings.proposal_general_conditions, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
-
-      if (y > doc.internal.pageSize.getHeight() - 60) {
-        doc.addPage();
-        y = 40;
-      }
-      doc.text(l, 40, y); y += 12; 
-    });
-    y += 10;
-  }
-
   doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
   doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
-  doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y);
+  doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y); y += 12;
+
+  y = await generalConditionsBlock(doc, y);
   doc.save(`Proposta-${p.code ?? p.id}.pdf`);
 }
 
@@ -240,7 +246,8 @@ export async function generateBudgetPdf(id: string) {
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
-  if (p.payment_terms) doc.text(p.payment_terms, 40, y);
+  if (p.payment_terms) { doc.text(p.payment_terms, 40, y); y += 12; }
+  y = await generalConditionsBlock(doc, y);
   doc.save(`Orcamento-${p.code ?? p.id}.pdf`);
 }
 
@@ -320,6 +327,9 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
       doc.text(l, 40, y); y += 12; 
     });
   }
+
+  y = await generalConditionsBlock(doc, y);
+
 
   if (opts?.output === "bloburl") return URL.createObjectURL(doc.output("blob"));
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);
