@@ -171,21 +171,23 @@ function Clientes() {
 
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-4 min-w-0">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
       <div className="flex justify-end">
-        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground">
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0 sm:overflow-visible">
+      <div className="flex gap-4 snap-x snap-mandatory sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 
         {cols.map((col) => (
           <Card
             key={col.key}
-            className={`p-4 transition-colors ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            className={`p-4 transition-colors w-[80vw] max-w-[20rem] shrink-0 snap-start sm:w-auto sm:max-w-none ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+
             onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
             onDragLeave={() => setDragOverCol((prev) => (prev === col.key ? null : prev))}
             onDrop={(e) => {
@@ -245,25 +247,27 @@ function Clientes() {
           </Card>
         ))}
       </div>
+      </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="relative w-full sm:w-72">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+          <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
-            <Input type="date" className="w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo até</Label>
-            <Input type="date" className="w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
           </div>
           {(regFrom || regTo) && (
-            <Button variant="ghost" size="sm" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
           )}
         </div>
+
 
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -273,9 +277,10 @@ function Clientes() {
         </div>
       </div>
 
-      <Card>
+      <Card className="min-w-0">
         <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[44rem]">
+
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
