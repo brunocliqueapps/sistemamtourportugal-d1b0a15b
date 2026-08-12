@@ -174,11 +174,19 @@ function Clientes() {
     <div className="p-4 sm:p-6 md:p-8 space-y-4 min-w-0">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="p-4 w-full sm:w-auto">
+          <div className="text-xs text-muted-foreground">Total de clientes</div>
+          <div className="text-2xl font-bold">{clients.filter((c: any) => !c.archived).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {clients.filter((c: any) => c.archived).length} arquivados · {filtered.length} no filtro atual
+          </div>
+        </Card>
         <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
+
 
       <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0 sm:overflow-visible">
       <div className="flex gap-4 snap-x snap-mandatory sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
