@@ -47,7 +47,7 @@ function Voucher() {
   });
   const { data: validated = [], refetch: refetchValidated } = useQuery({
     queryKey: ["proposals-voucher-validated"],
-    queryFn: async () => (await (supabase.from("proposals") as any).select("id,code,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("id,code,client_id,voucher_validated_at,clients(name)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
 
 
