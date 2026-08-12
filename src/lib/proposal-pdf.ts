@@ -19,10 +19,10 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
   doc.text("MTOUR PORTUGAL", W / 2, H / 2, { align: "center", angle: 45 });
   doc.restoreGraphicsState();
 
-  // Logo (Direito Superior)
+  // Logo (Direito Superior) — quadrado
   if (c.logo_url) {
     try {
-      doc.addImage(c.logo_url, "PNG", W - 140, 30, 100, 45);
+      doc.addImage(c.logo_url, "PNG", W - 110, 28, 70, 70);
     } catch (e) {
       console.error("Erro ao carregar logo", e);
     }
@@ -30,12 +30,11 @@ async function header(doc: jsPDF, docTitle: string, code?: string) {
 
   let y = 45;
   doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66); // Azul Marinho
-  const title = [c.legal_name ?? c.name ?? "Mtour Portugal", c.trade_name ? `"${c.trade_name}"` : null].filter(Boolean).join(" ");
-  doc.text(title, 40, y);
-  
+  doc.text(String(c.trade_name ?? c.name ?? "Mtour Portugal"), 40, y);
+
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
   y += 16;
-  [c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
+  [c.legal_name, c.address, [c.postal_code, c.city].filter(Boolean).join(" "),
    c.nif ? `NIF: ${c.nif}` : null, c.phone, c.email]
     .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
 
