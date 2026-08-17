@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore, Columns3, List } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore, Columns3, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
