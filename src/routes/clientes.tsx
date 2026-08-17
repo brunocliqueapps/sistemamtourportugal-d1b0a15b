@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore, Columns3, List } from "lucide-react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
@@ -32,8 +32,12 @@ const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const cols: { key: string; label: string }[] = [
   { key: "novo", label: "Novo" },
+  { key: "contactado", label: "Contactado" },
+  { key: "criar_roteiro", label: "Criar Roteiro" },
+  { key: "roteiro_enviado", label: "Roteiro Enviado" },
+  { key: "criar_orcamento", label: "Criar Orçamento" },
   { key: "proposta_enviada", label: "Proposta enviada" },
-  { key: "em_negociacao", label: "Em negociação" },
+  { key: "em_negociacao", label: "Em Negociação" },
   { key: "fechado", label: "Fechado" },
   { key: "perdido", label: "Perdido" },
 ];
@@ -160,6 +164,8 @@ function Clientes() {
   });
 
 
+  const [view, setView] = useState<"pipeline" | "lista">("pipeline");
+
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
     const reg = String(c.created_at ?? "").slice(0, 10);
@@ -174,27 +180,38 @@ function Clientes() {
     <div className="p-4 sm:p-6 md:p-8 space-y-4 min-w-0">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Card className="p-4 w-full sm:w-auto">
-          <div className="text-xs text-muted-foreground">Total de clientes</div>
-          <div className="text-2xl font-bold">{clients.filter((c: any) => !c.archived).length}</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {clients.filter((c: any) => c.archived).length} arquivados · {filtered.length} no filtro atual
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Card className="p-4 w-full sm:w-auto">
+            <div className="text-xs text-muted-foreground">Total de clientes</div>
+            <div className="text-2xl font-bold">{clients.filter((c: any) => !c.archived).length}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {clients.filter((c: any) => c.archived).length} arquivados · {filtered.length} no filtro atual
+            </div>
+          </Card>
+          <div className="flex gap-2">
+            <Button variant={view === "pipeline" ? "default" : "outline"} onClick={() => setView("pipeline")} className="flex-1 sm:flex-none">
+              <Columns3 className="h-4 w-4 mr-1" /> Pipeline
+            </Button>
+            <Button variant={view === "lista" ? "default" : "outline"} onClick={() => setView("lista")} className="flex-1 sm:flex-none">
+              <List className="h-4 w-4 mr-1" /> Lista de clientes
+            </Button>
           </div>
-        </Card>
-        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full sm:w-auto">
+        </div>
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full lg:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
 
 
-      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0 sm:overflow-visible">
-      <div className="flex gap-4 snap-x snap-mandatory sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {view === "pipeline" && (
+      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
+      <div className="flex gap-4 snap-x snap-mandatory">
 
         {cols.map((col) => (
           <Card
             key={col.key}
-            className={`p-4 transition-colors w-[80vw] max-w-[20rem] shrink-0 snap-start sm:w-auto sm:max-w-none ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            className={`p-4 transition-colors w-[80vw] max-w-[18rem] sm:w-[17rem] shrink-0 snap-start ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
 
             onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
             onDragLeave={() => setDragOverCol((prev) => (prev === col.key ? null : prev))}
@@ -256,7 +273,9 @@ function Clientes() {
         ))}
       </div>
       </div>
+      )}
 
+      {view === "lista" && (<>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div className="relative col-span-2 w-full sm:w-72">
@@ -342,6 +361,7 @@ function Clientes() {
         </Table>
         </div>
       </Card>
+      </>)}
 
       <Dialog open={open} onOpenChange={(v) => {
         if (!v && hasUnsavedChanges) {
