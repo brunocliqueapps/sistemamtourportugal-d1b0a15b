@@ -36,6 +36,12 @@ export const Route = createFileRoute("/orcamento")({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Formas de pagamento disponíveis para escolha. */
+const PAYMENT_METHODS: string[] = [
+  "Transferência bancária via Wise",
+  "Depósito em conta bancária em Portugal",
+];
+
 type Stage = { label: string; pct: any };
 const DEFAULT_STAGES: Stage[] = [
   { label: "Aprovação da Proposta", pct: 30 },
