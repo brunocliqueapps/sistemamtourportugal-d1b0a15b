@@ -8,9 +8,12 @@ import {
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell, MessageSquare,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { Badge } from "@/components/ui/badge";
 
 
 type Item = { to: string; label: string; icon: any; module: ModuleKey };
@@ -58,9 +61,30 @@ const groups: Group[] = [
   ]},
 ];
 
+/** Serviços confirmados que começam hoje, amanhã, em 2 ou 3 dias. */
+function useAgendaAlert() {
+  const { data = 0 } = useQuery({
+    queryKey: ["agenda-alert-count"],
+    refetchInterval: 5 * 60 * 1000,
+    queryFn: async () => {
+      const from = new Date().toISOString().slice(0, 10);
+      const to = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      const { count } = await supabase
+        .from("service_orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["agendado", "confirmado", "motorista_designado"])
+        .gte("service_date", from)
+        .lte("service_date", to);
+      return count ?? 0;
+    },
+  });
+  return data;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
+  const agendaAlert = useAgendaAlert();
   const { can, loading: permsLoading, error: permsError } = usePermissions();
   const loc = useLocation();
   const { hasUnsavedChanges } = useUnsavedChanges();
@@ -119,6 +143,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}>
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="truncate">{n.label}</span>
+                  {n.to === "/agenda" && agendaAlert > 0 && (
+                    <Badge className="ml-auto shrink-0 bg-destructive text-destructive-foreground px-1.5 py-0 text-[10px]"
+                      title={`${agendaAlert} serviço(s) confirmado(s) nos próximos 3 dias`}>
+                      {agendaAlert}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}

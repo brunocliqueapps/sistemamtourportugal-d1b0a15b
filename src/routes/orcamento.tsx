@@ -36,6 +36,12 @@ export const Route = createFileRoute("/orcamento")({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Formas de pagamento disponíveis para escolha. */
+const PAYMENT_METHODS: string[] = [
+  "Transferência bancária via Wise",
+  "Depósito em conta bancária em Portugal",
+];
+
 type Stage = { label: string; pct: any };
 const DEFAULT_STAGES: Stage[] = [
   { label: "Aprovação da Proposta", pct: 30 },
@@ -111,7 +117,7 @@ function Orcamento() {
       .update({
         total_value: total,
         payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
-        payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
+        payment_terms: terms || p.payment_terms || stageTerms() || suggestPaymentTerms(days || 1),
       })
       .eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
@@ -153,7 +159,7 @@ function Orcamento() {
           passengers: p.passengers ?? p.clients?.passengers ?? null,
           origin: p.arrival_place ?? null,
           destination: p.departure_place ?? null,
-          payment_terms: stageTerms() || terms || p.payment_terms || null,
+          payment_terms: terms || p.payment_terms || stageTerms() || null,
           status: "agendado",
         });
         if (soErr) toast.error(`OS: ${soErr.message}`);
@@ -282,7 +288,14 @@ function Orcamento() {
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Forma de Pagamento</Label><Input value={terms} onChange={(e) => { setTerms(e.target.value); setHasUnsavedChanges(true); }} placeholder="" /></div>
+                <div><Label>Forma de Pagamento</Label>
+                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar forma de pagamento" /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore, Columns3, List } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, Eye, Archive, ArchiveRestore, Columns3, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { shortCode } from "@/lib/codes";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
@@ -165,6 +165,21 @@ function Clientes() {
 
 
   const [view, setView] = useState<"pipeline" | "lista">("pipeline");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
+
+  // Scroll horizontal do pipeline espelhado no topo (não é preciso descer a página)
+  const boardRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const syncing = useRef(false);
+  const syncScroll = (from: "top" | "board") => {
+    if (syncing.current) return;
+    const a = topScrollRef.current, b = boardRef.current;
+    if (!a || !b) return;
+    syncing.current = true;
+    if (from === "top") b.scrollLeft = a.scrollLeft; else a.scrollLeft = b.scrollLeft;
+    requestAnimationFrame(() => { syncing.current = false; });
+  };
 
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
@@ -174,6 +189,12 @@ function Clientes() {
     const q = search.toLowerCase();
     return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+
 
 
   return (
@@ -204,8 +225,21 @@ function Clientes() {
       </div>
 
 
-      {view === "pipeline" && (
-      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
+      {view === "pipeline" && (<>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" aria-label="Deslocar para a esquerda"
+          onClick={() => boardRef.current?.scrollBy({ left: -288, behavior: "smooth" })}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div ref={topScrollRef} onScroll={() => syncScroll("top")} className="flex-1 overflow-x-auto">
+          <div style={{ width: cols.length * 288, height: 1 }} />
+        </div>
+        <Button variant="outline" size="icon" aria-label="Deslocar para a direita"
+          onClick={() => boardRef.current?.scrollBy({ left: 288, behavior: "smooth" })}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div ref={boardRef} onScroll={() => syncScroll("board")} className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
       <div className="flex gap-4 snap-x snap-mandatory">
 
         {cols.map((col) => (
@@ -273,32 +307,32 @@ function Clientes() {
         ))}
       </div>
       </div>
-      )}
+      </>)}
 
       {view === "lista" && (<>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
-            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => { setRegFrom(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo até</Label>
-            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => { setRegTo(e.target.value); setPage(1); }} />
           </div>
           {(regFrom || regTo) && (
-            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); setPage(1); }}>Limpar datas</Button>
           )}
         </div>
 
 
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
+            <Switch checked={showArchivedList} onCheckedChange={(v) => { setShowArchivedList(v); setPage(1); }} />
             Mostrar apenas arquivados
           </label>
         </div>
@@ -321,7 +355,7 @@ function Clientes() {
           <TableBody>
             {isLoading && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
             {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
-            {filtered.map((c: any) => (
+            {pageRows.map((c: any) => (
               <TableRow key={c.id} className={c.archived ? "opacity-60" : ""}>
                 <TableCell className="font-medium">
                   {c.name}
@@ -360,6 +394,22 @@ function Clientes() {
           </TableBody>
         </Table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t p-3 text-sm">
+            <span className="text-muted-foreground">
+              {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length} clientes
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              </Button>
+              <span className="text-muted-foreground">Página {currentPage} de {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>
+                Seguinte <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
       </>)}
 
