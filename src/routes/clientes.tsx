@@ -355,7 +355,7 @@ function Clientes() {
           <TableBody>
             {isLoading && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
             {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
-            {filtered.map((c: any) => (
+            {pageRows.map((c: any) => (
               <TableRow key={c.id} className={c.archived ? "opacity-60" : ""}>
                 <TableCell className="font-medium">
                   {c.name}
