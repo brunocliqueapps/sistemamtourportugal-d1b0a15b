@@ -165,6 +165,21 @@ function Clientes() {
 
 
   const [view, setView] = useState<"pipeline" | "lista">("pipeline");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
+
+  // Scroll horizontal do pipeline espelhado no topo (não é preciso descer a página)
+  const boardRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const syncing = useRef(false);
+  const syncScroll = (from: "top" | "board") => {
+    if (syncing.current) return;
+    const a = topScrollRef.current, b = boardRef.current;
+    if (!a || !b) return;
+    syncing.current = true;
+    if (from === "top") b.scrollLeft = a.scrollLeft; else a.scrollLeft = b.scrollLeft;
+    requestAnimationFrame(() => { syncing.current = false; });
+  };
 
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
@@ -174,6 +189,12 @@ function Clientes() {
     const q = search.toLowerCase();
     return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+
 
 
   return (
