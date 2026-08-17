@@ -199,7 +199,7 @@ function Clientes() {
         {cols.map((col) => (
           <Card
             key={col.key}
-            className={`p-4 transition-colors w-[80vw] max-w-[20rem] shrink-0 snap-start sm:w-auto sm:max-w-none ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
+            className={`p-4 transition-colors w-[80vw] max-w-[18rem] sm:w-[17rem] shrink-0 snap-start ${dragOverCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""}`}
 
             onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
             onDragLeave={() => setDragOverCol((prev) => (prev === col.key ? null : prev))}
