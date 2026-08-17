@@ -164,6 +164,8 @@ function Clientes() {
   });
 
 
+  const [view, setView] = useState<"pipeline" | "lista">("pipeline");
+
   const filtered = clients.filter((c: any) => {
     if (showArchivedList && !c.archived) return false;
     const reg = String(c.created_at ?? "").slice(0, 10);
