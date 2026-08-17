@@ -282,7 +282,14 @@ function Orcamento() {
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Forma de Pagamento</Label><Input value={terms} onChange={(e) => { setTerms(e.target.value); setHasUnsavedChanges(true); }} placeholder="" /></div>
+                <div><Label>Forma de Pagamento</Label>
+                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar forma de pagamento" /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="text-sm font-semibold">Condições de pagamento (personalizáveis)</div>
