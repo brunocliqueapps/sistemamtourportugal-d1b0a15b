@@ -232,7 +232,7 @@ function Propostas() {
                 <TableCell>{p.days_count ?? "—"}</TableCell>
                 
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
-                  <Button size="icon" variant="ghost" title="PDF da proposta" onClick={() => generateProposalPdf(p.id, { variant: "roteiro" }).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="PDF do roteiro" onClick={() => generateProposalPdf(p.id, { variant: "roteiro" }).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
                   {locked ? (
                     <Badge variant="outline" className="ml-1"><Lock className="h-3 w-3 mr-1" /> Só admin</Badge>
