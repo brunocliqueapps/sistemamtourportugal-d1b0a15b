@@ -346,6 +346,7 @@ function Clientes() {
         </Table>
         </div>
       </Card>
+      </>)}
 
       <Dialog open={open} onOpenChange={(v) => {
         if (!v && hasUnsavedChanges) {
