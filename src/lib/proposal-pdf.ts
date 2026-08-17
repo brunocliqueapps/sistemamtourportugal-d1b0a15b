@@ -204,10 +204,15 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa")
 }
 
 
-export async function generateProposalPdf(id: string) {
+/**
+ * PDF do roteiro/proposta.
+ * variant "roteiro" (validação do cliente): título "ROTEIRO", sem valores nem condições gerais.
+ */
+export async function generateProposalPdf(id: string, opts?: { variant?: "proposta" | "roteiro" }) {
+  const isRoteiro = opts?.variant === "roteiro";
   const p = await loadProposal(id);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  let y = await header(doc, "PROPOSTA", p.code);
+  let y = await header(doc, isRoteiro ? "ROTEIRO" : "PROPOSTA", p.code);
   y = clientBlock(doc, p, y);
   y = travelBlock(doc, p, y);
   y = itineraryBlock(doc, p, y);
@@ -218,13 +223,15 @@ export async function generateProposalPdf(id: string) {
     y += 6;
   }
 
-  doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
-  doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
-  doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
-  doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y); y += 12;
+  if (!isRoteiro) {
+    doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
+    doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
+    doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
+    doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y); y += 12;
+    y = await generalConditionsBlock(doc, y);
+  }
 
-  y = await generalConditionsBlock(doc, y);
-  doc.save(`Proposta-${p.code ?? p.id}.pdf`);
+  doc.save(`${isRoteiro ? "Roteiro" : "Proposta"}-${p.code ?? p.id}.pdf`);
 }
 
 export async function generateBudgetPdf(id: string) {
