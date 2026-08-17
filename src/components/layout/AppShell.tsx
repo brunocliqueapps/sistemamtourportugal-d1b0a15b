@@ -61,9 +61,30 @@ const groups: Group[] = [
   ]},
 ];
 
+/** Serviços confirmados que começam hoje, amanhã, em 2 ou 3 dias. */
+function useAgendaAlert() {
+  const { data = 0 } = useQuery({
+    queryKey: ["agenda-alert-count"],
+    refetchInterval: 5 * 60 * 1000,
+    queryFn: async () => {
+      const from = new Date().toISOString().slice(0, 10);
+      const to = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      const { count } = await supabase
+        .from("service_orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["agendado", "confirmado", "motorista_designado"])
+        .gte("service_date", from)
+        .lte("service_date", to);
+      return count ?? 0;
+    },
+  });
+  return data;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
+  const agendaAlert = useAgendaAlert();
   const { can, loading: permsLoading, error: permsError } = usePermissions();
   const loc = useLocation();
   const { hasUnsavedChanges } = useUnsavedChanges();
