@@ -192,8 +192,9 @@ function Clientes() {
       </div>
 
 
-      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0 sm:overflow-visible">
-      <div className="flex gap-4 snap-x snap-mandatory sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {view === "pipeline" && (
+      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
+      <div className="flex gap-4 snap-x snap-mandatory">
 
         {cols.map((col) => (
           <Card
