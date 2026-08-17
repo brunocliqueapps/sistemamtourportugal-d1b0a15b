@@ -143,6 +143,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}>
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="truncate">{n.label}</span>
+                  {n.to === "/agenda" && agendaAlert > 0 && (
+                    <Badge className="ml-auto shrink-0 bg-destructive text-destructive-foreground px-1.5 py-0 text-[10px]"
+                      title={`${agendaAlert} serviço(s) confirmado(s) nos próximos 3 dias`}>
+                      {agendaAlert}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}
