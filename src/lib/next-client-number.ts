@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Só aceita o padrão curto C1..C99999 — ignora números antigos em formato de data. */
 function toNum(v?: string | null) {
-  if (!v) return 0;
-  const m = String(v).match(/(\d+)/);
+  const m = String(v ?? "").match(/^C(\d{1,5})$/i);
   return m ? Number(m[1]) : 0;
 }
 
