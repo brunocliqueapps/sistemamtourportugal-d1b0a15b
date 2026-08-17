@@ -8,9 +8,12 @@ import {
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell, MessageSquare,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { Badge } from "@/components/ui/badge";
 
 
 type Item = { to: string; label: string; icon: any; module: ModuleKey };
