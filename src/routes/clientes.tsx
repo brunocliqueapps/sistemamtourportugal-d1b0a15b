@@ -260,6 +260,7 @@ function Clientes() {
         ))}
       </div>
       </div>
+      )}
 
       {view === "lista" && (<>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
