@@ -314,25 +314,25 @@ function Clientes() {
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
-            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => setRegFrom(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regFrom} onChange={(e) => { setRegFrom(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo até</Label>
-            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => setRegTo(e.target.value)} />
+            <Input type="date" className="w-full sm:w-[9.5rem]" value={regTo} onChange={(e) => { setRegTo(e.target.value); setPage(1); }} />
           </div>
           {(regFrom || regTo) && (
-            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); }}>Limpar datas</Button>
+            <Button variant="ghost" size="sm" className="col-span-2 sm:col-auto" onClick={() => { setRegFrom(""); setRegTo(""); setPage(1); }}>Limpar datas</Button>
           )}
         </div>
 
 
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Switch checked={showArchivedList} onCheckedChange={setShowArchivedList} />
+            <Switch checked={showArchivedList} onCheckedChange={(v) => { setShowArchivedList(v); setPage(1); }} />
             Mostrar apenas arquivados
           </label>
         </div>
