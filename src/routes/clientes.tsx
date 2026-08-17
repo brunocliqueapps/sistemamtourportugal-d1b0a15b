@@ -178,15 +178,25 @@ function Clientes() {
     <div className="p-4 sm:p-6 md:p-8 space-y-4 min-w-0">
       <PageHeader title="Clientes" description="Pipeline comercial e ficha completa de cada cliente." />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Card className="p-4 w-full sm:w-auto">
-          <div className="text-xs text-muted-foreground">Total de clientes</div>
-          <div className="text-2xl font-bold">{clients.filter((c: any) => !c.archived).length}</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {clients.filter((c: any) => c.archived).length} arquivados · {filtered.length} no filtro atual
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Card className="p-4 w-full sm:w-auto">
+            <div className="text-xs text-muted-foreground">Total de clientes</div>
+            <div className="text-2xl font-bold">{clients.filter((c: any) => !c.archived).length}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {clients.filter((c: any) => c.archived).length} arquivados · {filtered.length} no filtro atual
+            </div>
+          </Card>
+          <div className="flex gap-2">
+            <Button variant={view === "pipeline" ? "default" : "outline"} onClick={() => setView("pipeline")} className="flex-1 sm:flex-none">
+              <Columns3 className="h-4 w-4 mr-1" /> Pipeline
+            </Button>
+            <Button variant={view === "lista" ? "default" : "outline"} onClick={() => setView("lista")} className="flex-1 sm:flex-none">
+              <List className="h-4 w-4 mr-1" /> Lista de clientes
+            </Button>
           </div>
-        </Card>
-        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full sm:w-auto">
+        </div>
+        <Button onClick={() => { setEditing(null); setForm(emptyClient); setOpen(true); setHasUnsavedChanges(false); }} className="gradient-gold text-gold-foreground w-full lg:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
