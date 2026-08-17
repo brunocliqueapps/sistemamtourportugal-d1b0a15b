@@ -225,8 +225,21 @@ function Clientes() {
       </div>
 
 
-      {view === "pipeline" && (
-      <div className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
+      {view === "pipeline" && (<>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" aria-label="Deslocar para a esquerda"
+          onClick={() => boardRef.current?.scrollBy({ left: -288, behavior: "smooth" })}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div ref={topScrollRef} onScroll={() => syncScroll("top")} className="flex-1 overflow-x-auto">
+          <div style={{ width: cols.length * 288, height: 1 }} />
+        </div>
+        <Button variant="outline" size="icon" aria-label="Deslocar para a direita"
+          onClick={() => boardRef.current?.scrollBy({ left: 288, behavior: "smooth" })}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div ref={boardRef} onScroll={() => syncScroll("board")} className="-mx-4 px-4 overflow-x-auto pb-2 sm:mx-0 sm:px-0">
       <div className="flex gap-4 snap-x snap-mandatory">
 
         {cols.map((col) => (
