@@ -117,7 +117,7 @@ function Orcamento() {
       .update({
         total_value: total,
         payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
-        payment_terms: stageTerms() || terms || p.payment_terms || suggestPaymentTerms(days || 1),
+        payment_terms: terms || p.payment_terms || stageTerms() || suggestPaymentTerms(days || 1),
       })
       .eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
@@ -159,7 +159,7 @@ function Orcamento() {
           passengers: p.passengers ?? p.clients?.passengers ?? null,
           origin: p.arrival_place ?? null,
           destination: p.departure_place ?? null,
-          payment_terms: stageTerms() || terms || p.payment_terms || null,
+          payment_terms: terms || p.payment_terms || stageTerms() || null,
           status: "agendado",
         });
         if (soErr) toast.error(`OS: ${soErr.message}`);
