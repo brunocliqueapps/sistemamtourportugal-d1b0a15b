@@ -366,6 +366,7 @@ function Clientes() {
             {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {pageRows.map((c: any) => (
               <TableRow key={c.id} className={c.archived ? "opacity-60" : ""}>
+                <TableCell className="font-mono text-xs text-muted-foreground">{shortCode(c.client_number)}</TableCell>
                 <TableCell className="font-medium">
                   {c.name}
                   {c.archived && <Badge variant="secondary" className="ml-2">Arquivado</Badge>}
