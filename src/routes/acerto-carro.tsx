@@ -47,7 +47,10 @@ const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
 const nameFromEmail = (email: string) =>
   String(email).split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+type LineRow = SettlementLine & { srcTable?: string; srcId?: string; manual?: any };
+
 const INCOME_ORIGINS = [
+
   "TVDE (Uber/Bolt)",
   "Serviço privado",
   "Roteiro Mtour",
@@ -203,16 +206,16 @@ function AcertoCarro() {
       const vExpenses = expensesRaw.filter((e: any) => vehicleOfExpense(e) === v.id);
       const vManual = manual.filter((m: any) => m.vehicle_id === v.id);
 
-      const incomes: SettlementLine[] = [];
+      const incomes: LineRow[] = [];
       for (const e of vEarnings) {
         const net = Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0)
           - Number(e.commissions || 0) - Number(e.other_deductions || 0);
         const s: any = shiftById.get(e.tvde_shift_id);
-        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, date: s?.shift_date ?? null, detail: "—", amount: net });
+        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, date: s?.shift_date ?? null, detail: "—", amount: net, srcTable: "tvde_earnings", srcId: e.id });
       }
       const incomeTvde = incomes.reduce((a, l) => a + l.amount, 0);
 
-      const serviceLines: SettlementLine[] = vOrders.map((o: any) => ({
+      const serviceLines: LineRow[] = vOrders.map((o: any) => ({
         label: o.operation_type === "privado" ? "Serviço Privado / Roteiro Mtour" : `Serviço · ${o.operation_type ?? "outro"}`,
         date: o.service_date ?? null,
         detail: `${o.oc_code ?? ""}`.trim() || "—",
@@ -225,26 +228,28 @@ function AcertoCarro() {
       const manualDate = (m: any) => m.entry_date ?? (m.created_at ? String(m.created_at).slice(0, 10) : null);
       const manualDetail = (m: any) => [m.description, m.invoice_number ? `Fatura ${m.invoice_number}` : null, `por ${authorName(m.created_by)}`]
         .filter(Boolean).join(" · ");
-      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({
+      const manualInLines: LineRow[] = manualIn.map((m: any) => ({
         label: m.origin === "Outros" && m.other_label ? `Outros · ${m.other_label}` : (m.origin || "Lançamento manual"),
         date: manualDate(m),
         detail: manualDetail(m) || "—",
         amount: Number(m.amount || 0),
+        srcTable: "car_settlement_entries", srcId: m.id, manual: m,
       }));
 
       const incomeManual = manualInLines.reduce((a, l) => a + l.amount, 0);
 
-      const expenseLines: SettlementLine[] = vExpenses.map((e: any) => ({
+      const expenseLines: LineRow[] = vExpenses.map((e: any) => ({
         label: String(e.category ?? "Despesa"),
         date: e.created_at ? String(e.created_at).slice(0, 10) : null,
         detail: e.description ?? "—",
         amount: Number(e.amount || 0),
       }));
-      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => {
+      const manualOutLines: LineRow[] = manualOut.map((m: any) => {
         const cc = costCenters.find((c: any) => c.id === m.cost_center_id);
         const label = cc ? cc.name : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
-        return { label, date: manualDate(m), detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
+        return { label, date: manualDate(m), detail: manualDetail(m) || "—", amount: Number(m.amount || 0), srcTable: "car_settlement_entries", srcId: m.id, manual: m };
       });
+
 
 
       const allIncomes = [...incomes, ...serviceLines, ...manualInLines];
@@ -374,6 +379,22 @@ function AcertoCarro() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /** Remove um registo da linha (lançamento manual ou ganho TVDE). */
+  const delRow = useMutation({
+    mutationFn: async (l: LineRow) => {
+      if (!l.srcTable || !l.srcId) throw new Error("Este registo não pode ser removido aqui.");
+      const { error } = await supabase.from(l.srcTable as any).delete().eq("id", l.srcId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registo removido");
+      qc.invalidateQueries({ queryKey: ["ac-manual"] });
+      qc.invalidateQueries({ queryKey: ["ac-earnings"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
   function openEdit(r: any, m: any) {
     setEditingId(m.id);
     setEntry({
@@ -481,24 +502,35 @@ function AcertoCarro() {
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Entradas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
-                        {r.allIncomes.map((l, i) => (
-                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                        {(r.allIncomes as LineRow[]).map((l, i) => (
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
+                            {isAdmin && <TableCell className="text-right whitespace-nowrap">
+                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                            </TableCell>}
+                          </TableRow>
                         ))}
-                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
+                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
                   </div>
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Saídas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
-                        {r.allExpenses.map((l, i) => (
-                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                        {(r.allExpenses as LineRow[]).map((l, i) => (
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
+                            {isAdmin && <TableCell className="text-right whitespace-nowrap">
+                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                            </TableCell>}
+                          </TableRow>
                         ))}
-                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
+                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
+
                       </TableBody>
                     </Table>
                   </div>
