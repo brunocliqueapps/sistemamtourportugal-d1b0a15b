@@ -270,8 +270,8 @@ function AcertoCarro() {
         ? settlement?.driver_pct
         : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
       const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const companyAmount = pct === null ? netProfit : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      const driverAmount = pct === null ? 0 : netProfit - companyAmount;
+      const companyAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
+      const driverAmount = netProfit - companyAmount;
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
@@ -550,8 +550,8 @@ function AcertoCarro() {
                       value={r.pct ?? ""}
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
+                  <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold">{eur(r.driverAmount)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.pct === null ? "—" : eur(r.companyAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold">{r.pct === null ? "—" : eur(r.driverAmount)}</div></div>
                 </div>
 
                 <div>
@@ -589,8 +589,8 @@ function AcertoCarro() {
                       <TableCell className="text-right">{eur(h.expenses_total)}</TableCell>
                       <TableCell className="text-right">{eur(h.rental_cost)}</TableCell>
                       <TableCell className="text-right font-medium">{eur(h.net_profit)}</TableCell>
-                      <TableCell className="text-right">{h.driver_pct === null ? "—" : eur(h.driver_amount)}</TableCell>
-                      <TableCell className="text-right">{eur(h.company_amount)}</TableCell>
+                      <TableCell className="text-right">{eur(h.driver_amount)}</TableCell>
+                      <TableCell className="text-right">{h.driver_pct === null ? "—" : eur(h.company_amount)}</TableCell>
                       <TableCell>{h.closed_at ? <Badge className="bg-emerald-600 text-white">Fechada</Badge> : <Badge variant="outline">Em curso</Badge>}</TableCell>
                       <TableCell className="max-w-xs text-sm text-muted-foreground">{h.details ?? "—"}</TableCell>
                     </TableRow>
