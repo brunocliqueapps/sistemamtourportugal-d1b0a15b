@@ -348,7 +348,7 @@ function Clientes() {
 
       <Card className="min-w-0">
         <div className="overflow-x-auto">
-        <Table className="min-w-[44rem]">
+        <Table className="min-w-[50rem]">
 
           <TableHeader>
             <TableRow>
