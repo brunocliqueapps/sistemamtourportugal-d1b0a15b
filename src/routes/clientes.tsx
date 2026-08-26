@@ -322,7 +322,7 @@ function Clientes() {
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+            <Input placeholder="Procurar por nome, n.º, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
