@@ -229,7 +229,12 @@ function AcertoCarro() {
         detail: e.description ?? "—",
         amount: Number(e.amount || 0),
       }));
-      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => ({ label: "Saída manual", detail: m.description ?? "—", amount: Number(m.amount || 0) }));
+      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => {
+        const cc = costCenters.find((c: any) => c.id === m.cost_center_id);
+        const label = cc ? `Custo · ${cc.name}` : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
+        return { label, detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
+      });
+
 
       const allIncomes = [...incomes, ...serviceLines, ...manualInLines];
       const allExpenses = [...expenseLines, ...manualOutLines];
