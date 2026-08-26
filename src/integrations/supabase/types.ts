@@ -116,6 +116,128 @@ export type Database = {
         }
         Relationships: []
       }
+      car_settlement_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kind: string
+          vehicle_id: string
+          week_start: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          vehicle_id: string
+          week_start: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          vehicle_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_settlement_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_settlements: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          company_amount: number
+          created_at: string
+          details: string | null
+          driver_amount: number
+          driver_id: string | null
+          driver_pct: number | null
+          expenses_total: number
+          id: string
+          income_manual: number
+          income_services: number
+          income_tvde: number
+          net_profit: number
+          rental_cost: number
+          updated_at: string
+          vehicle_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_amount?: number
+          created_at?: string
+          details?: string | null
+          driver_amount?: number
+          driver_id?: string | null
+          driver_pct?: number | null
+          expenses_total?: number
+          id?: string
+          income_manual?: number
+          income_services?: number
+          income_tvde?: number
+          net_profit?: number
+          rental_cost?: number
+          updated_at?: string
+          vehicle_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_amount?: number
+          created_at?: string
+          details?: string | null
+          driver_amount?: number
+          driver_id?: string | null
+          driver_pct?: number | null
+          expenses_total?: number
+          id?: string
+          income_manual?: number
+          income_services?: number
+          income_tvde?: number
+          net_profit?: number
+          rental_cost?: number
+          updated_at?: string
+          vehicle_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_settlements_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_settlements_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_movements: {
         Row: {
           amount: number
