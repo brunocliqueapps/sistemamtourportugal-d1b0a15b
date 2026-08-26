@@ -502,24 +502,35 @@ function AcertoCarro() {
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Entradas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
-                        {r.allIncomes.map((l, i) => (
-                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                        {(r.allIncomes as LineRow[]).map((l, i) => (
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
+                            {isAdmin && <TableCell className="text-right whitespace-nowrap">
+                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                            </TableCell>}
+                          </TableRow>
                         ))}
-                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
+                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
                   </div>
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Saídas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
-                        {r.allExpenses.map((l, i) => (
-                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                        {(r.allExpenses as LineRow[]).map((l, i) => (
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
+                            {isAdmin && <TableCell className="text-right whitespace-nowrap">
+                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                            </TableCell>}
+                          </TableRow>
                         ))}
-                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
+                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
+
                       </TableBody>
                     </Table>
                   </div>
