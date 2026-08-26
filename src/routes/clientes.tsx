@@ -191,7 +191,11 @@ function Clientes() {
     if (regFrom && (!reg || reg < regFrom)) return false;
     if (regTo && (!reg || reg > regTo)) return false;
     const q = search.toLowerCase();
-    return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+    return !q ||
+      c.name?.toLowerCase().includes(q) ||
+      c.nif?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.client_number?.toLowerCase().includes(q);
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
