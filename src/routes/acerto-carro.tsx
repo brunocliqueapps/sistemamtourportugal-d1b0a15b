@@ -376,7 +376,7 @@ function AcertoCarro() {
                       </>
                     )}
                     {isAdmin && closed && (
-                      <Button size="sm" variant="outline" onClick={() => reopen.mutate(r.settlement.id)}><Unlock className="h-4 w-4 mr-1" /> Reabrir</Button>
+                      <Button size="sm" variant="outline" onClick={() => reopen.mutate((r.settlement as any).id)}><Unlock className="h-4 w-4 mr-1" /> Reabrir</Button>
                     )}
                   </div>
                 </div>
