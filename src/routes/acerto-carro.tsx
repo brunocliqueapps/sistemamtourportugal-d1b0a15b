@@ -379,6 +379,22 @@ function AcertoCarro() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /** Remove um registo da linha (lançamento manual ou ganho TVDE). */
+  const delRow = useMutation({
+    mutationFn: async (l: LineRow) => {
+      if (!l.srcTable || !l.srcId) throw new Error("Este registo não pode ser removido aqui.");
+      const { error } = await supabase.from(l.srcTable as any).delete().eq("id", l.srcId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registo removido");
+      qc.invalidateQueries({ queryKey: ["ac-manual"] });
+      qc.invalidateQueries({ queryKey: ["ac-earnings"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
   function openEdit(r: any, m: any) {
     setEditingId(m.id);
     setEntry({
