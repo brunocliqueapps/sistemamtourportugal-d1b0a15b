@@ -40,7 +40,7 @@ const groups: Group[] = [
   { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
     { to: "/servicos-privados", label: "Serviços Privados", icon: ClipboardCheck, module: "operacao" },
-    { to: "/tvde", label: "TVDE (Uber/Bolt)", icon: Car, module: "tvde" },
+    { to: "/acerto-carro", label: "Acerto do Carro", icon: Car, module: "tvde" },
   ]},
   { label: "Financeiro", items: [
     { to: "/financeiro", label: "Faturas", icon: Wallet, module: "financeiro" },
