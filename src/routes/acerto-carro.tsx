@@ -589,8 +589,8 @@ function AcertoCarro() {
                       <TableCell className="text-right">{eur(h.expenses_total)}</TableCell>
                       <TableCell className="text-right">{eur(h.rental_cost)}</TableCell>
                       <TableCell className="text-right font-medium">{eur(h.net_profit)}</TableCell>
-                      <TableCell className="text-right">{h.driver_pct === null ? "—" : eur(h.driver_amount)}</TableCell>
-                      <TableCell className="text-right">{eur(h.company_amount)}</TableCell>
+                      <TableCell className="text-right">{eur(h.driver_amount)}</TableCell>
+                      <TableCell className="text-right">{h.driver_pct === null ? "—" : eur(h.company_amount)}</TableCell>
                       <TableCell>{h.closed_at ? <Badge className="bg-emerald-600 text-white">Fechada</Badge> : <Badge variant="outline">Em curso</Badge>}</TableCell>
                       <TableCell className="max-w-xs text-sm text-muted-foreground">{h.details ?? "—"}</TableCell>
                     </TableRow>
