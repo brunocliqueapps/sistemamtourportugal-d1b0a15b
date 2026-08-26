@@ -475,9 +475,15 @@ function AcertoCarro() {
                   <div className="flex flex-wrap gap-2">
                     {vManual.map((m: any) => (
                       <Badge key={m.id} variant="outline" className="gap-1">
-                        {m.kind === "entrada" ? "+" : "−"} {eur(m.amount)} {m.description ? `· ${m.description}` : ""}
+                        {m.kind === "entrada" ? "+" : "−"} {eur(m.amount)}
+                        {" · "}{m.kind === "entrada"
+                          ? (m.origin === "Outros" ? `Outros: ${m.other_label ?? ""}` : (m.origin ?? "manual"))
+                          : (costCenters.find((c: any) => c.id === m.cost_center_id)?.name ?? `Outros: ${m.other_label ?? ""}`)}
+                        {m.invoice_number ? ` · Fat. ${m.invoice_number}` : ""}
+                        {` · por ${authorName(m.created_by)}`}
                         <button className="ml-1 text-destructive" onClick={() => delEntry.mutate(m.id)} title="Remover"><Trash2 className="h-3 w-3" /></button>
                       </Badge>
+
                     ))}
                   </div>
                 )}
