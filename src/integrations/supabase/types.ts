@@ -119,35 +119,54 @@ export type Database = {
       car_settlement_entries: {
         Row: {
           amount: number
+          cost_center_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
+          invoice_number: string | null
           kind: string
+          origin: string | null
+          other_label: string | null
           vehicle_id: string
           week_start: string
         }
         Insert: {
           amount?: number
+          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          invoice_number?: string | null
           kind?: string
+          origin?: string | null
+          other_label?: string | null
           vehicle_id: string
           week_start: string
         }
         Update: {
           amount?: number
+          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          invoice_number?: string | null
           kind?: string
+          origin?: string | null
+          other_label?: string | null
           vehicle_id?: string
           week_start?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "car_settlement_entries_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "car_settlement_entries_vehicle_id_fkey"
             columns: ["vehicle_id"]

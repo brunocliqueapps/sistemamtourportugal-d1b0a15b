@@ -44,6 +44,30 @@ function mondayOf(d: Date) {
 const addDays = (isoDate: string, n: number) => iso(new Date(new Date(isoDate + "T12:00:00").getTime() + n * 86400000));
 const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
 
+const INCOME_ORIGINS = [
+  "TVDE (Uber/Bolt)",
+  "Serviço privado",
+  "Roteiro Mtour",
+  "Transferência do motorista",
+  "Reembolso",
+  "Outros",
+];
+
+type EntryDraft = {
+  kind: string;
+  amount: string;
+  description: string;
+  origin: string;
+  cost_center_id: string;
+  other_label: string;
+  invoice_number: string;
+};
+const EMPTY_ENTRY: EntryDraft = {
+  kind: "entrada", amount: "", description: "",
+  origin: "", cost_center_id: "", other_label: "", invoice_number: "",
+};
+
+
 function AcertoCarro() {
   const { user } = useAuth();
   const { isAdmin } = usePermissions();
@@ -55,7 +79,25 @@ function AcertoCarro() {
   const [pctDraft, setPctDraft] = useState<Record<string, string>>({});
   const [detailDraft, setDetailDraft] = useState<Record<string, string>>({});
   const [entryFor, setEntryFor] = useState<any | null>(null);
-  const [entry, setEntry] = useState<{ kind: string; amount: string; description: string }>({ kind: "entrada", amount: "", description: "" });
+  const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
+
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["ac-cost-centers"],
+    queryFn: async () =>
+      (await supabase.from("cost_centers").select("id,name,active").order("name")).data ?? [],
+  });
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["ac-profiles"],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,email")).data ?? [],
+  });
+  const authorName = (id: string | null) => {
+    if (!id) return "—";
+    const d = drivers.find((x: any) => x.user_id === id);
+    if (d) return `${d.full_name} (motorista)`;
+    const p = profiles.find((x: any) => x.id === id);
+    return p?.full_name ?? p?.email ?? "utilizador";
+  };
+
 
   /** Registo de motorista do utilizador atual (para acesso restrito). */
   const { data: myDriver } = useQuery({
@@ -172,7 +214,14 @@ function AcertoCarro() {
 
       const manualIn = vManual.filter((m: any) => m.kind === "entrada");
       const manualOut = vManual.filter((m: any) => m.kind === "saida");
-      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({ label: "Lançamento manual", detail: m.description ?? "—", amount: Number(m.amount || 0) }));
+      const manualDetail = (m: any) => [m.description, m.invoice_number ? `Fatura ${m.invoice_number}` : null, `por ${authorName(m.created_by)}`]
+        .filter(Boolean).join(" · ");
+      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({
+        label: m.origin === "Outros" && m.other_label ? `Outros · ${m.other_label}` : (m.origin || "Lançamento manual"),
+        detail: manualDetail(m) || "—",
+        amount: Number(m.amount || 0),
+      }));
+
       const incomeManual = manualInLines.reduce((a, l) => a + l.amount, 0);
 
       const expenseLines: SettlementLine[] = vExpenses.map((e: any) => ({
@@ -180,7 +229,12 @@ function AcertoCarro() {
         detail: e.description ?? "—",
         amount: Number(e.amount || 0),
       }));
-      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => ({ label: "Saída manual", detail: m.description ?? "—", amount: Number(m.amount || 0) }));
+      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => {
+        const cc = costCenters.find((c: any) => c.id === m.cost_center_id);
+        const label = cc ? `Custo · ${cc.name}` : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
+        return { label, detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
+      });
+
 
       const allIncomes = [...incomes, ...serviceLines, ...manualInLines];
       const allExpenses = [...expenseLines, ...manualOutLines];
@@ -211,7 +265,7 @@ function AcertoCarro() {
         details: settlement?.closed_at ? (settlement?.details ?? "") : (detailDraft[v.id] ?? settlement?.details ?? ""),
       };
     });
-  }, [vehicles, shifts, earnings, orders, expensesRaw, manual, settlements, drivers, vehicleDrivers, pctDraft, detailDraft]);
+  }, [vehicles, shifts, earnings, orders, expensesRaw, manual, settlements, drivers, vehicleDrivers, costCenters, profiles, pctDraft, detailDraft]);
 
   const term = search.trim().toLowerCase();
   const visible = rows
@@ -270,19 +324,28 @@ function AcertoCarro() {
   const addEntry = useMutation({
     mutationFn: async () => {
       if (!Number(entry.amount)) throw new Error("Valor obrigatório.");
+      if (entry.kind === "entrada" && !entry.origin) throw new Error("Selecione a origem.");
+      if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
+      const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
+      if (isOther && !entry.other_label.trim()) throw new Error("Indique qual é o 'Outros'.");
       const { error } = await supabase.from("car_settlement_entries").insert({
         vehicle_id: entryFor.vehicle.id, week_start: weekStart, kind: entry.kind,
         amount: Number(entry.amount), description: entry.description || null, created_by: user!.id,
+        origin: entry.kind === "entrada" ? entry.origin : null,
+        cost_center_id: entry.kind === "saida" && entry.cost_center_id !== "outros" ? entry.cost_center_id : null,
+        other_label: isOther ? entry.other_label.trim() : null,
+        invoice_number: entry.invoice_number.trim() || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Lançamento registado");
-      setEntryFor(null); setEntry({ kind: "entrada", amount: "", description: "" });
+      setEntryFor(null); setEntry({ ...EMPTY_ENTRY });
       qc.invalidateQueries({ queryKey: ["ac-manual"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const delEntry = useMutation({
     mutationFn: async (id: string) => {
@@ -412,9 +475,15 @@ function AcertoCarro() {
                   <div className="flex flex-wrap gap-2">
                     {vManual.map((m: any) => (
                       <Badge key={m.id} variant="outline" className="gap-1">
-                        {m.kind === "entrada" ? "+" : "−"} {eur(m.amount)} {m.description ? `· ${m.description}` : ""}
+                        {m.kind === "entrada" ? "+" : "−"} {eur(m.amount)}
+                        {" · "}{m.kind === "entrada"
+                          ? (m.origin === "Outros" ? `Outros: ${m.other_label ?? ""}` : (m.origin ?? "manual"))
+                          : (costCenters.find((c: any) => c.id === m.cost_center_id)?.name ?? `Outros: ${m.other_label ?? ""}`)}
+                        {m.invoice_number ? ` · Fat. ${m.invoice_number}` : ""}
+                        {` · por ${authorName(m.created_by)}`}
                         <button className="ml-1 text-destructive" onClick={() => delEntry.mutate(m.id)} title="Remover"><Trash2 className="h-3 w-3" /></button>
                       </Badge>
+
                     ))}
                   </div>
                 )}
@@ -492,7 +561,7 @@ function AcertoCarro() {
           <div className="grid gap-3">
             <div>
               <Label>Tipo</Label>
-              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v })}>
+              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v, origin: "", cost_center_id: "", other_label: "" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entrada">Entrada (ganho)</SelectItem>
@@ -500,9 +569,42 @@ function AcertoCarro() {
                 </SelectContent>
               </Select>
             </div>
+
+            {entry.kind === "entrada" ? (
+              <div>
+                <Label>Origem</Label>
+                <Select value={entry.origin} onValueChange={(v) => setEntry({ ...entry, origin: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent>
+                    {INCOME_ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Centro de custo</Label>
+                <Select value={entry.cost_center_id} onValueChange={(v) => setEntry({ ...entry, cost_center_id: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar centro de custo" /></SelectTrigger>
+                  <SelectContent>
+                    {costCenters.filter((c: any) => c.active !== false).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {((entry.kind === "entrada" && entry.origin === "Outros") || (entry.kind === "saida" && entry.cost_center_id === "outros")) && (
+              <div><Label>Qual? (Outros)</Label><Input value={entry.other_label} onChange={(e) => setEntry({ ...entry, other_label: e.target.value })} /></div>
+            )}
+
             <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} /></div>
+            <div><Label>N.º da fatura (opcional)</Label><Input value={entry.invoice_number} onChange={(e) => setEntry({ ...entry, invoice_number: e.target.value })} placeholder="Só se existir fatura" /></div>
             <div><Label>Descrição</Label><Input value={entry.description} onChange={(e) => setEntry({ ...entry, description: e.target.value })} /></div>
+            <div className="text-xs text-muted-foreground">Registado por: {authorName(user?.id ?? null)}</div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEntryFor(null)}>Cancelar</Button>
             <Button className="gradient-gold text-gold-foreground" disabled={addEntry.isPending} onClick={() => addEntry.mutate()}>Guardar</Button>
