@@ -32,6 +32,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CadastrosRouteImport } from './routes/cadastros'
 import { Route as AlertasRouteImport } from './routes/alertas'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as AcertoCarroRouteImport } from './routes/acerto-carro'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
@@ -152,6 +153,11 @@ const AgendaRoute = AgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcertoCarroRoute = AcertoCarroRouteImport.update({
+  id: '/acerto-carro',
+  path: '/acerto-carro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -176,6 +182,7 @@ const ApiPublicWhatsappWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acerto-carro': typeof AcertoCarroRoute
   '/agenda': typeof AgendaRoute
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acerto-carro': typeof AcertoCarroRoute
   '/agenda': typeof AgendaRoute
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
@@ -235,6 +243,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acerto-carro': typeof AcertoCarroRoute
   '/agenda': typeof AgendaRoute
   '/alertas': typeof AlertasRoute
   '/cadastros': typeof CadastrosRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acerto-carro'
     | '/agenda'
     | '/alertas'
     | '/cadastros'
@@ -295,6 +305,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acerto-carro'
     | '/agenda'
     | '/alertas'
     | '/cadastros'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acerto-carro'
     | '/agenda'
     | '/alertas'
     | '/cadastros'
@@ -354,6 +366,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcertoCarroRoute: typeof AcertoCarroRoute
   AgendaRoute: typeof AgendaRoute
   AlertasRoute: typeof AlertasRoute
   CadastrosRoute: typeof CadastrosRoute
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/acerto-carro': {
+      id: '/acerto-carro'
+      path: '/acerto-carro'
+      fullPath: '/acerto-carro'
+      preLoaderRoute: typeof AcertoCarroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -587,6 +607,7 @@ const OcRouteWithChildren = OcRoute._addFileChildren(OcRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcertoCarroRoute: AcertoCarroRoute,
   AgendaRoute: AgendaRoute,
   AlertasRoute: AlertasRoute,
   CadastrosRoute: CadastrosRoute,
