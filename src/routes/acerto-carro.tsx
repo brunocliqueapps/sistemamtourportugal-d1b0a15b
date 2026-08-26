@@ -203,16 +203,16 @@ function AcertoCarro() {
       const vExpenses = expensesRaw.filter((e: any) => vehicleOfExpense(e) === v.id);
       const vManual = manual.filter((m: any) => m.vehicle_id === v.id);
 
-      const incomes: SettlementLine[] = [];
+      const incomes: LineRow[] = [];
       for (const e of vEarnings) {
         const net = Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0)
           - Number(e.commissions || 0) - Number(e.other_deductions || 0);
         const s: any = shiftById.get(e.tvde_shift_id);
-        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, date: s?.shift_date ?? null, detail: "—", amount: net });
+        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, date: s?.shift_date ?? null, detail: "—", amount: net, srcTable: "tvde_earnings", srcId: e.id });
       }
       const incomeTvde = incomes.reduce((a, l) => a + l.amount, 0);
 
-      const serviceLines: SettlementLine[] = vOrders.map((o: any) => ({
+      const serviceLines: LineRow[] = vOrders.map((o: any) => ({
         label: o.operation_type === "privado" ? "Serviço Privado / Roteiro Mtour" : `Serviço · ${o.operation_type ?? "outro"}`,
         date: o.service_date ?? null,
         detail: `${o.oc_code ?? ""}`.trim() || "—",
@@ -225,26 +225,28 @@ function AcertoCarro() {
       const manualDate = (m: any) => m.entry_date ?? (m.created_at ? String(m.created_at).slice(0, 10) : null);
       const manualDetail = (m: any) => [m.description, m.invoice_number ? `Fatura ${m.invoice_number}` : null, `por ${authorName(m.created_by)}`]
         .filter(Boolean).join(" · ");
-      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({
+      const manualInLines: LineRow[] = manualIn.map((m: any) => ({
         label: m.origin === "Outros" && m.other_label ? `Outros · ${m.other_label}` : (m.origin || "Lançamento manual"),
         date: manualDate(m),
         detail: manualDetail(m) || "—",
         amount: Number(m.amount || 0),
+        srcTable: "car_settlement_entries", srcId: m.id, manual: m,
       }));
 
       const incomeManual = manualInLines.reduce((a, l) => a + l.amount, 0);
 
-      const expenseLines: SettlementLine[] = vExpenses.map((e: any) => ({
+      const expenseLines: LineRow[] = vExpenses.map((e: any) => ({
         label: String(e.category ?? "Despesa"),
         date: e.created_at ? String(e.created_at).slice(0, 10) : null,
         detail: e.description ?? "—",
         amount: Number(e.amount || 0),
       }));
-      const manualOutLines: SettlementLine[] = manualOut.map((m: any) => {
+      const manualOutLines: LineRow[] = manualOut.map((m: any) => {
         const cc = costCenters.find((c: any) => c.id === m.cost_center_id);
         const label = cc ? cc.name : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
-        return { label, date: manualDate(m), detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
+        return { label, date: manualDate(m), detail: manualDetail(m) || "—", amount: Number(m.amount || 0), srcTable: "car_settlement_entries", srcId: m.id, manual: m };
       });
+
 
 
       const allIncomes = [...incomes, ...serviceLines, ...manualInLines];
