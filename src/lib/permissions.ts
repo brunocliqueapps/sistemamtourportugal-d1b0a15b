@@ -24,6 +24,7 @@ export const ROUTE_MODULES: Record<string, ModuleKey> = {
   "/roteiro": "operacao",
   "/servicos-privados": "operacao",
   "/tvde": "tvde",
+  "/acerto-carro": "tvde",
   "/financeiro": "financeiro",
   "/conta-corrente": "conta_corrente",
   "/custos-fixos": "conta_corrente",
