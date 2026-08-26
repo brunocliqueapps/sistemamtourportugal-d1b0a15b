@@ -44,6 +44,30 @@ function mondayOf(d: Date) {
 const addDays = (isoDate: string, n: number) => iso(new Date(new Date(isoDate + "T12:00:00").getTime() + n * 86400000));
 const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
 
+const INCOME_ORIGINS = [
+  "TVDE (Uber/Bolt)",
+  "Serviço privado",
+  "Roteiro Mtour",
+  "Transferência do motorista",
+  "Reembolso",
+  "Outros",
+];
+
+type EntryDraft = {
+  kind: string;
+  amount: string;
+  description: string;
+  origin: string;
+  cost_center_id: string;
+  other_label: string;
+  invoice_number: string;
+};
+const EMPTY_ENTRY: EntryDraft = {
+  kind: "entrada", amount: "", description: "",
+  origin: "", cost_center_id: "", other_label: "", invoice_number: "",
+};
+
+
 function AcertoCarro() {
   const { user } = useAuth();
   const { isAdmin } = usePermissions();
