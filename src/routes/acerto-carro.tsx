@@ -324,19 +324,28 @@ function AcertoCarro() {
   const addEntry = useMutation({
     mutationFn: async () => {
       if (!Number(entry.amount)) throw new Error("Valor obrigatório.");
+      if (entry.kind === "entrada" && !entry.origin) throw new Error("Selecione a origem.");
+      if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
+      const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
+      if (isOther && !entry.other_label.trim()) throw new Error("Indique qual é o 'Outros'.");
       const { error } = await supabase.from("car_settlement_entries").insert({
         vehicle_id: entryFor.vehicle.id, week_start: weekStart, kind: entry.kind,
         amount: Number(entry.amount), description: entry.description || null, created_by: user!.id,
+        origin: entry.kind === "entrada" ? entry.origin : null,
+        cost_center_id: entry.kind === "saida" && entry.cost_center_id !== "outros" ? entry.cost_center_id : null,
+        other_label: isOther ? entry.other_label.trim() : null,
+        invoice_number: entry.invoice_number.trim() || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Lançamento registado");
-      setEntryFor(null); setEntry({ kind: "entrada", amount: "", description: "" });
+      setEntryFor(null); setEntry({ ...EMPTY_ENTRY });
       qc.invalidateQueries({ queryKey: ["ac-manual"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const delEntry = useMutation({
     mutationFn: async (id: string) => {
