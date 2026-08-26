@@ -8,6 +8,7 @@ const GOLD: [number, number, number] = [176, 141, 68];
 
 export interface SettlementLine {
   label: string;
+  date?: string | null;
   detail?: string;
   amount: number;
 }
@@ -81,29 +82,29 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
 
   autoTable(doc, {
     startY: y,
-    head: [["Entradas", "Detalhe", "Valor"]],
+    head: [["Data", "Entradas", "Detalhe", "Valor"]],
     body: d.incomes.length
-      ? d.incomes.map((l) => [l.label, l.detail ?? "—", eur(l.amount)])
-      : [["Sem entradas registadas", "—", eur(0)]],
-    foot: [["Total entradas", "", eur(d.incomeTotal)]],
+      ? d.incomes.map((l) => [l.date ? fmtDate(l.date) : "—", l.label, l.detail ?? "—", eur(l.amount)])
+      : [["—", "Sem entradas registadas", "—", eur(0)]],
+    foot: [["", "Total entradas", "", eur(d.incomeTotal)]],
     styles: { fontSize: 9 },
     headStyles: { fillColor: NAVY, textColor: 255 },
     footStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: "bold" },
-    columnStyles: { 2: { halign: "right" } },
+    columnStyles: { 3: { halign: "right" } },
     margin: { left: 40, right: 40 },
   });
 
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 16,
-    head: [["Saídas", "Detalhe", "Valor"]],
+    head: [["Data", "Saídas", "Detalhe", "Valor"]],
     body: d.expenses.length
-      ? d.expenses.map((l) => [l.label, l.detail ?? "—", eur(l.amount)])
-      : [["Sem saídas registadas", "—", eur(0)]],
-    foot: [["Total saídas", "", eur(d.expenseTotal)]],
+      ? d.expenses.map((l) => [l.date ? fmtDate(l.date) : "—", l.label, l.detail ?? "—", eur(l.amount)])
+      : [["—", "Sem saídas registadas", "—", eur(0)]],
+    foot: [["", "Total saídas", "", eur(d.expenseTotal)]],
     styles: { fontSize: 9 },
     headStyles: { fillColor: NAVY, textColor: 255 },
     footStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: "bold" },
-    columnStyles: { 2: { halign: "right" } },
+    columnStyles: { 3: { halign: "right" } },
     margin: { left: 40, right: 40 },
   });
 
