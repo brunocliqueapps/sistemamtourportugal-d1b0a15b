@@ -467,7 +467,7 @@ function AcertoCarro() {
           )}
           {visible.map((r) => {
             const closed = !!r.settlement?.closed_at;
-            const vManual = manual.filter((m: any) => m.vehicle_id === r.vehicle.id);
+            
             return (
               <Card key={r.vehicle.id} className="p-4 space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
