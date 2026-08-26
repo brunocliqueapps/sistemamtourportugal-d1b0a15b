@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
 import { generateSettlementPdf, type SettlementLine } from "@/lib/settlement-pdf";
-import { ChevronLeft, ChevronRight, FileDown, Lock, Plus, Search, Trash2, Unlock } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown, Lock, Pencil, Plus, Search, Trash2, Unlock } from "lucide-react";
 
 export const Route = createFileRoute("/acerto-carro")({
   component: AcertoCarro,
@@ -43,6 +43,9 @@ function mondayOf(d: Date) {
 }
 const addDays = (isoDate: string, n: number) => iso(new Date(new Date(isoDate + "T12:00:00").getTime() + n * 86400000));
 const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
+/** Deriva um nome legível a partir de um email, quando não há nome de perfil. */
+const nameFromEmail = (email: string) =>
+  String(email).split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const INCOME_ORIGINS = [
   "TVDE (Uber/Bolt)",
@@ -61,10 +64,11 @@ type EntryDraft = {
   cost_center_id: string;
   other_label: string;
   invoice_number: string;
+  entry_date: string;
 };
 const EMPTY_ENTRY: EntryDraft = {
   kind: "entrada", amount: "", description: "",
-  origin: "", cost_center_id: "", other_label: "", invoice_number: "",
+  origin: "", cost_center_id: "", other_label: "", invoice_number: "", entry_date: "",
 };
 
 
@@ -80,6 +84,7 @@ function AcertoCarro() {
   const [detailDraft, setDetailDraft] = useState<Record<string, string>>({});
   const [entryFor, setEntryFor] = useState<any | null>(null);
   const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: costCenters = [] } = useQuery({
     queryKey: ["ac-cost-centers"],
@@ -95,7 +100,9 @@ function AcertoCarro() {
     const d = drivers.find((x: any) => x.user_id === id);
     if (d) return `${d.full_name} (motorista)`;
     const p = profiles.find((x: any) => x.id === id);
-    return p?.full_name ?? p?.email ?? "utilizador";
+    if (p?.full_name) return p.full_name;
+    if (p?.email) return nameFromEmail(p.email);
+    return "utilizador";
   };
 
 
@@ -201,23 +208,26 @@ function AcertoCarro() {
         const net = Number(e.gross || 0) + Number(e.tips || 0) + Number(e.bonus || 0)
           - Number(e.commissions || 0) - Number(e.other_deductions || 0);
         const s: any = shiftById.get(e.tvde_shift_id);
-        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, detail: s?.shift_date ? fmtDate(s.shift_date) : "—", amount: net });
+        incomes.push({ label: `TVDE · ${String(e.platform ?? "").toUpperCase()}`, date: s?.shift_date ?? null, detail: "—", amount: net });
       }
       const incomeTvde = incomes.reduce((a, l) => a + l.amount, 0);
 
       const serviceLines: SettlementLine[] = vOrders.map((o: any) => ({
         label: o.operation_type === "privado" ? "Serviço Privado / Roteiro Mtour" : `Serviço · ${o.operation_type ?? "outro"}`,
-        detail: `${o.oc_code ?? ""} ${fmtDate(o.service_date)}`.trim(),
+        date: o.service_date ?? null,
+        detail: `${o.oc_code ?? ""}`.trim() || "—",
         amount: Number(o.sale_value || 0),
       }));
       const incomeServices = serviceLines.reduce((a, l) => a + l.amount, 0);
 
       const manualIn = vManual.filter((m: any) => m.kind === "entrada");
       const manualOut = vManual.filter((m: any) => m.kind === "saida");
+      const manualDate = (m: any) => m.entry_date ?? (m.created_at ? String(m.created_at).slice(0, 10) : null);
       const manualDetail = (m: any) => [m.description, m.invoice_number ? `Fatura ${m.invoice_number}` : null, `por ${authorName(m.created_by)}`]
         .filter(Boolean).join(" · ");
       const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({
         label: m.origin === "Outros" && m.other_label ? `Outros · ${m.other_label}` : (m.origin || "Lançamento manual"),
+        date: manualDate(m),
         detail: manualDetail(m) || "—",
         amount: Number(m.amount || 0),
       }));
@@ -225,14 +235,15 @@ function AcertoCarro() {
       const incomeManual = manualInLines.reduce((a, l) => a + l.amount, 0);
 
       const expenseLines: SettlementLine[] = vExpenses.map((e: any) => ({
-        label: `Despesa · ${e.category}`,
+        label: String(e.category ?? "Despesa"),
+        date: e.created_at ? String(e.created_at).slice(0, 10) : null,
         detail: e.description ?? "—",
         amount: Number(e.amount || 0),
       }));
       const manualOutLines: SettlementLine[] = manualOut.map((m: any) => {
         const cc = costCenters.find((c: any) => c.id === m.cost_center_id);
-        const label = cc ? `Custo · ${cc.name}` : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
-        return { label, detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
+        const label = cc ? cc.name : (m.other_label ? `Outros · ${m.other_label}` : "Saída manual");
+        return { label, date: manualDate(m), detail: manualDetail(m) || "—", amount: Number(m.amount || 0) };
       });
 
 
@@ -328,19 +339,26 @@ function AcertoCarro() {
       if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
       const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
       if (isOther && !entry.other_label.trim()) throw new Error("Indique qual é o 'Outros'.");
-      const { error } = await supabase.from("car_settlement_entries").insert({
+      const payload: any = {
         vehicle_id: entryFor.vehicle.id, week_start: weekStart, kind: entry.kind,
-        amount: Number(entry.amount), description: entry.description || null, created_by: user!.id,
+        amount: Number(entry.amount), description: entry.description || null,
         origin: entry.kind === "entrada" ? entry.origin : null,
         cost_center_id: entry.kind === "saida" && entry.cost_center_id !== "outros" ? entry.cost_center_id : null,
         other_label: isOther ? entry.other_label.trim() : null,
         invoice_number: entry.invoice_number.trim() || null,
-      });
-      if (error) throw error;
+        entry_date: entry.entry_date || weekStart,
+      };
+      if (editingId) {
+        const { error } = await supabase.from("car_settlement_entries").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("car_settlement_entries").insert({ ...payload, created_by: user!.id });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Lançamento registado");
-      setEntryFor(null); setEntry({ ...EMPTY_ENTRY });
+      toast.success(editingId ? "Lançamento atualizado" : "Lançamento registado");
+      setEntryFor(null); setEditingId(null); setEntry({ ...EMPTY_ENTRY });
       qc.invalidateQueries({ queryKey: ["ac-manual"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -355,6 +373,21 @@ function AcertoCarro() {
     onSuccess: () => { toast.success("Lançamento removido"); qc.invalidateQueries({ queryKey: ["ac-manual"] }); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  function openEdit(r: any, m: any) {
+    setEditingId(m.id);
+    setEntry({
+      kind: m.kind,
+      amount: String(m.amount ?? ""),
+      description: m.description ?? "",
+      origin: m.origin ?? "",
+      cost_center_id: m.cost_center_id ?? (m.kind === "saida" && m.other_label ? "outros" : ""),
+      other_label: m.other_label ?? "",
+      invoice_number: m.invoice_number ?? "",
+      entry_date: m.entry_date ?? String(m.created_at ?? "").slice(0, 10),
+    });
+    setEntryFor(r);
+  }
 
   function pdf(r: any) {
     generateSettlementPdf({
@@ -448,24 +481,24 @@ function AcertoCarro() {
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Entradas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {r.allIncomes.map((l, i) => (
-                          <TableRow key={i}><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
                         ))}
-                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={3} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
+                        {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
                   </div>
                   <div>
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Saídas</div>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {r.allExpenses.map((l, i) => (
-                          <TableRow key={i}><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
+                          <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell></TableRow>
                         ))}
-                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={3} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
+                        {r.allExpenses.length === 0 && <TableRow><TableCell colSpan={4} className="text-muted-foreground">Sem saídas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
                   </div>
@@ -480,7 +513,9 @@ function AcertoCarro() {
                           ? (m.origin === "Outros" ? `Outros: ${m.other_label ?? ""}` : (m.origin ?? "manual"))
                           : (costCenters.find((c: any) => c.id === m.cost_center_id)?.name ?? `Outros: ${m.other_label ?? ""}`)}
                         {m.invoice_number ? ` · Fat. ${m.invoice_number}` : ""}
+                        {` · ${fmtDate(m.entry_date ?? String(m.created_at ?? "").slice(0, 10))}`}
                         {` · por ${authorName(m.created_by)}`}
+                        <button className="ml-1 text-primary" onClick={() => openEdit(r, m)} title="Editar"><Pencil className="h-3 w-3" /></button>
                         <button className="ml-1 text-destructive" onClick={() => delEntry.mutate(m.id)} title="Remover"><Trash2 className="h-3 w-3" /></button>
                       </Badge>
 
@@ -555,9 +590,9 @@ function AcertoCarro() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!entryFor} onOpenChange={(o) => !o && setEntryFor(null)}>
+      <Dialog open={!!entryFor} onOpenChange={(o) => { if (!o) { setEntryFor(null); setEditingId(null); setEntry({ ...EMPTY_ENTRY }); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Lançamento manual · {entryFor?.vehicle?.plate}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar lançamento" : "Lançamento manual"} · {entryFor?.vehicle?.plate}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <div>
               <Label>Tipo</Label>
@@ -599,6 +634,10 @@ function AcertoCarro() {
               <div><Label>Qual? (Outros)</Label><Input value={entry.other_label} onChange={(e) => setEntry({ ...entry, other_label: e.target.value })} /></div>
             )}
 
+            <div>
+              <Label>Data da operação</Label>
+              <Input type="date" min={weekStart} max={weekEnd} value={entry.entry_date} onChange={(e) => setEntry({ ...entry, entry_date: e.target.value })} />
+            </div>
             <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} /></div>
             <div><Label>N.º da fatura (opcional)</Label><Input value={entry.invoice_number} onChange={(e) => setEntry({ ...entry, invoice_number: e.target.value })} placeholder="Só se existir fatura" /></div>
             <div><Label>Descrição</Label><Input value={entry.description} onChange={(e) => setEntry({ ...entry, description: e.target.value })} /></div>
@@ -606,7 +645,7 @@ function AcertoCarro() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEntryFor(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setEntryFor(null); setEditingId(null); setEntry({ ...EMPTY_ENTRY }); }}>Cancelar</Button>
             <Button className="gradient-gold text-gold-foreground" disabled={addEntry.isPending} onClick={() => addEntry.mutate()}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
