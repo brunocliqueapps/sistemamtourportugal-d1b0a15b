@@ -191,7 +191,11 @@ function Clientes() {
     if (regFrom && (!reg || reg < regFrom)) return false;
     if (regTo && (!reg || reg > regTo)) return false;
     const q = search.toLowerCase();
-    return !q || c.name?.toLowerCase().includes(q) || c.nif?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+    return !q ||
+      c.name?.toLowerCase().includes(q) ||
+      c.nif?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.client_number?.toLowerCase().includes(q);
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -318,7 +322,7 @@ function Clientes() {
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div className="relative col-span-2 w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Procurar por nome, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+            <Input placeholder="Procurar por nome, n.º, NIF ou email" className="pl-8" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Registo de</Label>
@@ -344,10 +348,11 @@ function Clientes() {
 
       <Card className="min-w-0">
         <div className="overflow-x-auto">
-        <Table className="min-w-[44rem]">
+        <Table className="min-w-[50rem]">
 
           <TableHeader>
             <TableRow>
+              <TableHead>N.º</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Número de Pessoas</TableHead>
               <TableHead>Data da Chegada</TableHead>
@@ -357,10 +362,11 @@ function Clientes() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
-            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem clientes.</TableCell></TableRow>}
             {pageRows.map((c: any) => (
               <TableRow key={c.id} className={c.archived ? "opacity-60" : ""}>
+                <TableCell className="font-mono text-xs text-muted-foreground">{shortCode(c.client_number)}</TableCell>
                 <TableCell className="font-medium">
                   {c.name}
                   {c.archived && <Badge variant="secondary" className="ml-2">Arquivado</Badge>}
