@@ -115,8 +115,8 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
   if (d.rentalCost > 0) resume.push(["Aluguer da viatura", `- ${eur(d.rentalCost)}`]);
   resume.push(["Lucro líquido", eur(d.netProfit)]);
   if (d.driverPct !== null && d.driverPct !== undefined) {
-    resume.push([`A pagar ao motorista (${d.driverPct}%)`, eur(d.driverAmount)]);
-    resume.push(["Crédito ao locatário / empresa", eur(d.companyAmount)]);
+    resume.push([`Crédito a empresa (${d.driverPct}%)`, eur(d.companyAmount)]);
+    resume.push(["A pagar ao motorista", eur(d.driverAmount)]);
   }
 
   autoTable(doc, {

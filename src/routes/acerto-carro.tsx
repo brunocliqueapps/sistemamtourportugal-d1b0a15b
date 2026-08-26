@@ -270,8 +270,8 @@ function AcertoCarro() {
         ? settlement?.driver_pct
         : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
       const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const driverAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      const companyAmount = pct === null ? netProfit : netProfit - driverAmount;
+      const companyAmount = pct === null ? netProfit : (netProfit > 0 ? netProfit : 0) * (pct / 100);
+      const driverAmount = pct === null ? 0 : netProfit - companyAmount;
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
@@ -467,7 +467,7 @@ function AcertoCarro() {
           )}
           {visible.map((r) => {
             const closed = !!r.settlement?.closed_at;
-            const vManual = manual.filter((m: any) => m.vehicle_id === r.vehicle.id);
+            
             return (
               <Card key={r.vehicle.id} className="p-4 space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -536,25 +536,6 @@ function AcertoCarro() {
                   </div>
                 </div>
 
-                {isAdmin && vManual.length > 0 && !closed && (
-                  <div className="flex flex-wrap gap-2">
-                    {vManual.map((m: any) => (
-                      <Badge key={m.id} variant="outline" className="gap-1">
-                        {m.kind === "entrada" ? "+" : "−"} {eur(m.amount)}
-                        {" · "}{m.kind === "entrada"
-                          ? (m.origin === "Outros" ? `Outros: ${m.other_label ?? ""}` : (m.origin ?? "manual"))
-                          : (costCenters.find((c: any) => c.id === m.cost_center_id)?.name ?? `Outros: ${m.other_label ?? ""}`)}
-                        {m.invoice_number ? ` · Fat. ${m.invoice_number}` : ""}
-                        {` · ${fmtDate(m.entry_date ?? String(m.created_at ?? "").slice(0, 10))}`}
-                        {` · por ${authorName(m.created_by)}`}
-                        <button className="ml-1 text-primary" onClick={() => openEdit(r, m)} title="Editar"><Pencil className="h-3 w-3" /></button>
-                        <button className="ml-1 text-destructive" onClick={() => delEntry.mutate(m.id)} title="Remover"><Trash2 className="h-3 w-3" /></button>
-                      </Badge>
-
-                    ))}
-                  </div>
-                )}
-
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t pt-3">
                   <div><div className="text-xs text-muted-foreground">Total entradas</div><div className="font-semibold text-emerald-600">{eur(r.incomeTotal)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Total saídas</div><div className="font-semibold text-destructive">{eur(r.expenseTotal)}</div></div>
@@ -564,13 +545,13 @@ function AcertoCarro() {
 
                 <div className="grid gap-3 sm:grid-cols-3 items-end">
                   <div>
-                    <Label>% do motorista (opcional)</Label>
+                    <Label>% da empresa (opcional)</Label>
                     <Input type="number" step="0.01" disabled={!isAdmin || closed}
                       value={r.pct ?? ""}
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
-                  <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold text-gold">{r.pct === null ? "—" : eur(r.driverAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Crédito ao locatário / empresa</div><div className="font-bold">{eur(r.companyAmount)}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.pct === null ? "—" : eur(r.companyAmount)}</div></div>
+                  <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold">{r.pct === null ? "—" : eur(r.driverAmount)}</div></div>
                 </div>
 
                 <div>
