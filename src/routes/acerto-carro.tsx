@@ -265,7 +265,7 @@ function AcertoCarro() {
         details: settlement?.closed_at ? (settlement?.details ?? "") : (detailDraft[v.id] ?? settlement?.details ?? ""),
       };
     });
-  }, [vehicles, shifts, earnings, orders, expensesRaw, manual, settlements, drivers, vehicleDrivers, pctDraft, detailDraft]);
+  }, [vehicles, shifts, earnings, orders, expensesRaw, manual, settlements, drivers, vehicleDrivers, costCenters, profiles, pctDraft, detailDraft]);
 
   const term = search.trim().toLowerCase();
   const visible = rows
