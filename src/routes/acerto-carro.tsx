@@ -465,7 +465,7 @@ function AcertoCarro() {
                     <Button size="sm" variant="outline" onClick={() => pdf(r)}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
                     {isAdmin && !closed && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => setEntryFor(r)}><Plus className="h-4 w-4 mr-1" /> Lançamento</Button>
+                        <Button size="sm" variant="outline" onClick={() => { setEditingId(null); const t = iso(new Date()); setEntry({ ...EMPTY_ENTRY, entry_date: t >= weekStart && t <= weekEnd ? t : weekStart }); setEntryFor(r); }}><Plus className="h-4 w-4 mr-1" /> Lançamento</Button>
                         <Button size="sm" className="gradient-gold text-gold-foreground" disabled={closeWeek.isPending} onClick={() => closeWeek.mutate(r)}>
                           <Lock className="h-4 w-4 mr-1" /> Fechar semana
                         </Button>
