@@ -555,7 +555,7 @@ function AcertoCarro() {
           <div className="grid gap-3">
             <div>
               <Label>Tipo</Label>
-              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v })}>
+              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v, origin: "", cost_center_id: "", other_label: "" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entrada">Entrada (ganho)</SelectItem>
@@ -563,9 +563,42 @@ function AcertoCarro() {
                 </SelectContent>
               </Select>
             </div>
+
+            {entry.kind === "entrada" ? (
+              <div>
+                <Label>Origem</Label>
+                <Select value={entry.origin} onValueChange={(v) => setEntry({ ...entry, origin: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent>
+                    {INCOME_ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Centro de custo</Label>
+                <Select value={entry.cost_center_id} onValueChange={(v) => setEntry({ ...entry, cost_center_id: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar centro de custo" /></SelectTrigger>
+                  <SelectContent>
+                    {costCenters.filter((c: any) => c.active !== false).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {((entry.kind === "entrada" && entry.origin === "Outros") || (entry.kind === "saida" && entry.cost_center_id === "outros")) && (
+              <div><Label>Qual? (Outros)</Label><Input value={entry.other_label} onChange={(e) => setEntry({ ...entry, other_label: e.target.value })} /></div>
+            )}
+
             <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} /></div>
+            <div><Label>N.º da fatura (opcional)</Label><Input value={entry.invoice_number} onChange={(e) => setEntry({ ...entry, invoice_number: e.target.value })} placeholder="Só se existir fatura" /></div>
             <div><Label>Descrição</Label><Input value={entry.description} onChange={(e) => setEntry({ ...entry, description: e.target.value })} /></div>
+            <div className="text-xs text-muted-foreground">Registado por: {authorName(user?.id ?? null)}</div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEntryFor(null)}>Cancelar</Button>
             <Button className="gradient-gold text-gold-foreground" disabled={addEntry.isPending} onClick={() => addEntry.mutate()}>Guardar</Button>
