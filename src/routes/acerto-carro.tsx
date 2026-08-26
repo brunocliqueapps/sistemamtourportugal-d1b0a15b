@@ -47,7 +47,10 @@ const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
 const nameFromEmail = (email: string) =>
   String(email).split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+type LineRow = SettlementLine & { srcTable?: string; srcId?: string; manual?: any };
+
 const INCOME_ORIGINS = [
+
   "TVDE (Uber/Bolt)",
   "Serviço privado",
   "Roteiro Mtour",
