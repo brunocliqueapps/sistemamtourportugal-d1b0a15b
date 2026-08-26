@@ -116,8 +116,8 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
   resume.push(["Lucro líquido", eur(d.netProfit)]);
   if (d.driverPct !== null && d.driverPct !== undefined) {
     resume.push([`Crédito a empresa (${d.driverPct}%)`, eur(d.companyAmount)]);
-    resume.push(["A pagar ao motorista", eur(d.driverAmount)]);
   }
+  resume.push(["A pagar ao motorista", eur(d.driverAmount)]);
 
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 16,
