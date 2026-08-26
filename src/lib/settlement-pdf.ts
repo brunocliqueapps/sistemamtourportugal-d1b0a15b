@@ -8,7 +8,7 @@ const GOLD: [number, number, number] = [176, 141, 68];
 
 export interface SettlementLine {
   label: string;
-  date?: string;
+  date?: string | null;
   detail?: string;
   amount: number;
 }
