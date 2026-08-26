@@ -214,7 +214,14 @@ function AcertoCarro() {
 
       const manualIn = vManual.filter((m: any) => m.kind === "entrada");
       const manualOut = vManual.filter((m: any) => m.kind === "saida");
-      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({ label: "Lançamento manual", detail: m.description ?? "—", amount: Number(m.amount || 0) }));
+      const manualDetail = (m: any) => [m.description, m.invoice_number ? `Fatura ${m.invoice_number}` : null, `por ${authorName(m.created_by)}`]
+        .filter(Boolean).join(" · ");
+      const manualInLines: SettlementLine[] = manualIn.map((m: any) => ({
+        label: m.origin === "Outros" && m.other_label ? `Outros · ${m.other_label}` : (m.origin || "Lançamento manual"),
+        detail: manualDetail(m) || "—",
+        amount: Number(m.amount || 0),
+      }));
+
       const incomeManual = manualInLines.reduce((a, l) => a + l.amount, 0);
 
       const expenseLines: SettlementLine[] = vExpenses.map((e: any) => ({
