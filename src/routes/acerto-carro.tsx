@@ -55,7 +55,25 @@ function AcertoCarro() {
   const [pctDraft, setPctDraft] = useState<Record<string, string>>({});
   const [detailDraft, setDetailDraft] = useState<Record<string, string>>({});
   const [entryFor, setEntryFor] = useState<any | null>(null);
-  const [entry, setEntry] = useState<{ kind: string; amount: string; description: string }>({ kind: "entrada", amount: "", description: "" });
+  const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
+
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["ac-cost-centers"],
+    queryFn: async () =>
+      (await supabase.from("cost_centers").select("id,name,active").order("name")).data ?? [],
+  });
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["ac-profiles"],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,email")).data ?? [],
+  });
+  const authorName = (id: string | null) => {
+    if (!id) return "—";
+    const d = drivers.find((x: any) => x.user_id === id);
+    if (d) return `${d.full_name} (motorista)`;
+    const p = profiles.find((x: any) => x.id === id);
+    return p?.full_name ?? p?.email ?? "utilizador";
+  };
+
 
   /** Registo de motorista do utilizador atual (para acesso restrito). */
   const { data: myDriver } = useQuery({
