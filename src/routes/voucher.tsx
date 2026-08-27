@@ -46,7 +46,6 @@ function Voucher() {
   const [clientId, setClientId] = useState("");
 
   const [proposalId, setProposalId] = useState("");
-  const [search, setSearch] = useState("");
   const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
