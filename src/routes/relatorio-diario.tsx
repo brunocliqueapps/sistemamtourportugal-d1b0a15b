@@ -60,13 +60,14 @@ function RelatorioDiario() {
     const out: { day: string; clients: number; proposals: number; closed: number; value: number }[] = [];
     for (let d = new Date(from + "T00:00:00Z"); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
       const day = d.toISOString().slice(0, 10);
+      const approved = (data?.approvedProposals ?? []).filter((p: any) => dayOf(p.budget_approved_at) === day);
       const closed = (data?.orders ?? []).filter((o: any) => dayOf(o.service_date) === day);
       out.push({
         day,
         clients: (data?.clients ?? []).filter((c: any) => dayOf(c.created_at) === day).length,
         proposals: (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day).length,
-        closed: closed.length,
-        value: closed.reduce((s: number, o: any) => s + Number(o.sale_value || 0), 0),
+        closed: approved.length + closed.length,
+        value: approved.reduce((s: number, p: any) => s + Number(p.total_value || 0), 0) + closed.reduce((s: number, o: any) => s + Number(o.sale_value || 0), 0),
       });
     }
     return out;
