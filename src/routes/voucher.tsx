@@ -76,6 +76,7 @@ function Voucher() {
   const [localNotes, setLocalNotes] = useState<any[]>([]);
   const [localFinalNote, setLocalFinalNote] = useState("");
   const [localStages, setLocalStages] = useState<any[]>([]);
+  const locked = !!p?.voucher_validated_at;
 
   useEffect(() => {
     if (p) {
