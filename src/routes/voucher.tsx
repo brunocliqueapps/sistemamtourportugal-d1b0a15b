@@ -65,11 +65,18 @@ function Voucher() {
 
   const [localNotes, setLocalNotes] = useState<any[]>([]);
   const [localFinalNote, setLocalFinalNote] = useState("");
+  const [localStages, setLocalStages] = useState<any[]>([]);
 
   useEffect(() => {
     if (p) {
       setLocalNotes(Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : []);
       setLocalFinalNote(p.voucher_final_note || "");
+      setLocalStages(
+        (Array.isArray(p.payment_stages) && p.payment_stages.length
+          ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "" }))
+          : paymentSchedule(p.days_count ?? 1, p.total_value).map((s: any) => ({ ...s, date: "" }))
+        )
+      );
     }
   }, [p]);
 
@@ -171,16 +178,24 @@ function Voucher() {
               <div className="font-semibold text-sm">Proposta de pagamento</div>
               <div className="text-sm">Valor total: <span className="font-medium">€ {Number(p.total_value || 0).toFixed(2)}</span></div>
               <Table>
-                <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead className="w-20">%</TableHead><TableHead className="text-right w-32">Valor (€)</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead className="w-40">Data</TableHead><TableHead className="w-20">%</TableHead><TableHead className="text-right w-32">Valor (€)</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(Array.isArray(p.payment_stages) && p.payment_stages.length
-                    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
-                    : paymentSchedule(p.days_count ?? 1, p.total_value)
-                  ).map((s: any, i: number) => (
+                  {localStages.map((s: any, i: number) => (
                     <TableRow key={i}>
                       <TableCell>{s.label}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          className="h-8 w-36 text-xs"
+                          value={s.date || ""}
+                          onChange={(e) => {
+                            setHasUnsavedChanges(true);
+                            setLocalStages((prev) => prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)));
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>{s.pct}%</TableCell>
-                      <TableCell className="text-right">{Number(s.value || 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{(Number(p.total_value || 0) * Number(s.pct || 0) / 100).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -210,7 +225,8 @@ function Voucher() {
                 const { error } = await (supabase.from("proposals") as any).update({ 
                   voucher_validated_at: new Date().toISOString(),
                   voucher_final_note: localFinalNote,
-                  voucher_day_notes: localNotes
+                  voucher_day_notes: localNotes,
+                  payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
                 }).eq("id", p.id);
                 if (error) return toast.error(error.message);
                 toast.success("Voucher guardado e validado");
