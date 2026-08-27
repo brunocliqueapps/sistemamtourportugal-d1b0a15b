@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Eye } from "lucide-react";
+import { FileDown, Check, Eye, ChevronsUpDown } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
@@ -20,7 +22,7 @@ import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 import { usePermissions } from "@/lib/permissions";
 import { Pencil, Unlock, Save, Lock } from "lucide-react";
-
+import { cn } from "@/lib/utils";
 
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
@@ -44,7 +46,6 @@ function Voucher() {
   const [clientId, setClientId] = useState("");
 
   const [proposalId, setProposalId] = useState("");
-  const [search, setSearch] = useState("");
   const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
@@ -94,30 +95,59 @@ function Voucher() {
     }
   }, [p]);
 
-  const filteredClients = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return clients as any[];
-    return (clients as any[]).filter((x: any) =>
-      [x.name, x.client_number, x.nif, x.email, x.phone].filter(Boolean).some((v: any) => String(v).toLowerCase().includes(q)));
-  }, [clients, search]);
+  const [clientOpen, setClientOpen] = useState(false);
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." />
 
       <Card className="p-4 space-y-4">
-        <div><Label>Buscar cliente</Label><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, nº cliente, NIF, email…" /></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><Label>Cliente</Label>
-            <Select value={clientId} onValueChange={(v) => { 
-              if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
-              setClientId(v); setProposalId(""); setHasUnsavedChanges(false);
-            }}>
-              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>{filteredClients.map((x: any) => <SelectItem key={x.id} value={x.id}>{x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}</SelectItem>)}</SelectContent>
-            </Select>
+          <div className="space-y-1">
+            <Label>Cliente</Label>
+            <Popover open={clientOpen} onOpenChange={setClientOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {c ? `${shortCode(c.client_number)} · ${c.name}` : "Selecionar cliente"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command filter={(value, search) => {
+                  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+                  const v = value.toLowerCase();
+                  return terms.every((t) => v.includes(t)) ? 1 : 0;
+                }}>
+                  <CommandInput placeholder="Procurar por nome, nº cliente, NIF…" />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                    {(clients as any[]).map((x: any) => (
+                      <CommandItem
+                        key={x.id}
+                        value={`${x.name} ${x.client_number ?? ""} ${x.nif ?? ""} ${x.email ?? ""}`}
+                        onSelect={() => {
+                          if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
+                          setClientId(x.id);
+                          setProposalId("");
+                          setHasUnsavedChanges(false);
+                          setClientOpen(false);
+                        }}
+                        className={cn("cursor-pointer", clientId === x.id && "bg-accent")}
+                      >
+                        {x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}
+                      </CommandItem>
+                    ))}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
-          <div><Label>Proposta / Roteiro</Label>
+          <div className="space-y-1"><Label>Proposta / Roteiro</Label>
             <Select value={proposalId} onValueChange={setProposalId} disabled={!clientId}>
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
               <SelectContent>{props.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}</SelectContent>
