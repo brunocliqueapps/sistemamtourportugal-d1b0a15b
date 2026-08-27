@@ -73,13 +73,16 @@ function OCList() {
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
 
   const q = search.trim().toLowerCase();
-  const rows = useMemo(() => !q ? (data as any[]) : (data as any[]).filter((s: any) =>
+  const allRows = useMemo(() => !q ? (data as any[]) : (data as any[]).filter((s: any) =>
     [s.clients?.client_number, s.clients?.name, s.clients?.email, s.oc_code]
       .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [data, q]);
+  const rows = useMemo(() => allRows.filter((r: any) => r.status !== FINALIZED_STATUS), [allRows]);
+  const history = useMemo(() => allRows.filter((r: any) => r.status === FINALIZED_STATUS), [allRows]);
 
   const s: any = useMemo(() => (data as any[]).find((x: any) => x.id === selected), [data, selected]);
   const editingId = s?.id ?? null;
   const open = creating || !!editingId;
+
 
   const save = useMutation({
     mutationFn: async () => {
