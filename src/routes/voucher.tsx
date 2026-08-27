@@ -101,6 +101,12 @@ function Voucher() {
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." />
 
+      <Card className="p-4 w-full sm:w-auto mb-4">
+        <div className="text-xs text-muted-foreground">Total de vouchers</div>
+        <div className="text-2xl font-bold">{(saved as any[]).length + activeVouchers.length + historyVouchers.length}</div>
+        <div className="text-xs text-muted-foreground mt-1">{(saved as any[]).length} salvos · {activeVouchers.length} validados · {historyVouchers.length} finalizados</div>
+      </Card>
+
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">

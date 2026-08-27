@@ -231,6 +231,12 @@ function OCList() {
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
       } />
 
+      <Card className="p-4 w-full sm:w-auto">
+        <div className="text-xs text-muted-foreground">Total de ordens de serviço</div>
+        <div className="text-2xl font-bold">{rows.length + history.length}</div>
+        <div className="text-xs text-muted-foreground mt-1">{rows.length} em atendimento · {history.length} finalizadas</div>
+      </Card>
+
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-3"><Label>Filtrar</Label>

@@ -39,6 +39,7 @@ const cols: { key: string; label: string }[] = [
   { key: "proposta_enviada", label: "Proposta enviada" },
   { key: "em_negociacao", label: "Em Negociação" },
   { key: "fechado", label: "Fechado" },
+  { key: "acompanhar_viagem", label: "Acompanhar data da viagem" },
   { key: "nao_se_enquadra", label: "Não se enquadra" },
   { key: "parou_de_responder", label: "Cliente parou de responder" },
   { key: "proposta_sem_retorno", label: "Proposta enviada cliente não retorna" },

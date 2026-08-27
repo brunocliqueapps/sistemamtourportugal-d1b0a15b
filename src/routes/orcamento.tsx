@@ -221,6 +221,12 @@ function Orcamento() {
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Proposta/Orçamento" description="Puxa todos os dados do roteiro, define valor, condições e aprova, coloca em análise ou recusa." />
 
+      <Card className="p-4 w-full sm:w-auto">
+        <div className="text-xs text-muted-foreground">Total de propostas</div>
+        <div className="text-2xl font-bold">{(props as any[]).length}</div>
+        <div className="text-xs text-muted-foreground mt-1">{validatedActive.length} validadas em atendimento · {historyProps.length} finalizadas</div>
+      </Card>
+
       {followups.length > 0 && (
         <Card className="p-4">
           <div className="font-semibold text-sm mb-2 flex items-center gap-2"><Clock className="h-4 w-4" /> Bilhetes de acompanhamento pendentes</div>
