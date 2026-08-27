@@ -413,7 +413,7 @@ function Orcamento() {
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(props as any[]).filter((x: any) => x.budget_validated_at).map((x: any) => (
+            {validatedActive.map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
@@ -433,11 +433,39 @@ function Orcamento() {
               </TableRow>
             ))}
 
-            {!(props as any[]).some((x: any) => x.budget_validated_at) && (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
+            {validatedActive.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado em atendimento.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
+      </Card>
+
+      <Card className="p-4">
+        <div className="font-semibold text-sm">Histórico</div>
+        <div className="text-xs text-muted-foreground mb-2">Orçamentos de serviços já finalizados.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {historyProps.map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs leading-tight">
+                  <div>Início: {fmtDate(x.itinerary_start) || "—"}</div>
+                  <div>Fim: {fmtDate(x.itinerary_end) || "—"}</div>
+                </TableCell>
+                <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="PDF" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {historyProps.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Sem serviços finalizados.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+
       </Card>
     </div>
 
