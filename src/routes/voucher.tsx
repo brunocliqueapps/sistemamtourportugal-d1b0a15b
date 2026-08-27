@@ -166,6 +166,8 @@ function Voucher() {
                             <Textarea 
                               placeholder="Escreva orientações específicas para este dia..."
                               value={currentNote}
+                              readOnly={locked}
+                              disabled={locked}
                               className="min-h-[80px] text-sm"
                               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                                 const newNote = e.target.value;
