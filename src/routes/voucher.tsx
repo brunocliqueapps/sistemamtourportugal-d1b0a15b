@@ -223,7 +223,7 @@ function Voucher() {
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(validated as any[]).map((x: any) => (
+            {activeVouchers.map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
@@ -234,10 +234,33 @@ function Voucher() {
                 </TableCell>
               </TableRow>
             ))}
-            {validated.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher validado ainda.</TableCell></TableRow>}
+            {activeVouchers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher validado em atendimento.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
+
+      <Card className="p-4 mt-4">
+        <div className="font-semibold text-sm">Histórico</div>
+        <div className="text-xs text-muted-foreground mb-2">Vouchers de serviços já finalizados.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {historyVouchers.map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{new Date(x.voucher_validated_at).toLocaleString("pt-PT")}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <Button size="icon" variant="ghost" title="Visualizar Voucher" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {historyVouchers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Sem serviços finalizados.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </Card>
+
 
       <QuickViewDialog
         open={!!viewing}
