@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
-import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type ItineraryDay } from "./payment-terms";
+import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, withDefaultStageDates, type ItineraryDay } from "./payment-terms";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "./format-date";
 
@@ -274,9 +274,9 @@ export async function generateBudgetPdf(id: string) {
 
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Condições de pagamento", 40, y); y += 6;
-  const stages: any[] = Array.isArray(p.payment_stages) && p.payment_stages.length
-    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
-    : paymentSchedule(days || 1, p.total_value);
+  const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    : paymentSchedule(days || 1, p.total_value));
   autoTable(doc, {
     startY: y,
     head: [["Etapa", "Data", "%", "Valor (€)"]],
@@ -346,9 +346,9 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
 
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Forma de Pagamento", 40, y); y += 6;
-  const stages: any[] = Array.isArray(p.payment_stages) && p.payment_stages.length
-    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
-    : paymentSchedule(days || 1, p.total_value);
+  const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    : paymentSchedule(days || 1, p.total_value));
   autoTable(doc, {
     startY: y,
     head: [["Etapa", "Data", "%", "Valor (€)"]],
