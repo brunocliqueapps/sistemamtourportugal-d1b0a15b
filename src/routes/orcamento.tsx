@@ -18,6 +18,8 @@ import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { useFinalizedProposalIds } from "@/lib/finalized";
+
 
 
 export const Route = createFileRoute("/orcamento")({
@@ -76,12 +78,16 @@ function Orcamento() {
     queryFn: async () => (await supabase.from("proposal_followups").select("*, proposals(code, clients(name))").eq("done", false).order("due_date")).data ?? [],
   });
 
+  const finalizedIds = useFinalizedProposalIds();
   const q = search.trim().toLowerCase();
-  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => !x.budget_validated_at || x.id === selected), [props, selected]);
+  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
   const filteredProps = useMemo(() => !q ? selectableProps : selectableProps.filter((x: any) =>
     [x.code, shortCode(x.code), x.title, x.clients?.client_number, shortCode(x.clients?.client_number), x.clients?.name,
      x.clients?.email, x.clients?.phone, x.clients?.nif]
       .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+  const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
+  const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
+
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
 
@@ -407,7 +413,7 @@ function Orcamento() {
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(props as any[]).filter((x: any) => x.budget_validated_at).map((x: any) => (
+            {validatedActive.map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
@@ -427,11 +433,39 @@ function Orcamento() {
               </TableRow>
             ))}
 
-            {!(props as any[]).some((x: any) => x.budget_validated_at) && (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
+            {validatedActive.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado em atendimento.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
+      </Card>
+
+      <Card className="p-4">
+        <div className="font-semibold text-sm">Histórico</div>
+        <div className="text-xs text-muted-foreground mb-2">Orçamentos de serviços já finalizados.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {historyProps.map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs leading-tight">
+                  <div>Início: {fmtDate(x.itinerary_start) || "—"}</div>
+                  <div>Fim: {fmtDate(x.itinerary_end) || "—"}</div>
+                </TableCell>
+                <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="PDF" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {historyProps.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Sem serviços finalizados.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+
       </Card>
     </div>
 
