@@ -108,14 +108,20 @@ function RelatorioDiario() {
       {
         title: "Serviços fechados",
         empty: "Sem serviços fechados no período.",
-        items: (data?.orders ?? [])
-          .map((o: any) => ({
+        items: [
+          ...(data?.approvedProposals ?? []).map((p: any) => ({
+            id: p.id,
+            day: dayOf(p.budget_approved_at),
+            primary: [p.code, p.clients?.name, "Orçamento aprovado"].filter(Boolean).join(" · "),
+            secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : null,
+          })),
+          ...(data?.orders ?? []).map((o: any) => ({
             id: o.id,
             day: dayOf(o.service_date),
             primary: [o.oc_code, o.clients?.name].filter(Boolean).join(" · "),
             secondary: [[o.origin, o.destination].filter(Boolean).join(" → "), o.sale_value ? `€ ${Number(o.sale_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
-          }))
-          .sort(byDay),
+          })),
+        ].sort(byDay),
       },
     ];
   }, [data]);
