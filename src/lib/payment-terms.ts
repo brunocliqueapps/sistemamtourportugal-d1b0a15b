@@ -50,3 +50,23 @@ export function paymentSchedule(days: number, total: number) {
     { label: "Após Concluir o Serviço", pct: 10, value: t * 0.1 },
   ];
 }
+
+/** Datas sugeridas automaticamente para as etapas de pagamento de uma proposta. */
+export function defaultStageDates(p: any): { approval: string; firstDay: string; lastDay: string } {
+  const days = (Array.isArray(p?.itinerary) ? p.itinerary : [])
+    .filter((d: any) => d && !d.deleted && d.date)
+    .map((d: any) => String(d.date).slice(0, 10))
+    .sort();
+  const approvalRaw = p?.budget_approved_at ?? p?.approved_at ?? p?.budget_validated_at ?? "";
+  const approval = approvalRaw ? String(approvalRaw).slice(0, 10) : "";
+  const firstDay = String(p?.itinerary_start ?? days[0] ?? p?.arrival_date ?? "").slice(0, 10);
+  const lastDay = String(p?.itinerary_end ?? days[days.length - 1] ?? p?.departure_date ?? firstDay ?? "").slice(0, 10);
+  return { approval, firstDay, lastDay };
+}
+
+/** Preenche as datas das etapas (aprovação · 1.º dia · último dia) quando estiverem vazias. */
+export function withDefaultStageDates(p: any, stages: any[]): any[] {
+  const { approval, firstDay, lastDay } = defaultStageDates(p);
+  const fallback = [approval, firstDay, lastDay];
+  return stages.map((s: any, i: number) => ({ ...s, date: s?.date || fallback[i] || "" }));
+}
