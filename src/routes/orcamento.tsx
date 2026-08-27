@@ -84,6 +84,25 @@ function Orcamento() {
       .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
+
+  function pickProposal(v: string) {
+    if (v === selected) return;
+    if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de proposta?")) return;
+    setSelected(v);
+    const pr: any = (props as any[]).find((x: any) => x.id === v);
+    setValue(String(pr?.total_value ?? 0));
+    setTerms(pr?.payment_terms ?? "");
+    setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
+      ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
+      : DEFAULT_STAGES);
+    setReceipt(pr?.budget_receipt_info ?? "");
+    setRefusal(pr?.budget_refusal_reason ?? "");
+    setAnalysisInfo(pr?.budget_analysis_info ?? "");
+    setAction("");
+    setStatusDate(today());
+    setHasUnsavedChanges(false);
+  }
+
   const days = p ? (p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1) : 1;
   const total = Number(value || p?.total_value || 0);
   const itinerary: ItineraryDay[] = Array.isArray(p?.itinerary) ? p.itinerary : [];
