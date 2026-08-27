@@ -401,8 +401,8 @@ function OCList() {
                       <ShieldCheck className={`h-4 w-4 ${r.validated_at ? "text-emerald-600" : ""}`} />
                     </Button>
                     {canConcluir && (
-                      <Button size="sm" variant="outline" title="Concluir pedido" onClick={() => { if (confirm("Concluir este pedido?")) concluir.mutate(r.id); }}>
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Concluir
+                      <Button size="sm" variant="outline" title="Finalizar Atendimento" onClick={() => { if (confirm("Finalizar o atendimento e enviar para o Histórico?")) concluir.mutate(r.id); }}>
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Finalizar Atendimento
                       </Button>
                     )}
                     <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateServiceOrderPdf(r.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
@@ -413,10 +413,54 @@ function OCList() {
                 </TableRow>
               );
             })}
-            {rows.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma OS ainda. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
+            {rows.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma OS em atendimento. Aprove uma proposta para gerar automaticamente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
+
+      <Card className="overflow-x-auto">
+        <div className="p-4 pb-0">
+          <div className="font-semibold text-sm">Histórico</div>
+          <div className="text-xs text-muted-foreground">Serviços com atendimento finalizado.</div>
+        </div>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>OS</TableHead><TableHead>Data da viagem</TableHead>
+            <TableHead>Cliente</TableHead><TableHead>Trajeto</TableHead>
+            <TableHead>Veículo</TableHead>
+            <TableHead>Financeiro</TableHead>
+            <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {history.map((r: any) => {
+              const start = r.proposals?.itinerary_start ?? r.proposals?.arrival_date ?? r.service_date;
+              const end = r.proposals?.itinerary_end ?? r.proposals?.departure_date ?? r.service_date;
+              return (
+                <TableRow key={r.id}>
+                  <TableCell><Link to="/oc/$id" params={{ id: r.id }} className="text-primary hover:underline font-mono text-xs">{shortCode(r.oc_code)}</Link></TableCell>
+                  <TableCell className="text-xs leading-tight">
+                    <div>Início: {fmtDate(start) || "—"}</div>
+                    <div>Fim: {fmtDate(end) || "—"}</div>
+                  </TableCell>
+                  <TableCell>{r.clients?.name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{(r.origin ?? r.proposals?.arrival_place) || "—"} → {(r.destination ?? r.proposals?.departure_place) || "—"}</TableCell>
+                  <TableCell>{r.vehicles?.plate ?? "—"}</TableCell>
+                  <TableCell><Badge variant="outline">{finLabel(r.financial_status ?? "pagamento_padrao_mtour")}</Badge></TableCell>
+                  <TableCell className="text-right">€ {Number(r.sale_value || r.proposals?.total_value || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-right space-x-1 whitespace-nowrap">
+                    <Button size="sm" variant="ghost" title="Reabrir atendimento" onClick={() => { if (confirm("Reabrir este atendimento?")) reabrir.mutate(r.id); }}>Reabrir</Button>
+                    <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateServiceOrderPdf(r.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(r)}><Eye className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {history.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem serviços finalizados.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </Card>
+
 
       <QuickViewDialog
         open={!!viewing}
