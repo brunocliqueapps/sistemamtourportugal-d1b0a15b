@@ -48,7 +48,7 @@ function Voucher() {
   const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
-  const { data: props = [] } = useQuery({
+  const { data: props = [], refetch: refetchProps } = useQuery({
     queryKey: ["proposals-voucher", clientId],
     enabled: !!clientId,
     queryFn: async () => (await (supabase.from("proposals") as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
@@ -57,6 +57,14 @@ function Voucher() {
     queryKey: ["proposals-voucher-validated"],
     queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
+  const { data: saved = [], refetch: refetchSaved } = useQuery({
+    queryKey: ["proposals-voucher-saved"],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_saved_at", "is", null).is("voucher_validated_at", null).order("voucher_saved_at", { ascending: false })).data ?? [],
+  });
+
+  const { isAdmin } = usePermissions();
+  const refetchAll = () => { refetchProps(); refetchValidated(); refetchSaved(); };
+  const openProposal = (x: any) => { setClientId(x.client_id); setProposalId(x.id); setHasUnsavedChanges(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const finalizedIds = useFinalizedProposalIds();
   const activeVouchers = useMemo(() => (validated as any[]).filter((x: any) => !finalizedIds.has(x.id)), [validated, finalizedIds]);
