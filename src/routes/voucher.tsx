@@ -16,7 +16,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-import { paymentSchedule } from "@/lib/payment-terms";
+import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 
 
@@ -72,11 +72,14 @@ function Voucher() {
       setLocalNotes(Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : []);
       setLocalFinalNote(p.voucher_final_note || "");
       setLocalStages(
-        (Array.isArray(p.payment_stages) && p.payment_stages.length
-          ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "" }))
-          : paymentSchedule(p.days_count ?? 1, p.total_value).map((s: any) => ({ ...s, date: "" }))
+        withDefaultStageDates(
+          p,
+          Array.isArray(p.payment_stages) && p.payment_stages.length
+            ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "" }))
+            : paymentSchedule(p.days_count ?? 1, p.total_value).map((s: any) => ({ ...s, date: "" })),
         )
       );
+
     }
   }, [p]);
 
