@@ -56,9 +56,13 @@ function Voucher() {
     queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
 
+  const finalizedIds = useFinalizedProposalIds();
+  const activeVouchers = useMemo(() => (validated as any[]).filter((x: any) => !finalizedIds.has(x.id)), [validated, finalizedIds]);
+  const historyVouchers = useMemo(() => (validated as any[]).filter((x: any) => finalizedIds.has(x.id)), [validated, finalizedIds]);
 
   const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
+
   const [localNotes, setLocalNotes] = useState<any[]>([]);
   const [localFinalNote, setLocalFinalNote] = useState("");
 
