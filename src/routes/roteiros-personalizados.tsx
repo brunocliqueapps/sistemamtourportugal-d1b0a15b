@@ -207,6 +207,12 @@ function Propostas() {
         <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Roteiro Personalizado</Button>
       } />
 
+      <Card className="p-4 w-full sm:w-auto mb-4">
+        <div className="text-xs text-muted-foreground">Total de roteiros</div>
+        <div className="text-2xl font-bold">{(props as any[]).length}</div>
+        <div className="text-xs text-muted-foreground mt-1">{filteredProps.length} no filtro atual</div>
+      </Card>
+
       <Card className="p-3 mb-4">
         <Input placeholder="Filtrar por nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </Card>
