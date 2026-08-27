@@ -76,12 +76,16 @@ function Orcamento() {
     queryFn: async () => (await supabase.from("proposal_followups").select("*, proposals(code, clients(name))").eq("done", false).order("due_date")).data ?? [],
   });
 
+  const finalizedIds = useFinalizedProposalIds();
   const q = search.trim().toLowerCase();
-  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => !x.budget_validated_at || x.id === selected), [props, selected]);
+  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
   const filteredProps = useMemo(() => !q ? selectableProps : selectableProps.filter((x: any) =>
     [x.code, shortCode(x.code), x.title, x.clients?.client_number, shortCode(x.clients?.client_number), x.clients?.name,
      x.clients?.email, x.clients?.phone, x.clients?.nif]
       .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+  const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
+  const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
+
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
 
