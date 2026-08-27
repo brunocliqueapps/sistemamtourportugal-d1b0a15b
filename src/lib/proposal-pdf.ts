@@ -298,7 +298,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   const p = await loadProposal(id);
   const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  let y = await header(doc, "VOUCHER", p.code);
+  let y = await header(doc, "VOUCHER", p.code, { skipWatermark: true });
   y = clientBlock(doc, p, y);
   const c = p.clients ?? {};
   doc.setFont("helvetica", "normal").setFontSize(10);
