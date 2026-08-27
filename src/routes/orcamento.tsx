@@ -225,27 +225,27 @@ function Orcamento() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total de propostas</div>
-          <div className="text-2xl font-bold">{(props as any[]).length}</div>
+          <div className="text-2xl font-bold">{(props as any[]).filter((x: any) => !finishedIds.has(x.id)).length}</div>
           <div className="text-xs text-muted-foreground mt-1">{validatedActive.length} validadas em atendimento · {historyProps.length} finalizadas</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Valores das propostas</div>
           <div className="text-2xl font-bold">
-            € {(props as any[]).reduce((s, p) => s + Number(p.total_value || 0), 0).toFixed(2)}
+            € {(props as any[]).filter((x: any) => !finishedIds.has(x.id)).reduce((s, p) => s + Number(p.total_value || 0), 0).toFixed(2)}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">Soma de todos os orçamentos registados</div>
+          <div className="text-xs text-muted-foreground mt-1">Soma dos orçamentos em aberto</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Propostas finalizadas</div>
-          <div className="text-2xl font-bold">{(props as any[]).filter((x: any) => x.budget_status === "aprovado").length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Todas as propostas aprovadas</div>
+          <div className="text-2xl font-bold">{(props as any[]).filter((x: any) => finishedIds.has(x.id)).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Aprovadas + finalizadas</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total de vendas</div>
           <div className="text-2xl font-bold">
-            € {(props as any[]).filter((x: any) => finalizedIds.has(x.id)).reduce((s, x) => s + Number(x.total_value || 0), 0).toFixed(2)}
+            € {(props as any[]).filter((x: any) => finishedIds.has(x.id)).reduce((s, x) => s + Number(x.total_value || 0), 0).toFixed(2)}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">Todas as vendas finalizadas</div>
+          <div className="text-xs text-muted-foreground mt-1">Todas as vendas aprovadas/finalizadas</div>
         </Card>
       </div>
 
