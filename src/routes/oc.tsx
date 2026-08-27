@@ -348,11 +348,17 @@ function OCList() {
 
             <div className="flex flex-wrap gap-2 justify-end">
               <Button variant="ghost" onClick={close}><X className="h-4 w-4 mr-1" /> Fechar</Button>
+              {editingId && s && s.status !== FINALIZED_STATUS && (
+                <Button variant="outline" onClick={() => { if (confirm("Finalizar o atendimento e enviar para o Histórico?")) concluir.mutate(s.id); }}>
+                  <CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar Atendimento
+                </Button>
+              )}
               {editingId && s && (
                 <Button variant={s.validated_at ? "secondary" : "default"} onClick={() => validate.mutate({ row: s, on: !s.validated_at })}>
                   <ShieldCheck className="h-4 w-4 mr-1" /> {s.validated_at ? "Anular validação" : "Validar OS"}
                 </Button>
               )}
+
               {editingId && (
                 <Button variant="outline" onClick={() => generateServiceOrderPdf(editingId).catch((e: any) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
