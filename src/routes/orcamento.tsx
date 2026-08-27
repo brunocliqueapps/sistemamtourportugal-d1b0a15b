@@ -18,6 +18,8 @@ import { generateBudgetPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { useFinalizedProposalIds } from "@/lib/finalized";
+
 
 
 export const Route = createFileRoute("/orcamento")({

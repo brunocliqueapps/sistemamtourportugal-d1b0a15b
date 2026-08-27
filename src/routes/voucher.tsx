@@ -17,6 +17,8 @@ import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { paymentSchedule } from "@/lib/payment-terms";
+import { useFinalizedProposalIds } from "@/lib/finalized";
+
 
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
