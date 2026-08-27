@@ -159,6 +159,27 @@ function Voucher() {
               </Table>
             )}
 
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="font-semibold text-sm">Proposta de pagamento</div>
+              <div className="text-sm">Valor total: <span className="font-medium">€ {Number(p.total_value || 0).toFixed(2)}</span></div>
+              <Table>
+                <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead className="w-20">%</TableHead><TableHead className="text-right w-32">Valor (€)</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {(Array.isArray(p.payment_stages) && p.payment_stages.length
+                    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+                    : paymentSchedule(p.days_count ?? 1, p.total_value)
+                  ).map((s: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell>{s.label}</TableCell>
+                      <TableCell>{s.pct}%</TableCell>
+                      <TableCell className="text-right">{Number(s.value || 0).toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {p.payment_terms && <div className="text-sm text-muted-foreground">{p.payment_terms}</div>}
+            </div>
+
             <div className="space-y-2 mt-4">
               <Label>Nota Final</Label>
               <Textarea 
@@ -170,6 +191,7 @@ function Voucher() {
                 }}
               />
             </div>
+
 
 
             <div className="flex flex-wrap justify-end gap-2">
