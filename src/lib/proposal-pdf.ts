@@ -25,7 +25,7 @@ function applyWatermarkToAllPages(doc: jsPDF) {
   }
 }
 
-async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean }) {
+async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean; skipFooter?: boolean }) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
@@ -75,7 +75,7 @@ async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skip
   }
 
   // Rodapé
-  footer(doc, c);
+  if (!opts?.skipFooter) footer(doc, c);
 
   return y + 25;
 }
@@ -298,7 +298,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   const p = await loadProposal(id);
   const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  let y = await header(doc, "VOUCHER", p.code, { skipWatermark: true });
+  let y = await header(doc, "VOUCHER", p.code, { skipWatermark: true, skipFooter: true });
   y = clientBlock(doc, p, y);
   const c = p.clients ?? {};
   doc.setFont("helvetica", "normal").setFontSize(10);
