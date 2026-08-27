@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Eye } from "lucide-react";
+import { FileDown, Check, Eye, ChevronsUpDown } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { generateVoucherPdf } from "@/lib/proposal-pdf";
@@ -20,7 +22,7 @@ import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 import { usePermissions } from "@/lib/permissions";
 import { Pencil, Unlock, Save, Lock } from "lucide-react";
-
+import { cn } from "@/lib/utils";
 
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
