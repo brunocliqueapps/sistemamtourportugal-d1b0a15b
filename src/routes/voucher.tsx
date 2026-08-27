@@ -203,6 +203,7 @@ function Voucher() {
                         <Input
                           type="date"
                           className="h-8 w-36 text-xs"
+                          disabled={locked}
                           value={s.date || ""}
                           onChange={(e) => {
                             setHasUnsavedChanges(true);
