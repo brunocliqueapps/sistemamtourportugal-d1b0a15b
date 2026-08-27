@@ -243,32 +243,54 @@ function Orcamento() {
       )}
 
       <Card className="p-4 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-3"><Label>Filtrar</Label>
-            <Input placeholder="Nº da proposta, nº de cliente, nome, email, telefone ou NIF…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            {q && (
-              <div className="mt-2 max-h-64 overflow-auto rounded-md border divide-y">
-                {filteredProps.length === 0 && <div className="p-3 text-sm text-muted-foreground">Nenhuma proposta encontrada.</div>}
-                {filteredProps.map((x: any) => (
-                  <button key={x.id} type="button" onClick={() => pickProposal(x.id)}
-                    className={`w-full text-left p-2 text-sm hover:bg-muted ${x.id === selected ? "bg-muted" : ""}`}>
-                    <span className="font-mono text-xs mr-2">{shortCode(x.code)}</span>
-                    {x.clients?.name ?? "—"}
-                    {x.clients?.client_number ? <span className="text-muted-foreground"> · {shortCode(x.clients.client_number)}</span> : null}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="sm:col-span-3"><Label>Proposta</Label>
-            <Select value={selected} onValueChange={pickProposal}>
-
-              <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
-              <SelectContent>
-                {filteredProps.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.clients?.name ?? "—"}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-1">
+          <Label>Proposta</Label>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between font-normal"
+              >
+                {selected
+                  ? (() => {
+                      const x = (props as any[]).find((pr: any) => pr.id === selected);
+                      return x ? `${shortCode(x.code)} · ${x.clients?.name ?? "—"}` : "Selecionar proposta";
+                    })()
+                  : "Selecionar proposta"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command filter={(value, search) => {
+                const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+                const v = value.toLowerCase();
+                return terms.every((t) => v.includes(t)) ? 1 : 0;
+              }}>
+                <CommandInput placeholder="Nº da proposta, nº de cliente, nome, email, telefone ou NIF…" />
+                <CommandList>
+                  <CommandEmpty>Nenhuma proposta encontrada.</CommandEmpty>
+                  {(selectableProps as any[]).map((x: any) => (
+                    <CommandItem
+                      key={x.id}
+                      value={`${x.code ?? ""} ${shortCode(x.code)} ${x.title ?? ""} ${x.clients?.client_number ?? ""} ${shortCode(x.clients?.client_number)} ${x.clients?.name ?? ""} ${x.clients?.email ?? ""} ${x.clients?.phone ?? ""} ${x.clients?.nif ?? ""}`}
+                      onSelect={() => {
+                        if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de proposta?")) return;
+                        pickProposal(x.id);
+                        setOpen(false);
+                      }}
+                      className={cn("cursor-pointer", selected === x.id && "bg-accent")}
+                    >
+                      <span className="font-mono text-xs mr-2">{shortCode(x.code)}</span>
+                      {x.clients?.name ?? "—"}
+                      {x.clients?.client_number ? <span className="text-muted-foreground ml-1">· {shortCode(x.clients.client_number)}</span> : null}
+                    </CommandItem>
+                  ))}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
 
