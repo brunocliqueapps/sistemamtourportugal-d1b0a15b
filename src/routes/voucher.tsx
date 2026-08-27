@@ -225,6 +225,8 @@ function Voucher() {
               <Textarea 
                 placeholder="Escrita final para o voucher..."
                 value={localFinalNote}
+                readOnly={locked}
+                disabled={locked}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setHasUnsavedChanges(true);
                   setLocalFinalNote(e.target.value);
@@ -232,24 +234,57 @@ function Voucher() {
               />
             </div>
 
-
+            {locked && (
+              <div className="rounded-md border border-primary/30 bg-muted/40 p-3 text-sm flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                Voucher validado em {new Date(p.voucher_validated_at).toLocaleString("pt-PT")} — edição bloqueada.
+              </div>
+            )}
 
             <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
-              </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => {
-                const { error } = await (supabase.from("proposals") as any).update({ 
-                  voucher_validated_at: new Date().toISOString(),
-                  voucher_final_note: localFinalNote,
-                  voucher_day_notes: localNotes,
-                  payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
-                }).eq("id", p.id);
-                if (error) return toast.error(error.message);
-                toast.success("Voucher guardado e validado");
-                setHasUnsavedChanges(false);
-                refetchValidated();
-              }}><Check className="h-4 w-4 mr-1" /> Guardar e Validar Voucher</Button>
+              {!locked && (
+                <Button variant="outline" onClick={async () => {
+                  const { error } = await (supabase.from("proposals") as any).update({
+                    voucher_saved_at: new Date().toISOString(),
+                    voucher_final_note: localFinalNote,
+                    voucher_day_notes: localNotes,
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                  }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher salvo");
+                  setHasUnsavedChanges(false);
+                  refetchAll();
+                }}><Save className="h-4 w-4 mr-1" /> Salvar</Button>
+              )}
+              {locked && (
+                <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+                </Button>
+              )}
+              {locked && isAdmin && (
+                <Button variant="outline" onClick={async () => {
+                  if (!confirm("Desbloquear este voucher para edição? A validação será removida.")) return;
+                  const { error } = await (supabase.from("proposals") as any).update({ voucher_validated_at: null, voucher_saved_at: new Date().toISOString() }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher desbloqueado para edição");
+                  refetchAll();
+                }}><Unlock className="h-4 w-4 mr-1" /> Desbloquear edição</Button>
+              )}
+              {!locked && (
+                <Button className="gradient-gold text-gold-foreground" onClick={async () => {
+                  const { error } = await (supabase.from("proposals") as any).update({ 
+                    voucher_validated_at: new Date().toISOString(),
+                    voucher_saved_at: new Date().toISOString(),
+                    voucher_final_note: localFinalNote,
+                    voucher_day_notes: localNotes,
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                  }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher validado");
+                  setHasUnsavedChanges(false);
+                  refetchAll();
+                }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
+              )}
             </div>
           </>
         )}
