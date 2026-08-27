@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Clock, X } from "lucide-react";
+import { FileDown, Check, Clock, X, Pencil } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { daysBetween, suggestPaymentTerms, type ItineraryDay } from "@/lib/payment-terms";
@@ -405,7 +405,7 @@ function Orcamento() {
       <Card className="p-4">
         <div className="font-semibold text-sm mb-2">Orçamentos validados</div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {(props as any[]).filter((x: any) => x.budget_validated_at).map((x: any) => (
               <TableRow key={x.id}>
@@ -417,11 +417,16 @@ function Orcamento() {
                 </TableCell>
                 <TableCell className="text-xs">{new Date(x.budget_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
-                <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+                <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
+                    pickProposal(x.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="PDF" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
+
             {!(props as any[]).some((x: any) => x.budget_validated_at) && (
               <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento validado ainda.</TableCell></TableRow>
             )}
