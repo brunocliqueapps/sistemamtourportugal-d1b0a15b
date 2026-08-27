@@ -386,7 +386,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     doc.text(`${cityName}, ${validated}`, W / 2, y, { align: "center" });
     y += 22;
     doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
-    doc.text("Assinatura Digital Mtour Portugal 2026 - RENAT 1201/2024", W / 2, y, { align: "center" });
+    doc.text("Assinatura Digital Mtour Portugal 2026 - RNAAT nº 1201/2024", W / 2, y, { align: "center" });
     y += 28;
     doc.setDrawColor(176, 141, 68).setLineWidth(1);
     doc.line(W / 2 - 110, y, W / 2 + 110, y); y += 14;
