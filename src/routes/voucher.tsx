@@ -225,7 +225,8 @@ function Voucher() {
                 const { error } = await (supabase.from("proposals") as any).update({ 
                   voucher_validated_at: new Date().toISOString(),
                   voucher_final_note: localFinalNote,
-                  voucher_day_notes: localNotes
+                  voucher_day_notes: localNotes,
+                  payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
                 }).eq("id", p.id);
                 if (error) return toast.error(error.message);
                 toast.success("Voucher guardado e validado");
