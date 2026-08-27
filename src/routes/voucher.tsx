@@ -18,6 +18,8 @@ import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
+import { usePermissions } from "@/lib/permissions";
+import { Pencil, Unlock, Save, Lock } from "lucide-react";
 
 
 import { QuickViewDialog } from "@/components/QuickViewDialog";
@@ -46,7 +48,7 @@ function Voucher() {
   const [viewing, setViewing] = useState<any | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
-  const { data: props = [] } = useQuery({
+  const { data: props = [], refetch: refetchProps } = useQuery({
     queryKey: ["proposals-voucher", clientId],
     enabled: !!clientId,
     queryFn: async () => (await (supabase.from("proposals") as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false })).data ?? [],
@@ -55,6 +57,14 @@ function Voucher() {
     queryKey: ["proposals-voucher-validated"],
     queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_validated_at", "is", null).order("voucher_validated_at", { ascending: false })).data ?? [],
   });
+  const { data: saved = [], refetch: refetchSaved } = useQuery({
+    queryKey: ["proposals-voucher-saved"],
+    queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_saved_at", "is", null).is("voucher_validated_at", null).order("voucher_saved_at", { ascending: false })).data ?? [],
+  });
+
+  const { isAdmin } = usePermissions();
+  const refetchAll = () => { refetchProps(); refetchValidated(); refetchSaved(); };
+  const openProposal = (x: any) => { setClientId(x.client_id); setProposalId(x.id); setHasUnsavedChanges(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const finalizedIds = useFinalizedProposalIds();
   const activeVouchers = useMemo(() => (validated as any[]).filter((x: any) => !finalizedIds.has(x.id)), [validated, finalizedIds]);
@@ -66,6 +76,7 @@ function Voucher() {
   const [localNotes, setLocalNotes] = useState<any[]>([]);
   const [localFinalNote, setLocalFinalNote] = useState("");
   const [localStages, setLocalStages] = useState<any[]>([]);
+  const locked = !!p?.voucher_validated_at;
 
   useEffect(() => {
     if (p) {
@@ -155,6 +166,8 @@ function Voucher() {
                             <Textarea 
                               placeholder="Escreva orientações específicas para este dia..."
                               value={currentNote}
+                              readOnly={locked}
+                              disabled={locked}
                               className="min-h-[80px] text-sm"
                               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                                 const newNote = e.target.value;
@@ -190,6 +203,7 @@ function Voucher() {
                         <Input
                           type="date"
                           className="h-8 w-36 text-xs"
+                          disabled={locked}
                           value={s.date || ""}
                           onChange={(e) => {
                             setHasUnsavedChanges(true);
@@ -211,6 +225,8 @@ function Voucher() {
               <Textarea 
                 placeholder="Escrita final para o voucher..."
                 value={localFinalNote}
+                readOnly={locked}
+                disabled={locked}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setHasUnsavedChanges(true);
                   setLocalFinalNote(e.target.value);
@@ -218,27 +234,82 @@ function Voucher() {
               />
             </div>
 
-
+            {locked && (
+              <div className="rounded-md border border-primary/30 bg-muted/40 p-3 text-sm flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                Voucher validado em {new Date(p.voucher_validated_at).toLocaleString("pt-PT")} — edição bloqueada.
+              </div>
+            )}
 
             <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
-              </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => {
-                const { error } = await (supabase.from("proposals") as any).update({ 
-                  voucher_validated_at: new Date().toISOString(),
-                  voucher_final_note: localFinalNote,
-                  voucher_day_notes: localNotes,
-                  payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
-                }).eq("id", p.id);
-                if (error) return toast.error(error.message);
-                toast.success("Voucher guardado e validado");
-                setHasUnsavedChanges(false);
-                refetchValidated();
-              }}><Check className="h-4 w-4 mr-1" /> Guardar e Validar Voucher</Button>
+              {!locked && (
+                <Button variant="outline" onClick={async () => {
+                  const { error } = await (supabase.from("proposals") as any).update({
+                    voucher_saved_at: new Date().toISOString(),
+                    voucher_final_note: localFinalNote,
+                    voucher_day_notes: localNotes,
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                  }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher salvo");
+                  setHasUnsavedChanges(false);
+                  refetchAll();
+                }}><Save className="h-4 w-4 mr-1" /> Salvar</Button>
+              )}
+              {locked && (
+                <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+                </Button>
+              )}
+              {locked && isAdmin && (
+                <Button variant="outline" onClick={async () => {
+                  if (!confirm("Desbloquear este voucher para edição? A validação será removida.")) return;
+                  const { error } = await (supabase.from("proposals") as any).update({ voucher_validated_at: null, voucher_saved_at: new Date().toISOString() }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher desbloqueado para edição");
+                  refetchAll();
+                }}><Unlock className="h-4 w-4 mr-1" /> Desbloquear edição</Button>
+              )}
+              {!locked && (
+                <Button className="gradient-gold text-gold-foreground" onClick={async () => {
+                  const { error } = await (supabase.from("proposals") as any).update({ 
+                    voucher_validated_at: new Date().toISOString(),
+                    voucher_saved_at: new Date().toISOString(),
+                    voucher_final_note: localFinalNote,
+                    voucher_day_notes: localNotes,
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                  }).eq("id", p.id);
+                  if (error) return toast.error(error.message);
+                  toast.success("Voucher validado");
+                  setHasUnsavedChanges(false);
+                  refetchAll();
+                }}><Check className="h-4 w-4 mr-1" /> Validar Voucher</Button>
+              )}
             </div>
           </>
         )}
+      </Card>
+
+      <Card className="p-4 mt-4">
+        <div className="font-semibold text-sm">Vouchers Salvos</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {(saved as any[]).map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{x.voucher_saved_at ? new Date(x.voucher_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Editar voucher" onClick={() => openProposal(x)}><Pencil className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {(saved as any[]).length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher salvo.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
       </Card>
 
       <Card className="p-4 mt-4">
