@@ -85,8 +85,8 @@ function Orcamento() {
   const finishedIds = useMemo(() => new Set([
     ...(props as any[]).filter((x: any) => x.budget_status === "aprovado" || finalizedIds.has(x.id)).map((x: any) => x.id),
   ]), [props, finalizedIds]);
-  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finishedIds.has(x.id)) || x.id === selected), [props, selected, finishedIds]);
-  const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finishedIds.has(x.id)), [props, finishedIds]);
+  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
+  const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
 
 
