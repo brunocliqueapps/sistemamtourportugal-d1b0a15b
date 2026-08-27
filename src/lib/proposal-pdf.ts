@@ -5,19 +5,34 @@ import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type Itin
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "./format-date";
 
-async function header(doc: jsPDF, docTitle: string, code?: string) {
+function watermark(doc: jsPDF) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  doc.saveGraphicsState();
+  doc.setGState(new (doc as any).GState({ opacity: 0.07 }));
+  doc.setFont("helvetica", "bold").setFontSize(58);
+  doc.setTextColor(150);
+  doc.text("MTOUR PORTUGAL", W / 2, H / 2 + 10, { align: "center", angle: 45, baseline: "middle" } as any);
+  doc.restoreGraphicsState();
+  doc.setTextColor(0);
+}
+
+function applyWatermarkToAllPages(doc: jsPDF) {
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    watermark(doc);
+  }
+}
+
+async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean }) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  
-  // Marca d'água (Texto leve no fundo)
-  doc.saveGraphicsState();
-  doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
-  doc.setFont("helvetica", "bold").setFontSize(60);
-  doc.setTextColor(150);
-  doc.text("MTOUR PORTUGAL", W / 2, H / 2, { align: "center", angle: 45 });
-  doc.restoreGraphicsState();
+
+  // Marca d'água (Texto leve no fundo, centrado)
+  if (!opts?.skipWatermark) watermark(doc);
+
 
   // Logo (Direito Superior) — quadrado
   if (c.logo_url) {
@@ -283,7 +298,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   const p = await loadProposal(id);
   const { data: company } = await (supabase.from("company_settings") as any).select("*").maybeSingle();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  let y = await header(doc, "VOUCHER", p.code);
+  let y = await header(doc, "VOUCHER", p.code, { skipWatermark: true });
   y = clientBlock(doc, p, y);
   const c = p.clients ?? {};
   doc.setFont("helvetica", "normal").setFontSize(10);
@@ -359,8 +374,33 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
 
   y = await generalConditionsBlock(doc, y);
 
-  // Aplicar rodapé do voucher em todas as páginas
+  // Assinatura final — Local, data de validação e empresa
+  {
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    y += 30;
+    if (y > H - 130) { doc.addPage(); y = 80; }
+    const cityName = (company as any)?.city || "Lisboa";
+    const validated = p.voucher_validated_at ? fmtDate(String(p.voucher_validated_at).slice(0, 10)) : fmtDate(new Date().toISOString().slice(0, 10));
+    doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
+    doc.text(`${cityName}, ${validated}`, W / 2, y, { align: "center" });
+    y += 34;
+    doc.setDrawColor(176, 141, 68).setLineWidth(1);
+    doc.line(W / 2 - 110, y, W / 2 + 110, y); y += 14;
+    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
+    doc.text(String((company as any)?.trade_name ?? (company as any)?.name ?? "Mtour Portugal"), W / 2, y, { align: "center" });
+    if ((company as any)?.legal_name) {
+      y += 12;
+      doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110);
+      doc.text(String((company as any).legal_name), W / 2, y, { align: "center" });
+    }
+    doc.setTextColor(0);
+  }
+
+  // Marca d'água e rodapé do voucher em todas as páginas
+  applyWatermarkToAllPages(doc);
   applyFooterToAllPages(doc, company, "voucher");
+
 
   if (opts?.output === "bloburl") return URL.createObjectURL(doc.output("blob"));
   doc.save(`Voucher-${p.code ?? p.id}.pdf`);

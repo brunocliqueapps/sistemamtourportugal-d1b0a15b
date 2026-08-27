@@ -79,8 +79,30 @@ function Orcamento() {
   const q = search.trim().toLowerCase();
   const selectableProps = useMemo(() => (props as any[]).filter((x: any) => !x.budget_validated_at || x.id === selected), [props, selected]);
   const filteredProps = useMemo(() => !q ? selectableProps : selectableProps.filter((x: any) =>
-    [x.code, x.clients?.client_number, x.clients?.name, x.clients?.email].some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+    [x.code, shortCode(x.code), x.title, x.clients?.client_number, shortCode(x.clients?.client_number), x.clients?.name,
+     x.clients?.email, x.clients?.phone, x.clients?.nif]
+      .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
+
+  function pickProposal(v: string) {
+    if (v === selected) return;
+    if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de proposta?")) return;
+    setSelected(v);
+    const pr: any = (props as any[]).find((x: any) => x.id === v);
+    setValue(String(pr?.total_value ?? 0));
+    setTerms(pr?.payment_terms ?? "");
+    setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
+      ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
+      : DEFAULT_STAGES);
+    setReceipt(pr?.budget_receipt_info ?? "");
+    setRefusal(pr?.budget_refusal_reason ?? "");
+    setAnalysisInfo(pr?.budget_analysis_info ?? "");
+    setAction("");
+    setStatusDate(today());
+    setHasUnsavedChanges(false);
+  }
+
   const days = p ? (p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1) : 1;
   const total = Number(value || p?.total_value || 0);
   const itinerary: ItineraryDay[] = Array.isArray(p?.itinerary) ? p.itinerary : [];
@@ -213,25 +235,23 @@ function Orcamento() {
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-3"><Label>Filtrar</Label>
-            <Input placeholder="Nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Nº da proposta, nº de cliente, nome, email, telefone ou NIF…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            {q && (
+              <div className="mt-2 max-h-64 overflow-auto rounded-md border divide-y">
+                {filteredProps.length === 0 && <div className="p-3 text-sm text-muted-foreground">Nenhuma proposta encontrada.</div>}
+                {filteredProps.map((x: any) => (
+                  <button key={x.id} type="button" onClick={() => pickProposal(x.id)}
+                    className={`w-full text-left p-2 text-sm hover:bg-muted ${x.id === selected ? "bg-muted" : ""}`}>
+                    <span className="font-mono text-xs mr-2">{shortCode(x.code)}</span>
+                    {x.clients?.name ?? "—"}
+                    {x.clients?.client_number ? <span className="text-muted-foreground"> · {shortCode(x.clients.client_number)}</span> : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="sm:col-span-3"><Label>Proposta</Label>
-            <Select value={selected} onValueChange={(v) => {
-              if (hasUnsavedChanges && !confirm("Tem alterações não guardadas. Deseja trocar de proposta?")) return;
-              setSelected(v);
-              const pr: any = props.find((x: any) => x.id === v);
-              setValue(String(pr?.total_value ?? 0));
-              setTerms(pr?.payment_terms ?? "");
-              setStages(Array.isArray(pr?.payment_stages) && pr.payment_stages.length
-                ? pr.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct ?? 0) }))
-                : DEFAULT_STAGES);
-              setReceipt(pr?.budget_receipt_info ?? "");
-              setRefusal(pr?.budget_refusal_reason ?? "");
-              setAnalysisInfo(pr?.budget_analysis_info ?? "");
-              setAction("");
-              setStatusDate(today());
-              setHasUnsavedChanges(false);
-            }}>
+            <Select value={selected} onValueChange={pickProposal}>
 
               <SelectTrigger><SelectValue placeholder="Selecionar proposta" /></SelectTrigger>
               <SelectContent>
@@ -240,6 +260,7 @@ function Orcamento() {
             </Select>
           </div>
         </div>
+
 
 
         {p && (
