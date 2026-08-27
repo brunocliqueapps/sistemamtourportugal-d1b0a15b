@@ -18,6 +18,8 @@ import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
+import { usePermissions } from "@/lib/permissions";
+import { Pencil, Unlock, Save, Lock } from "lucide-react";
 
 
 import { QuickViewDialog } from "@/components/QuickViewDialog";
