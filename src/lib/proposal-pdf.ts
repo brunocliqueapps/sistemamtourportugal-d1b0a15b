@@ -5,19 +5,34 @@ import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, type Itin
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "./format-date";
 
-async function header(doc: jsPDF, docTitle: string, code?: string) {
+function watermark(doc: jsPDF) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  doc.saveGraphicsState();
+  doc.setGState(new (doc as any).GState({ opacity: 0.07 }));
+  doc.setFont("helvetica", "bold").setFontSize(58);
+  doc.setTextColor(150);
+  doc.text("MTOUR PORTUGAL", W / 2, H / 2 + 10, { align: "center", angle: 45, baseline: "middle" } as any);
+  doc.restoreGraphicsState();
+  doc.setTextColor(0);
+}
+
+function applyWatermarkToAllPages(doc: jsPDF) {
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    watermark(doc);
+  }
+}
+
+async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean }) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
   const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  
-  // Marca d'água (Texto leve no fundo)
-  doc.saveGraphicsState();
-  doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
-  doc.setFont("helvetica", "bold").setFontSize(60);
-  doc.setTextColor(150);
-  doc.text("MTOUR PORTUGAL", W / 2, H / 2, { align: "center", angle: 45 });
-  doc.restoreGraphicsState();
+
+  // Marca d'água (Texto leve no fundo, centrado)
+  if (!opts?.skipWatermark) watermark(doc);
+
 
   // Logo (Direito Superior) — quadrado
   if (c.logo_url) {
