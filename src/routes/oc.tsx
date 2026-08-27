@@ -18,6 +18,8 @@ import { fmtDate } from "@/lib/format-date";
 import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { FINALIZED_STATUS } from "@/lib/finalized";
+
 
 
 export const Route = createFileRoute("/oc")({
@@ -165,12 +167,22 @@ function OCList() {
 
   const concluir = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("service_orders").update({ status: "atendimento_finalizado" }).eq("id", id);
+      const { error } = await supabase.from("service_orders").update({ status: FINALIZED_STATUS }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Pedido concluído"); qc.invalidateQueries({ queryKey: ["service-orders"] }); },
+    onSuccess: () => { toast.success("Atendimento finalizado — enviado para o Histórico"); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const reabrir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("service_orders").update({ status: "em_atendimento" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Atendimento reaberto"); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const validate = useMutation({
     mutationFn: async ({ row, on }: { row: any; on: boolean }) => {
