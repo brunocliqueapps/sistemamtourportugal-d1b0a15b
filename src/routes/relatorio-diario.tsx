@@ -113,7 +113,7 @@ function RelatorioDiario() {
             id: p.id,
             day: dayOf(p.budget_approved_at),
             primary: [p.code, p.clients?.name, "Orçamento aprovado"].filter(Boolean).join(" · "),
-            secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : null,
+            secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : undefined,
           })),
           ...(data?.orders ?? []).map((o: any) => ({
             id: o.id,
