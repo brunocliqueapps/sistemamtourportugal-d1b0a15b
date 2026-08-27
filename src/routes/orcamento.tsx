@@ -444,7 +444,7 @@ function Orcamento() {
       </Card>
 
       <Card className="p-4">
-        <div className="font-semibold text-sm mb-2">Orçamentos validados</div>
+         <div className="font-semibold text-sm mb-2">Propostas Aprovadas</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
@@ -476,7 +476,7 @@ function Orcamento() {
       </Card>
 
       <Card className="p-4">
-        <div className="font-semibold text-sm">Histórico</div>
+         <div className="font-semibold text-sm">Serviços Concluídos</div>
         <div className="text-xs text-muted-foreground mb-2">Orçamentos de serviços já finalizados.</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
