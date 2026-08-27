@@ -1615,6 +1615,7 @@ export type Database = {
           vat_rate_id: string | null
           voucher_day_notes: Json
           voucher_final_note: string | null
+          voucher_saved_at: string | null
           voucher_validated_at: string | null
         }
         Insert: {
@@ -1664,6 +1665,7 @@ export type Database = {
           vat_rate_id?: string | null
           voucher_day_notes?: Json
           voucher_final_note?: string | null
+          voucher_saved_at?: string | null
           voucher_validated_at?: string | null
         }
         Update: {
@@ -1713,6 +1715,7 @@ export type Database = {
           vat_rate_id?: string | null
           voucher_day_notes?: Json
           voucher_final_note?: string | null
+          voucher_saved_at?: string | null
           voucher_validated_at?: string | null
         }
         Relationships: [
