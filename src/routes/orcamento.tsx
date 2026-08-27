@@ -229,16 +229,16 @@ function Orcamento() {
           <div className="text-xs text-muted-foreground mt-1">{validatedActive.length} validadas em atendimento · {historyProps.length} finalizadas</div>
         </Card>
         <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Propostas finalizadas</div>
+          <div className="text-2xl font-bold">{(props as any[]).filter((x: any) => finishedIds.has(x.id)).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Aprovadas + finalizadas</div>
+        </Card>
+        <Card className="p-4">
           <div className="text-xs text-muted-foreground">Valores das propostas</div>
           <div className="text-2xl font-bold">
             € {(props as any[]).filter((x: any) => !finishedIds.has(x.id)).reduce((s, p) => s + Number(p.total_value || 0), 0).toFixed(2)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">Soma dos orçamentos em aberto</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Propostas finalizadas</div>
-          <div className="text-2xl font-bold">{(props as any[]).filter((x: any) => finishedIds.has(x.id)).length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Aprovadas + finalizadas</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total de vendas</div>
