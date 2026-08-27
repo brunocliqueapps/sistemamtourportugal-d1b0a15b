@@ -349,7 +349,7 @@ function Voucher() {
       </Card>
 
       <Card className="p-4 mt-4">
-        <div className="font-semibold text-sm mb-2">Vouchers validados</div>
+         <div className="font-semibold text-sm mb-2">Vouchers Gerados</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
@@ -370,7 +370,7 @@ function Voucher() {
       </Card>
 
       <Card className="p-4 mt-4">
-        <div className="font-semibold text-sm">Histórico</div>
+         <div className="font-semibold text-sm">Serviços Concluídos</div>
         <div className="text-xs text-muted-foreground mb-2">Vouchers de serviços já finalizados.</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
