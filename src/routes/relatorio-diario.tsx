@@ -39,15 +39,18 @@ function RelatorioDiario() {
     queryKey: ["relatorio-diario", from, to],
     queryFn: async () => {
       const endTs = `${to}T23:59:59.999Z`;
-      const [clients, proposals, orders] = await Promise.all([
+      const [clients, proposals, orders, approvedProposals] = await Promise.all([
         supabase.from("clients").select("id,created_at,name,client_number,phone,email").gte("created_at", from).lte("created_at", endTs),
         supabase.from("proposals").select("id,created_at,code,title,total_value,status,clients(name)").gte("created_at", from).lte("created_at", endTs),
-        supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,clients(name)").gte("service_date", from).lte("service_date", to),
+        supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,proposal_id,clients(name)").gte("service_date", from).lte("service_date", to),
+        supabase.from("proposals").select("id,budget_approved_at,total_value,code,clients(name)").eq("budget_status", "aprovado").gte("budget_approved_at", from).lte("budget_approved_at", endTs),
       ]);
+      const approvedIds = new Set(((approvedProposals.data ?? []) as any[]).map((p: any) => p.id));
       return {
         clients: clients.data ?? [],
         proposals: proposals.data ?? [],
-        orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status))),
+        orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status)) && (!o.proposal_id || !approvedIds.has(o.proposal_id))),
+        approvedProposals: approvedProposals.data ?? [],
       };
     },
   });
