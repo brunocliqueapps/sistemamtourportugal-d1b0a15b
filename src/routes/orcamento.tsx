@@ -65,7 +65,7 @@ function Orcamento() {
   const [analysisInfo, setAnalysisInfo] = useState<string>("");
   const [statusDate, setStatusDate] = useState<string>(today());
   const [action, setAction] = useState<"" | "aprovado" | "analise" | "recusado">("");
-  const [search, setSearch] = useState<string>("");
+  const [open, setOpen] = useState(false);
   const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
 
 
