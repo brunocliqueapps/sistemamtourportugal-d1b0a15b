@@ -432,7 +432,7 @@ function OCList() {
 
       <Card className="overflow-x-auto">
         <div className="p-4 pb-0">
-          <div className="font-semibold text-sm">Histórico</div>
+           <div className="font-semibold text-sm">Serviços Concluídos</div>
           <div className="text-xs text-muted-foreground">Serviços com atendimento finalizado.</div>
         </div>
         <Table>
