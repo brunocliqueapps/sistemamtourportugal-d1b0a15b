@@ -79,7 +79,10 @@ function Orcamento() {
   const q = search.trim().toLowerCase();
   const selectableProps = useMemo(() => (props as any[]).filter((x: any) => !x.budget_validated_at || x.id === selected), [props, selected]);
   const filteredProps = useMemo(() => !q ? selectableProps : selectableProps.filter((x: any) =>
-    [x.code, x.clients?.client_number, x.clients?.name, x.clients?.email].some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+    [x.code, shortCode(x.code), x.title, x.clients?.client_number, shortCode(x.clients?.client_number), x.clients?.name,
+     x.clients?.email, x.clients?.phone, x.clients?.nif]
+      .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [selectableProps, q]);
+
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
   const days = p ? (p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1) : 1;
   const total = Number(value || p?.total_value || 0);
