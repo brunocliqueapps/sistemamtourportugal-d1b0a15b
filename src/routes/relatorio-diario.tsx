@@ -39,15 +39,18 @@ function RelatorioDiario() {
     queryKey: ["relatorio-diario", from, to],
     queryFn: async () => {
       const endTs = `${to}T23:59:59.999Z`;
-      const [clients, proposals, orders] = await Promise.all([
+      const [clients, proposals, orders, approvedProposals] = await Promise.all([
         supabase.from("clients").select("id,created_at,name,client_number,phone,email").gte("created_at", from).lte("created_at", endTs),
         supabase.from("proposals").select("id,created_at,code,title,total_value,status,clients(name)").gte("created_at", from).lte("created_at", endTs),
-        supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,clients(name)").gte("service_date", from).lte("service_date", to),
+        supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,proposal_id,clients(name)").gte("service_date", from).lte("service_date", to),
+        supabase.from("proposals").select("id,budget_approved_at,total_value,code,clients(name)").eq("budget_status", "aprovado").gte("budget_approved_at", from).lte("budget_approved_at", endTs),
       ]);
+      const approvedIds = new Set(((approvedProposals.data ?? []) as any[]).map((p: any) => p.id));
       return {
         clients: clients.data ?? [],
         proposals: proposals.data ?? [],
-        orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status))),
+        orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status)) && (!o.proposal_id || !approvedIds.has(o.proposal_id))),
+        approvedProposals: approvedProposals.data ?? [],
       };
     },
   });
@@ -57,13 +60,14 @@ function RelatorioDiario() {
     const out: { day: string; clients: number; proposals: number; closed: number; value: number }[] = [];
     for (let d = new Date(from + "T00:00:00Z"); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
       const day = d.toISOString().slice(0, 10);
+      const approved = (data?.approvedProposals ?? []).filter((p: any) => dayOf(p.budget_approved_at) === day);
       const closed = (data?.orders ?? []).filter((o: any) => dayOf(o.service_date) === day);
       out.push({
         day,
         clients: (data?.clients ?? []).filter((c: any) => dayOf(c.created_at) === day).length,
         proposals: (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day).length,
-        closed: closed.length,
-        value: closed.reduce((s: number, o: any) => s + Number(o.sale_value || 0), 0),
+        closed: approved.length + closed.length,
+        value: approved.reduce((s: number, p: any) => s + Number(p.total_value || 0), 0) + closed.reduce((s: number, o: any) => s + Number(o.sale_value || 0), 0),
       });
     }
     return out;
@@ -104,14 +108,20 @@ function RelatorioDiario() {
       {
         title: "Serviços fechados",
         empty: "Sem serviços fechados no período.",
-        items: (data?.orders ?? [])
-          .map((o: any) => ({
+        items: [
+          ...(data?.approvedProposals ?? []).map((p: any) => ({
+            id: p.id,
+            day: dayOf(p.budget_approved_at),
+            primary: [p.code, p.clients?.name, "Orçamento aprovado"].filter(Boolean).join(" · "),
+            secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : undefined,
+          })),
+          ...(data?.orders ?? []).map((o: any) => ({
             id: o.id,
             day: dayOf(o.service_date),
             primary: [o.oc_code, o.clients?.name].filter(Boolean).join(" · "),
             secondary: [[o.origin, o.destination].filter(Boolean).join(" → "), o.sale_value ? `€ ${Number(o.sale_value).toFixed(2)}` : null].filter(Boolean).join(" · "),
-          }))
-          .sort(byDay),
+          })),
+        ].sort(byDay),
       },
     ];
   }, [data]);
