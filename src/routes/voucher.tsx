@@ -291,6 +291,28 @@ function Voucher() {
       </Card>
 
       <Card className="p-4 mt-4">
+        <div className="font-semibold text-sm">Vouchers Salvos</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {(saved as any[]).map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{x.voucher_saved_at ? new Date(x.voucher_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Editar voucher" onClick={() => openProposal(x)}><Pencil className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {(saved as any[]).length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher salvo.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Card className="p-4 mt-4">
         <div className="font-semibold text-sm mb-2">Vouchers validados</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
