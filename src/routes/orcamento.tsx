@@ -219,11 +219,20 @@ function Orcamento() {
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Proposta/Orçamento" description="Puxa todos os dados do roteiro, define valor, condições e aprova, coloca em análise ou recusa." />
 
-      <Card className="p-4 w-full sm:w-auto">
-        <div className="text-xs text-muted-foreground">Total de propostas</div>
-        <div className="text-2xl font-bold">{(props as any[]).length}</div>
-        <div className="text-xs text-muted-foreground mt-1">{validatedActive.length} validadas em atendimento · {historyProps.length} finalizadas</div>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Total de propostas</div>
+          <div className="text-2xl font-bold">{(props as any[]).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">{validatedActive.length} validadas em atendimento · {historyProps.length} finalizadas</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Valores das propostas</div>
+          <div className="text-2xl font-bold">
+            € {(props as any[]).reduce((s, p) => s + Number(p.total_value || 0), 0).toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Soma de todos os orçamentos registados</div>
+        </Card>
+      </div>
 
       {followups.length > 0 && (
         <Card className="p-4">
