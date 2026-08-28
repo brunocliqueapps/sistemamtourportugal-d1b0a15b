@@ -450,7 +450,7 @@ function Orcamento() {
                 <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
               </Button>
               <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
-                <Check className="h-4 w-4 mr-1" /> Aprovar Orçamento
+                <Check className="h-4 w-4 mr-1" /> Aprovar Venda
               </Button>
             </div>
 
@@ -459,7 +459,7 @@ function Orcamento() {
       </Card>
 
       <Card className="p-4">
-         <div className="font-semibold text-sm mb-2">Propostas Aprovadas</div>
+         <div className="font-semibold text-sm mb-2">Vendas Fechadas</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
