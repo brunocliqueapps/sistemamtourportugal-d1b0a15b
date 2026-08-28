@@ -57,15 +57,17 @@ function RelatorioDiario() {
 
   const rows = useMemo(() => {
     if (!from || !to || from > to) return [];
-    const out: { day: string; clients: number; proposals: number; closed: number; value: number }[] = [];
+    const out: { day: string; clients: number; proposals: number; proposalValue: number; closed: number; value: number }[] = [];
     for (let d = new Date(from + "T00:00:00Z"); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
       const day = d.toISOString().slice(0, 10);
       const approved = (data?.approvedProposals ?? []).filter((p: any) => dayOf(p.budget_approved_at) === day);
       const closed = (data?.orders ?? []).filter((o: any) => dayOf(o.service_date) === day);
+      const dayProposals = (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day);
       out.push({
         day,
         clients: (data?.clients ?? []).filter((c: any) => dayOf(c.created_at) === day).length,
-        proposals: (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day).length,
+        proposals: dayProposals.length,
+        proposalValue: dayProposals.reduce((s: number, p: any) => s + Number(p.total_value || 0), 0),
         closed: approved.length + closed.length,
         value: approved.reduce((s: number, p: any) => s + Number(p.total_value || 0), 0) + closed.reduce((s: number, o: any) => s + Number(o.sale_value || 0), 0),
       });
@@ -74,8 +76,8 @@ function RelatorioDiario() {
   }, [data, from, to]);
 
   const totals = rows.reduce(
-    (a, r) => ({ clients: a.clients + r.clients, proposals: a.proposals + r.proposals, closed: a.closed + r.closed, value: a.value + r.value }),
-    { clients: 0, proposals: 0, closed: 0, value: 0 },
+    (a, r) => ({ clients: a.clients + r.clients, proposals: a.proposals + r.proposals, proposalValue: a.proposalValue + r.proposalValue, closed: a.closed + r.closed, value: a.value + r.value }),
+    { clients: 0, proposals: 0, proposalValue: 0, closed: 0, value: 0 },
   );
 
   const details = useMemo(() => {
@@ -134,9 +136,9 @@ function RelatorioDiario() {
     doc.text(`Período: ${fmtDate(from)} a ${fmtDate(to)}`, 14, 25);
     autoTable(doc, {
       startY: 32,
-      head: [["Data", "Clientes registados", "Orçamentos feitos", "Serviços fechados", "Valor (€)"]],
-      body: rows.map((r) => [fmtDate(r.day), String(r.clients), String(r.proposals), String(r.closed), r.value.toFixed(2)]),
-      foot: [["Total", String(totals.clients), String(totals.proposals), String(totals.closed), totals.value.toFixed(2)]],
+      head: [["Data", "Clientes registados", "Orçamentos feitos", "Valor Orçamentos (€)", "Serviços fechados", "Valor (€)"]],
+      body: rows.map((r) => [fmtDate(r.day), String(r.clients), String(r.proposals), r.proposalValue.toFixed(2), String(r.closed), r.value.toFixed(2)]),
+      foot: [["Total", String(totals.clients), String(totals.proposals), totals.proposalValue.toFixed(2), String(totals.closed), totals.value.toFixed(2)]],
       styles: { fontSize: 9 },
       headStyles: { fillColor: [16, 42, 78] },
       footStyles: { fillColor: [200, 164, 92], textColor: 20 },
@@ -189,12 +191,13 @@ function RelatorioDiario() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: "Clientes registados", value: totals.clients },
           { label: "Orçamentos feitos", value: totals.proposals },
           { label: "Vendas fechados", value: totals.closed },
           { label: "Valor fechado", value: `€ ${totals.value.toFixed(2)}` },
+          { label: "Valor total dos Orçamentos", value: `€ ${totals.proposalValue.toFixed(2)}` },
         ].map((k) => (
           <Card key={k.label} className="p-4">
             <div className="text-xs text-muted-foreground">{k.label}</div>
@@ -210,19 +213,21 @@ function RelatorioDiario() {
               <TableHead>Data</TableHead>
               <TableHead className="text-center">Clientes registados</TableHead>
               <TableHead className="text-center">Orçamentos feitos</TableHead>
+              <TableHead className="text-right">Valor total dos Orçamentos</TableHead>
               <TableHead className="text-center">Vendas fechados</TableHead>
               <TableHead className="text-right">Valor</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{isFetching ? "A carregar…" : "Selecione um período válido."}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{isFetching ? "A carregar…" : "Selecione um período válido."}</TableCell></TableRow>
             )}
             {rows.map((r) => (
               <TableRow key={r.day}>
                 <TableCell className="whitespace-nowrap">{fmtDate(r.day)}</TableCell>
                 <TableCell className="text-center">{r.clients}</TableCell>
                 <TableCell className="text-center">{r.proposals}</TableCell>
+                <TableCell className="text-right">€ {r.proposalValue.toFixed(2)}</TableCell>
                 <TableCell className="text-center">{r.closed}</TableCell>
                 <TableCell className="text-right font-semibold">€ {r.value.toFixed(2)}</TableCell>
               </TableRow>
