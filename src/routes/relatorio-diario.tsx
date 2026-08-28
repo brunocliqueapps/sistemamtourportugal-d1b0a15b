@@ -106,7 +106,7 @@ function RelatorioDiario() {
           .sort(byDay),
       },
       {
-        title: "Serviços fechados",
+        title: "Vendas fechados",
         empty: "Sem serviços fechados no período.",
         items: [
           ...(data?.approvedProposals ?? []).map((p: any) => ({
