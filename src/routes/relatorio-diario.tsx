@@ -188,7 +188,7 @@ function RelatorioDiario() {
         {[
           { label: "Clientes registados", value: totals.clients },
           { label: "Orçamentos feitos", value: totals.proposals },
-          { label: "Serviços fechados", value: totals.closed },
+          { label: "Vendas fechados", value: totals.closed },
           { label: "Valor fechado", value: `€ ${totals.value.toFixed(2)}` },
         ].map((k) => (
           <Card key={k.label} className="p-4">
