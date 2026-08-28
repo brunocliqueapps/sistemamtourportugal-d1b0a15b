@@ -205,7 +205,7 @@ function RelatorioDiario() {
               <TableHead>Data</TableHead>
               <TableHead className="text-center">Clientes registados</TableHead>
               <TableHead className="text-center">Orçamentos feitos</TableHead>
-              <TableHead className="text-center">Serviços fechados</TableHead>
+              <TableHead className="text-center">Vendas fechados</TableHead>
               <TableHead className="text-right">Valor</TableHead>
             </TableRow>
           </TableHeader>
