@@ -270,8 +270,9 @@ function AcertoCarro() {
         ? settlement?.driver_pct
         : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
       const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const companyAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      const driverAmount = netProfit - companyAmount;
+      const hasIncome = incomeTotal > 0;
+      const companyAmount = !hasIncome ? 0 : pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
+      const driverAmount = !hasIncome ? 0 : Math.max(netProfit - companyAmount, 0);
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
