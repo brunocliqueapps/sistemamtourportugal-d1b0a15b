@@ -554,7 +554,7 @@ function AcertoCarro() {
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
                   <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold">{eur(r.driverAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.pct === null ? "—" : eur(r.companyAmount)}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
                 </div>
 
                 <div>
