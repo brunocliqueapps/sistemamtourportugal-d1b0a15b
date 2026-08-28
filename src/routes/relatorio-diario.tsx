@@ -197,7 +197,7 @@ function RelatorioDiario() {
           { label: "Orçamentos feitos", value: totals.proposals },
           { label: "Vendas fechados", value: totals.closed },
           { label: "Valor fechado", value: `€ ${totals.value.toFixed(2)}` },
-          { label: "Valor total dos Orçamentos", value: `€ ${totals.proposalValue.toFixed(2)}` },
+          { label: "Total em orçamentos feitos", value: `€ ${totals.proposalValue.toFixed(2)}` },
         ].map((k) => (
           <Card key={k.label} className="p-4">
             <div className="text-xs text-muted-foreground">{k.label}</div>
@@ -213,7 +213,7 @@ function RelatorioDiario() {
               <TableHead>Data</TableHead>
               <TableHead className="text-center">Clientes registados</TableHead>
               <TableHead className="text-center">Orçamentos feitos</TableHead>
-              <TableHead className="text-right">Valor total dos Orçamentos</TableHead>
+              <TableHead className="text-right">Total em orçamentos feitos</TableHead>
               <TableHead className="text-center">Vendas fechados</TableHead>
               <TableHead className="text-right">Valor</TableHead>
             </TableRow>
