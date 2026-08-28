@@ -181,7 +181,12 @@ function RelatorioDiario() {
           <Label className="text-xs">Até</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full sm:w-44" />
         </div>
-        <Button variant="outline" onClick={() => { setFrom(daysAgo(6)); setTo(today()); }}>Últimos 7 dias</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { setFrom(daysAgo(6)); setTo(today()); }}>Últimos 7 dias</Button>
+          <Button variant="outline" onClick={() => { setFrom(daysAgo(14)); setTo(today()); }}>Últimos 15 dias</Button>
+          <Button variant="outline" onClick={() => { setFrom(daysAgo(29)); setTo(today()); }}>Últimos 30 dias</Button>
+          <Button variant="outline" onClick={() => { setFrom(daysAgo(59)); setTo(today()); }}>Últimos 60 dias</Button>
+        </div>
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
