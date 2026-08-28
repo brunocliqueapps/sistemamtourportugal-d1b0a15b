@@ -114,8 +114,11 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
   ];
   if (d.rentalCost > 0) resume.push(["Aluguer da viatura", `- ${eur(d.rentalCost)}`]);
   resume.push(["Lucro líquido", eur(d.netProfit)]);
-  if (d.driverPct !== null && d.driverPct !== undefined) {
-    resume.push([`Crédito a empresa (${d.driverPct}%)`, eur(d.companyAmount)]);
+  if (d.companyAmount > 0) {
+    const label = d.driverPct !== null && d.driverPct !== undefined
+      ? `Crédito a empresa (aluguer + ${d.driverPct}%)`
+      : "Crédito a empresa (aluguer)";
+    resume.push([label, eur(d.companyAmount)]);
   }
   resume.push(["A pagar ao motorista", eur(d.driverAmount)]);
 

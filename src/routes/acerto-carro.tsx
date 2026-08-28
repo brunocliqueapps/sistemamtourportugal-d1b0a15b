@@ -270,8 +270,11 @@ function AcertoCarro() {
         ? settlement?.driver_pct
         : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
       const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const companyAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      const driverAmount = netProfit - companyAmount;
+      const hasIncome = incomeTotal > 0;
+      const pctAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
+      // Crédito a empresa = aluguer da viatura + percentagem da empresa
+      const companyAmount = !hasIncome ? rentalCost : rentalCost + pctAmount;
+      const driverAmount = !hasIncome ? 0 : Math.max(netProfit - companyAmount, 0);
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
@@ -551,7 +554,7 @@ function AcertoCarro() {
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
                   <div><div className="text-xs text-muted-foreground">A pagar ao motorista</div><div className="font-bold">{eur(r.driverAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.pct === null ? "—" : eur(r.companyAmount)}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
                 </div>
 
                 <div>
