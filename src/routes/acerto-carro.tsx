@@ -258,7 +258,8 @@ function AcertoCarro() {
       const expenseTotal = allExpenses.reduce((a, l) => a + l.amount, 0);
       const isRental = v.usage_type === "aluguel" || v.usage_type === "aluguer";
       const rentalCost = isRental ? Number(v.rental_weekly_cost || 0) : 0;
-      const netProfit = incomeTotal - expenseTotal - rentalCost;
+      const hasIncome = incomeTotal > 0;
+      const netProfit = hasIncome ? incomeTotal - expenseTotal - rentalCost : 0;
 
       const settlement = settlements.find((s: any) => s.vehicle_id === v.id);
       const primary = vehicleDrivers.find((vd: any) => vd.vehicle_id === v.id && vd.is_primary)
@@ -270,7 +271,6 @@ function AcertoCarro() {
         ? settlement?.driver_pct
         : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
       const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const hasIncome = incomeTotal > 0;
       const pctAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
       // Crédito a empresa = aluguer da viatura + percentagem da empresa
       const companyAmount = !hasIncome ? rentalCost : rentalCost + pctAmount;
