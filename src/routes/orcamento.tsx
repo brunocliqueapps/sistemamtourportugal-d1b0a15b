@@ -501,7 +501,35 @@ function Orcamento() {
       </Card>
 
       <Card className="p-4">
+        <div className="font-semibold text-sm">Orçamentos Salvos</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {savedBudgets.map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{x.budget_saved_at ? new Date(x.budget_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
+                <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
+                    pickProposal(x.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}><Pencil className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {savedBudgets.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento salvo.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Card className="p-4">
          <div className="font-semibold text-sm mb-2">Vendas Fechadas</div>
+
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
