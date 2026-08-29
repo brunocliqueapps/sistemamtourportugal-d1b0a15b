@@ -465,15 +465,36 @@ function Orcamento() {
               {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleDateString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
             </div>
 
+            {locked && (
+              <div className="rounded-md border border-primary/30 bg-muted/40 p-3 text-sm flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                Orçamento validado em {new Date(p.budget_validated_at).toLocaleString("pt-PT")} — edição bloqueada.
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="outline" onClick={async () => { if (await save()) close(); }}>Guardar</Button>
-              <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
-              </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
-                <Check className="h-4 w-4 mr-1" /> Aprovar Venda
-              </Button>
+              {!locked && (
+                <Button variant="outline" onClick={async () => { if (await save()) close(); }}>
+                  <Save className="h-4 w-4 mr-1" /> Salvar
+                </Button>
+              )}
+              {locked && (
+                <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+                </Button>
+              )}
+              {locked && isAdmin && (
+                <Button variant="outline" onClick={unlockBudget}>
+                  <Unlock className="h-4 w-4 mr-1" /> Desbloquear edição
+                </Button>
+              )}
+              {!locked && (
+                <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
+                  <Check className="h-4 w-4 mr-1" /> Aprovar Venda
+                </Button>
+              )}
             </div>
+
 
           </>
         )}
