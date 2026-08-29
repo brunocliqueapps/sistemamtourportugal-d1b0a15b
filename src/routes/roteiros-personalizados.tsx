@@ -197,6 +197,16 @@ function Propostas() {
     setOpen(true); setHasUnsavedChanges(false);
   }
 
+  const unlock = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("proposals")
+        .update({ roteiro_validated_at: null, roteiro_saved_at: new Date().toISOString() } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Roteiro desbloqueado para edição"); qc.invalidateQueries({ queryKey: ["proposals"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const selectedClient: any = clients.find((c: any) => c.id === form.client_id);
   const q = search.trim().toLowerCase();
@@ -205,6 +215,63 @@ function Propostas() {
         .some((v: any) => String(v ?? "").toLowerCase().includes(q)))
     : (props as any[]);
 
+  const savedProps = filteredProps.filter((p: any) => !p.roteiro_validated_at);
+  const validatedProps = filteredProps.filter((p: any) => !!p.roteiro_validated_at);
+
+  const editingLocked = !!editing?.roteiro_validated_at;
+
+  const rows = (list: any[], validated: boolean) => (
+    <Table>
+      <TableHeader><TableRow>
+        <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Tipo</TableHead>
+        <TableHead>Dias</TableHead>
+        <TableHead>{validated ? "Validado" : "Salvo"}</TableHead>
+        <TableHead className="text-right">Ações</TableHead>
+      </TableRow></TableHeader>
+      <TableBody>
+        {list.map((p: any) => (
+          <TableRow key={p.id}>
+            <TableCell className="font-mono text-xs">{shortCode(p.code ?? p.clients?.client_number)}</TableCell>
+            <TableCell className="font-medium">{p.clients?.name ?? p.leads?.name ?? "—"}</TableCell>
+            <TableCell>{p.title ?? "—"}</TableCell>
+            <TableCell>{KINDS.find((k) => k.code === p.proposal_kind)?.label ?? "—"}</TableCell>
+            <TableCell>{p.days_count ?? "—"}</TableCell>
+            <TableCell className="text-xs">
+              {validated
+                ? new Date(p.roteiro_validated_at).toLocaleString("pt-PT")
+                : (p.roteiro_saved_at ? new Date(p.roteiro_saved_at).toLocaleString("pt-PT") : "—")}
+            </TableCell>
+            <TableCell className="text-right space-x-1 whitespace-nowrap">
+              {validated && (
+                <Button size="icon" variant="ghost" title="PDF do roteiro" onClick={() => generateProposalPdf(p.id, { variant: "roteiro" }).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
+              )}
+              <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
+              {validated ? (
+                isAdmin ? (
+                  <>
+                    <Button size="icon" variant="ghost" title="Desbloquear edição" onClick={() => { if (confirm("Desbloquear este roteiro para edição? A validação será removida.")) unlock.mutate(p.id); }}><Unlock className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </>
+                ) : (
+                  <Badge variant="outline" className="ml-1"><Lock className="h-3 w-3 mr-1" /> Só admin</Badge>
+                )
+              ) : (
+                <>
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
+                </>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+        {list.length === 0 && (
+          <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">
+            {validated ? "Nenhum roteiro validado." : "Nenhum roteiro salvo."}
+          </TableCell></TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -215,48 +282,25 @@ function Propostas() {
       <Card className="p-4 w-full sm:w-auto mb-4">
         <div className="text-xs text-muted-foreground">Total de roteiros</div>
         <div className="text-2xl font-bold">{(props as any[]).length}</div>
-        <div className="text-xs text-muted-foreground mt-1">{filteredProps.length} no filtro atual</div>
+        <div className="text-xs text-muted-foreground mt-1">{savedProps.length} salvos · {validatedProps.length} validados</div>
       </Card>
 
       <Card className="p-3 mb-4">
         <Input placeholder="Filtrar por nº de cliente, nome ou email…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </Card>
 
-      <Card>
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Nº Cliente</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Tipo</TableHead>
-            <TableHead>Dias</TableHead>
-
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {filteredProps.map((p: any) => {
-              const approved = ["aprovada", "convertida"].includes(p.status) || !!p.budget_approved_at;
-              const locked = approved && !isAdmin;
-              return (
-              <TableRow key={p.id}>
-                <TableCell className="font-mono text-xs">{shortCode(p.code ?? p.clients?.client_number)}</TableCell>
-                <TableCell className="font-medium">{p.clients?.name ?? p.leads?.name ?? "—"}</TableCell>
-                <TableCell>{p.title ?? "—"}</TableCell>
-                <TableCell>{KINDS.find((k) => k.code === p.proposal_kind)?.label ?? "—"}</TableCell>
-                <TableCell>{p.days_count ?? "—"}</TableCell>
-                
-                <TableCell className="text-right space-x-1 whitespace-nowrap">
-                  <Button size="icon" variant="ghost" title="PDF do roteiro" onClick={() => generateProposalPdf(p.id, { variant: "roteiro" }).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
-                  {locked ? (
-                    <Badge variant="outline" className="ml-1"><Lock className="h-3 w-3 mr-1" /> Só admin</Badge>
-                  ) : (<>
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta proposta?")) del.mutate(p.id); }}><Trash2 className="h-4 w-4" /></Button>
-                  </>)}
-                </TableCell>
-              </TableRow>
-            );})}
-          </TableBody>
-        </Table>
+      <Card className="p-4 mb-4">
+        <div className="font-semibold text-sm">Roteiros Salvos</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        {rows(savedProps, false)}
       </Card>
+
+      <Card className="p-4">
+        <div className="font-semibold text-sm">Roteiros Validados</div>
+        <div className="text-xs text-muted-foreground mb-2">Validados — edição bloqueada (só admin desbloqueia) e PDF disponível.</div>
+        {rows(validatedProps, true)}
+      </Card>
+
 
       <Dialog open={open} onOpenChange={(v) => {
         if (!v && useUnsavedChanges().hasUnsavedChanges) {
