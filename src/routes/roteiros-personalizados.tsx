@@ -452,20 +452,33 @@ function Propostas() {
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <div className="flex-1 text-xs text-muted-foreground hidden sm:block">
-              Clique em Guardar para não perder as informações registadas.
+              Salve para guardar as informações; valide para bloquear e liberar o PDF.
             </div>
             <div className="flex flex-wrap items-center gap-2 justify-end">
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              {editing?.id && (
+              {editingLocked && editing?.id && (
                 <Button variant="outline" onClick={() => generateProposalPdf(editing.id, { variant: "roteiro" }).catch((e: any) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> PDF
                 </Button>
               )}
-              <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate()} disabled={!form.client_id || save.isPending}>
-                Guardar
-              </Button>
+              {editingLocked && isAdmin && editing?.id && (
+                <Button variant="outline" onClick={() => { if (confirm("Desbloquear este roteiro para edição? A validação será removida.")) { unlock.mutate(editing.id); setOpen(false); } }}>
+                  <Unlock className="h-4 w-4 mr-1" /> Desbloquear edição
+                </Button>
+              )}
+              {!editingLocked && (
+                <>
+                  <Button variant="outline" onClick={() => save.mutate({})} disabled={!form.client_id || save.isPending}>
+                    <Save className="h-4 w-4 mr-1" /> Salvar
+                  </Button>
+                  <Button className="gradient-gold text-gold-foreground" onClick={() => save.mutate({ validate: true })} disabled={!form.client_id || save.isPending}>
+                    <Check className="h-4 w-4 mr-1" /> Validar Roteiro
+                  </Button>
+                </>
+              )}
             </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
