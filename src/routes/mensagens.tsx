@@ -20,10 +20,10 @@ export const Route = createFileRoute("/mensagens")({
   component: Mensagens,
   head: () => ({
     meta: [
-      { title: "Mensagens WhatsApp · Mtour Portugal" },
-      { name: "description", content: "Caixa de entrada WhatsApp Business sincronizada com os clientes do CRM Mtour Portugal." },
-      { property: "og:title", content: "Mensagens WhatsApp · Mtour Portugal" },
-      { property: "og:description", content: "Conversas WhatsApp sincronizadas com o CRM Mtour Portugal." },
+      { title: "Leads · Mtour Portugal" },
+      { name: "description", content: "Caixa de entrada WhatsApp Business sincronizada com os leads e clientes do CRM Mtour Portugal." },
+      { property: "og:title", content: "Leads · Mtour Portugal" },
+      { property: "og:description", content: "Conversas WhatsApp sincronizadas com leads no CRM Mtour Portugal." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -164,8 +164,8 @@ function Mensagens() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title="Mensagens"
-        description="Caixa de entrada do WhatsApp Business sincronizada com os clientes."
+        title="Leads"
+        description="Caixa de entrada do WhatsApp Business sincronizada com os leads e clientes."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => { convs.refetch(); msgs.refetch(); }}>
