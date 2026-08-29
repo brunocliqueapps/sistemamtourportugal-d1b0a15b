@@ -156,11 +156,12 @@ function Propostas() {
       if (error) throw error;
       return data.id as string;
     },
-    onSuccess: async () => {
-      toast.success(editing ? "Proposta atualizada" : "Proposta gerada");
+    onSuccess: async (_id, opts) => {
+      toast.success(opts?.validate ? "Roteiro validado" : "Roteiro salvo");
       qc.invalidateQueries({ queryKey: ["proposals"] });
       setOpen(false); setEditing(null); setForm(empty); setHasUnsavedChanges(false);
     },
+
 
     onError: (e: any) => toast.error(e.message),
   });
