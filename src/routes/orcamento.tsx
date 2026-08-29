@@ -57,6 +57,7 @@ const DEFAULT_STAGES: Stage[] = [
 
 function Orcamento() {
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
+  const { isAdmin } = usePermissions();
   const [selected, setSelected] = useState<string>("");
 
   const [value, setValue] = useState<string>("");
