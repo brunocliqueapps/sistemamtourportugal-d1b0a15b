@@ -27,13 +27,18 @@ export const sendWhatsappMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => sendSchema.parse(data))
   .handler(async ({ data, context }) => {
+    const evoBase = process.env["EVOLUTION_API_URL"];
+    const evoKey = process.env["EVOLUTION_API_KEY"];
+    const evoInstance = process.env["EVOLUTION_INSTANCE"] ?? "mtour";
     const token = process.env["WHATSAPP_ACCESS_TOKEN"];
     const phoneNumberId = process.env["WHATSAPP_PHONE_NUMBER_ID"];
-    if (!token || !phoneNumberId) {
+    const useEvolution = !!(evoBase && evoKey);
+    if (!useEvolution && (!token || !phoneNumberId)) {
       throw new Error(
-        "Integração WhatsApp não configurada. Faltam WHATSAPP_ACCESS_TOKEN e/ou WHATSAPP_PHONE_NUMBER_ID.",
+        "Integração WhatsApp não configurada. Configure a instância (EVOLUTION_API_URL/EVOLUTION_API_KEY) ou a Cloud API.",
       );
     }
+
 
     const to = data.phone.replace(/[^\d]/g, "");
     const sb: any = context.supabase;
@@ -64,6 +69,24 @@ export const sendWhatsappMessage = createServerFn({ method: "POST" })
     let errorMessage: string | null = null;
 
     try {
+      if (useEvolution) {
+        const res = await fetch(
+          `${evoBase!.replace(/\/+$/, "")}/message/sendText/${encodeURIComponent(evoInstance)}`,
+          {
+            method: "POST",
+            headers: { apikey: evoKey!, "Content-Type": "application/json" },
+            body: JSON.stringify({ number: to, text: data.body }),
+          },
+        );
+        const json: any = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          status = "failed";
+          errorMessage = json?.message ?? json?.error ?? `Erro ${res.status} ao enviar mensagem.`;
+        } else {
+          waMessageId = json?.key?.id ?? json?.id ?? null;
+        }
+        throw { __done: true };
+      }
       const res = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
         method: "POST",
         headers: {
@@ -86,8 +109,10 @@ export const sendWhatsappMessage = createServerFn({ method: "POST" })
         waMessageId = json?.messages?.[0]?.id ?? null;
       }
     } catch (e: any) {
-      status = "failed";
-      errorMessage = e?.message ?? "Falha de rede ao contactar o WhatsApp.";
+      if (!e?.__done) {
+        status = "failed";
+        errorMessage = e?.message ?? "Falha de rede ao contactar o WhatsApp.";
+      }
     }
 
     const nowIso = new Date().toISOString();
