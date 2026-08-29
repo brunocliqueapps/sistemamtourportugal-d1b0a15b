@@ -111,7 +111,7 @@ function Propostas() {
   }
 
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { validate?: boolean }) => {
       const n = daysBetween(form.itinerary_start, form.itinerary_end);
       // Garante que todos os dias do período são gravados (mesmo os não editados)
       const routeById = (id?: string) => (tourRoutes as any[]).find((r) => r.id === id);
