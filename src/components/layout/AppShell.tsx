@@ -24,8 +24,8 @@ const groups: Group[] = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   ]},
   { label: "Comercial", items: [
+    { to: "/mensagens", label: "Leads", icon: MessageSquare, module: "mensagens" },
     { to: "/clientes", label: "Clientes · CRM", icon: Users, module: "cadastros" },
-    { to: "/mensagens", label: "Mensagens", icon: MessageSquare, module: "mensagens" },
 
     { to: "/roteiros-personalizados", label: "Roteiros Personalizados", icon: FileText, module: "propostas" },
     { to: "/orcamento", label: "Proposta/Orçamento", icon: Calculator, module: "propostas" },
