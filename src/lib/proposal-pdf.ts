@@ -317,26 +317,9 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   y += 8;
   y = travelBlock(doc, p, y);
   
-  // No voucher, acrescentar também tudo que tem em Orçamento, inclusive os valores e formas de pagamento.
-  y = itineraryBlock(doc, p, y, "Serviço contratado");
-
-  // Adicionar orientações diárias se houver
+  // No voucher, as observações de cada dia aparecem logo após a data do respetivo roteiro.
   const dayNotes: any[] = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
-  if (dayNotes.length > 0) {
-    doc.setFont("helvetica", "bold").setFontSize(11);
-    doc.text("Orientações Importantes", 40, y); y += 14;
-    dayNotes.forEach((dn) => {
-      if (dn.note && dn.note.trim()) {
-        doc.setFont("helvetica", "bold").setFontSize(9);
-        doc.text(`${fmtDate(dn.date)}:`, 40, y);
-        doc.setFont("helvetica", "normal");
-        const lines = doc.splitTextToSize(dn.note, doc.internal.pageSize.getWidth() - 120);
-        doc.text(lines, 110, y);
-        y += (lines.length * 12) + 6;
-      }
-    });
-    y += 10;
-  }
+  y = itineraryBlock(doc, p, y, "Serviço contratado", dayNotes);
 
   // Tabela de Valores e Etapas (Igual ao Orçamento)
   const days = p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1;
