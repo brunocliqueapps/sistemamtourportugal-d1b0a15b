@@ -177,6 +177,18 @@ function Orcamento() {
     refetch();
   }
 
+  async function unsaveBudget() {
+    if (!p) return;
+    if (!confirm("Remover este orçamento da lista de salvos? Poderá fazê-lo novamente depois.")) return;
+    const { error } = await supabase.from("proposals")
+      .update({ budget_saved_at: null } as any)
+      .eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento removido dos salvos");
+    refetch();
+    close();
+  }
+
 
   async function validate() {
     if (!p) return false;
@@ -430,14 +442,14 @@ function Orcamento() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Button variant={action === "analise" ? "default" : "outline"}
+                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
                 <Button
                   variant={action === "aprovado" ? "default" : "outline"}
                   className={action === "aprovado" ? "gradient-gold text-gold-foreground" : ""}
                   onClick={() => { setAction("aprovado"); setStatusDate((p.budget_approved_at ?? new Date().toISOString()).slice(0, 10)); }}
                 ><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
-                <Button variant={action === "analise" ? "default" : "outline"}
-                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
-                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
                 <Button variant={action === "recusado" ? "default" : "outline"}
                   onClick={() => { setAction("recusado"); setStatusDate((p.budget_refused_at ?? new Date().toISOString()).slice(0, 10)); }}
                 ><X className="h-4 w-4 mr-1" /> Recusado</Button>
@@ -481,6 +493,11 @@ function Orcamento() {
               {!locked && (
                 <Button variant="outline" onClick={async () => { if (await save()) close(); }}>
                   <Save className="h-4 w-4 mr-1" /> Salvar
+                </Button>
+              )}
+              {!locked && p.budget_saved_at && (
+                <Button variant="outline" onClick={unsaveBudget}>
+                  <X className="h-4 w-4 mr-1" /> Não Salvo
                 </Button>
               )}
               {locked && (
