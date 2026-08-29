@@ -91,6 +91,11 @@ function Orcamento() {
   const savedBudgets = useMemo(() => (props as any[]).filter((x: any) => x.budget_saved_at && !x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
+  // Acompanhamentos pendentes: apenas propostas em análise (não aprovadas nem finalizadas)
+  const pendingFollowups = useMemo(() => (followups as any[]).filter((f: any) => {
+    const pr: any = (props as any[]).find((x: any) => x.id === f.proposal_id);
+    return pr && pr.budget_status !== "aprovado" && !finalizedIds.has(pr.id);
+  }), [followups, props, finalizedIds]);
 
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
@@ -267,11 +272,11 @@ function Orcamento() {
         </Card>
       </div>
 
-      {followups.length > 0 && (
+      {pendingFollowups.length > 0 && (
         <Card className="p-4">
           <div className="font-semibold text-sm mb-2 flex items-center gap-2"><Clock className="h-4 w-4" /> Bilhetes de acompanhamento pendentes</div>
           <div className="space-y-1 text-sm">
-            {followups.map((f: any) => (
+            {pendingFollowups.map((f: any) => (
               <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-1">
                 <span>{f.due_date} · {shortCode(f.proposals?.code)} · {f.proposals?.clients?.name ?? "—"}</span>
                 <Button size="sm" variant="outline" onClick={async () => {
