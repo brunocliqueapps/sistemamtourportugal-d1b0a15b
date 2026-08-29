@@ -86,11 +86,14 @@ function Orcamento() {
     ...(props as any[]).filter((x: any) => x.budget_status === "aprovado" || finalizedIds.has(x.id)).map((x: any) => x.id),
   ]), [props, finalizedIds]);
   const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
+  const savedBudgets = useMemo(() => (props as any[]).filter((x: any) => x.budget_saved_at && !x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
 
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
+  const locked = !!p?.budget_validated_at;
+
 
   function pickProposal(v: string) {
     if (v === selected) return;
