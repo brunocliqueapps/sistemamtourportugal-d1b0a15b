@@ -382,9 +382,9 @@ function Orcamento() {
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
+                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" disabled={locked} value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
                 <div><Label>Forma de Pagamento</Label>
-                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }}>
+                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }} disabled={locked}>
                     <SelectTrigger><SelectValue placeholder="Selecionar forma de pagamento" /></SelectTrigger>
                     <SelectContent>
                       {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -398,21 +398,24 @@ function Orcamento() {
                 const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
                 return (
                   <div key={i} className="flex flex-wrap items-center gap-2">
-                    <Input className="w-20" type="number" min={0} max={100} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
+                    <Input className="w-20" type="number" min={0} max={100} disabled={locked} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
                     <span className="text-sm">%</span>
-                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" value={s.label} onChange={(e) => patch({ label: e.target.value })} />
+                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" disabled={locked} value={s.label} onChange={(e) => patch({ label: e.target.value })} />
                     <span className="text-sm w-24 text-right">€ {(total * Number(s.pct || 0) / 100).toFixed(2)}</span>
-                    <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                    {!locked && <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>}
                   </div>
                 );
               })}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
-                <div className="text-xs text-muted-foreground">
-                  Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+              {!locked && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
+                  <div className="text-xs text-muted-foreground">
+                    Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
+
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
