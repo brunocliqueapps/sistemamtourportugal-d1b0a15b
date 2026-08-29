@@ -126,16 +126,20 @@ function Propostas() {
             text: (d.text && String(d.text).trim()) || r?.name || "",
           };
         });
+      const now = new Date().toISOString();
       const payload: any = {
         ...form,
         itinerary,
         passengers: Number(form.passengers || 0) || null,
         days_count: n || null,
         private_service_text: form.proposal_kind === "servico_privado" ? (form.descriptive_service || null) : null,
+        roteiro_saved_at: now,
+        ...(opts?.validate ? { roteiro_validated_at: now } : {}),
       };
       delete payload.descriptive_service;
       delete payload.payment_terms;
       delete payload.total_value;
+
 
       ["client_id", "lead_id", "arrival_date", "arrival_time", "departure_date", "departure_time", "itinerary_start", "itinerary_end", "region_id", "tour_route_id"].forEach((k) => {
         if (!payload[k]) payload[k] = null;
