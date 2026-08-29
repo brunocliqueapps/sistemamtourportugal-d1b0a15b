@@ -430,14 +430,14 @@ function Orcamento() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Button variant={action === "analise" ? "default" : "outline"}
+                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
+                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
                 <Button
                   variant={action === "aprovado" ? "default" : "outline"}
                   className={action === "aprovado" ? "gradient-gold text-gold-foreground" : ""}
                   onClick={() => { setAction("aprovado"); setStatusDate((p.budget_approved_at ?? new Date().toISOString()).slice(0, 10)); }}
                 ><Check className="h-4 w-4 mr-1" /> Aprovado</Button>
-                <Button variant={action === "analise" ? "default" : "outline"}
-                  onClick={() => { setAction("analise"); setStatusDate((p.budget_analysis_at ?? new Date().toISOString()).slice(0, 10)); }}
-                ><Clock className="h-4 w-4 mr-1" /> Em análise</Button>
                 <Button variant={action === "recusado" ? "default" : "outline"}
                   onClick={() => { setAction("recusado"); setStatusDate((p.budget_refused_at ?? new Date().toISOString()).slice(0, 10)); }}
                 ><X className="h-4 w-4 mr-1" /> Recusado</Button>
