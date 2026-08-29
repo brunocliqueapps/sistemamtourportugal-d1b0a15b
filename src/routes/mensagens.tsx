@@ -431,8 +431,8 @@ function Mensagens() {
               <Textarea rows={4} value={newText} onChange={(e) => setNewText(e.target.value)} />
             </div>
             <p className="text-xs text-muted-foreground">
-              A Meta só permite mensagens livres nas 24h após a última mensagem do cliente. Fora dessa
-              janela é necessário usar um template aprovado.
+              Com a instância ligada por QR Code pode enviar mensagens livres a qualquer momento.
+              Use o número com indicativo do país e evite envios em massa.
             </p>
           </div>
           <DialogFooter>
