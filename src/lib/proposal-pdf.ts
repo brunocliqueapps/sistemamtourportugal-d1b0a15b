@@ -191,23 +191,32 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
   return (doc as any).lastAutoTable.finalY + 18;
 }
 
-function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
+function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa", dayNotes?: any[]) {
   const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
   // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
   const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
   const list = days.length ? days : saved;
   if (!list.length) return y;
   const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
+  const noteFor = (d: any) => {
+    if (!Array.isArray(dayNotes)) return "";
+    const found = dayNotes.find((n: any) => n?.date && d?.date && String(n.date).slice(0, 10) === String(d.date).slice(0, 10));
+    return found?.note && String(found.note).trim() ? String(found.note).trim() : "";
+  };
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text(p.proposal_kind === "servico_privado" ? "Serviço privado — descritivo diário" : "Roteiro personalizado", 40, y);
   y += 6;
   autoTable(doc, {
     startY: y,
     head: [["Data", columnLabel]],
-    body: list.map((d, i) => [
-      `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
-      (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—",
-    ]),
+    body: list.map((d, i) => {
+      const base = (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—";
+      const note = noteFor(d);
+      return [
+        `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
+        note ? `${base}\n\nObservações: ${note}` : base,
+      ];
+    }),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
