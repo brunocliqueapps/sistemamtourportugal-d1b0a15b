@@ -186,7 +186,7 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255], fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 245, 245] },
 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
@@ -222,7 +222,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa",
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
@@ -276,7 +276,7 @@ export async function generateBudgetPdf(id: string) {
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 18;
@@ -293,7 +293,7 @@ export async function generateBudgetPdf(id: string) {
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 16;
@@ -332,7 +332,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   y = (doc as any).lastAutoTable.finalY + 18;
 
@@ -348,7 +348,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
@@ -424,7 +424,7 @@ export async function generateServiceOrderPdf(id: string) {
     ]],
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 18;
