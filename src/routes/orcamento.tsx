@@ -177,6 +177,18 @@ function Orcamento() {
     refetch();
   }
 
+  async function unsaveBudget() {
+    if (!p) return;
+    if (!confirm("Remover este orçamento da lista de salvos? Poderá fazê-lo novamente depois.")) return;
+    const { error } = await supabase.from("proposals")
+      .update({ budget_saved_at: null } as any)
+      .eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento removido dos salvos");
+    refetch();
+    close();
+  }
+
 
   async function validate() {
     if (!p) return false;
