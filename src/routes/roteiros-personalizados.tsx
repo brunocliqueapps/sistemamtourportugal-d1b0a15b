@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Eye, FileDown, Lock, Unlock, Save, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, FileDown, Lock, Unlock, Save, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -55,6 +58,7 @@ function Propostas() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
+  const [clientOpen, setClientOpen] = useState(false);
   
 
   const { data: props = [] } = useQuery({
@@ -314,10 +318,41 @@ function Propostas() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Cliente</Label>
-                <Select value={form.client_id} onValueChange={pickClient}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                  <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.client_number ? `${c.client_number} · ` : ""}{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={clientOpen} className="w-full justify-between font-normal">
+                      {form.client_id
+                        ? (() => {
+                            const c = clients.find((x: any) => x.id === form.client_id);
+                            return c ? `${shortCode(c.client_number)} · ${c.name}` : "Selecionar cliente";
+                          })()
+                        : "Selecionar cliente"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command filter={(value, search) => {
+                      const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+                      const v = value.toLowerCase();
+                      return terms.every((t) => v.includes(t)) ? 1 : 0;
+                    }}>
+                      <CommandInput placeholder="Procurar por nome, nº cliente, NIF…" />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        {(clients as any[]).map((x: any) => (
+                          <CommandItem
+                            key={x.id}
+                            value={`${x.name} ${x.client_number ?? ""} ${x.nif ?? ""} ${x.email ?? ""}`}
+                            onSelect={() => { pickClient(x.id); setClientOpen(false); }}
+                            className={cn("cursor-pointer", form.client_id === x.id && "bg-accent")}
+                          >
+                            {x.client_number ? `${shortCode(x.client_number)} · ` : ""}{x.name}
+                          </CommandItem>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div><Label>Serviço</Label>
                 <Select value={form.title ?? ""} onValueChange={(v) => setForm({ ...form, title: v })}>
