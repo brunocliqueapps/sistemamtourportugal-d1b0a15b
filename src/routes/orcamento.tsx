@@ -91,6 +91,11 @@ function Orcamento() {
   const savedBudgets = useMemo(() => (props as any[]).filter((x: any) => x.budget_saved_at && !x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
+  // Acompanhamentos pendentes: apenas propostas em análise (não aprovadas nem finalizadas)
+  const pendingFollowups = useMemo(() => (followups as any[]).filter((f: any) => {
+    const pr: any = (props as any[]).find((x: any) => x.id === f.proposal_id);
+    return pr && pr.budget_status !== "aprovado" && !finalizedIds.has(pr.id);
+  }), [followups, props, finalizedIds]);
 
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
