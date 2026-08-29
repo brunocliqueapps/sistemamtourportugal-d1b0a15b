@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown } from "lucide-react";
+import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown, Save, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { useFinalizedProposalIds } from "@/lib/finalized";
+import { usePermissions } from "@/lib/permissions";
 
 
 
@@ -56,6 +57,7 @@ const DEFAULT_STAGES: Stage[] = [
 
 function Orcamento() {
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
+  const { isAdmin } = usePermissions();
   const [selected, setSelected] = useState<string>("");
 
   const [value, setValue] = useState<string>("");
@@ -86,11 +88,14 @@ function Orcamento() {
     ...(props as any[]).filter((x: any) => x.budget_status === "aprovado" || finalizedIds.has(x.id)).map((x: any) => x.id),
   ]), [props, finalizedIds]);
   const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
+  const savedBudgets = useMemo(() => (props as any[]).filter((x: any) => x.budget_saved_at && !x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
 
 
   const p: any = useMemo(() => props.find((x: any) => x.id === selected), [props, selected]);
+  const locked = !!p?.budget_validated_at;
+
 
   function pickProposal(v: string) {
     if (v === selected) return;
@@ -147,13 +152,26 @@ function Orcamento() {
         total_value: total,
         payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
         payment_terms: terms || p.payment_terms || stageTerms() || suggestPaymentTerms(days || 1),
-      })
+        budget_saved_at: new Date().toISOString(),
+      } as any)
       .eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
-    if (!silent) { toast.success("Orçamento atualizado"); setHasUnsavedChanges(false); }
+    if (!silent) { toast.success("Orçamento salvo"); setHasUnsavedChanges(false); }
     refetch();
     return true;
   }
+
+  async function unlockBudget() {
+    if (!p) return;
+    if (!confirm("Desbloquear este orçamento para edição? A validação será removida.")) return;
+    const { error } = await supabase.from("proposals")
+      .update({ budget_validated_at: null, budget_saved_at: new Date().toISOString() } as any)
+      .eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento desbloqueado para edição");
+    refetch();
+  }
+
 
   async function validate() {
     if (!p) return false;
@@ -364,9 +382,9 @@ function Orcamento() {
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
+                <div><Label>Valor total (€)</Label><Input type="number" step="0.01" disabled={locked} value={value} onChange={(e) => { setValue(e.target.value); setHasUnsavedChanges(true); }} /></div>
                 <div><Label>Forma de Pagamento</Label>
-                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }}>
+                  <Select value={terms} onValueChange={(v) => { setTerms(v); setHasUnsavedChanges(true); }} disabled={locked}>
                     <SelectTrigger><SelectValue placeholder="Selecionar forma de pagamento" /></SelectTrigger>
                     <SelectContent>
                       {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -380,21 +398,24 @@ function Orcamento() {
                 const patch = (v: Partial<Stage>) => setStages(stages.map((x, j) => (j === i ? { ...x, ...v } : x)));
                 return (
                   <div key={i} className="flex flex-wrap items-center gap-2">
-                    <Input className="w-20" type="number" min={0} max={100} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
+                    <Input className="w-20" type="number" min={0} max={100} disabled={locked} value={s.pct} onChange={(e) => patch({ pct: e.target.value })} />
                     <span className="text-sm">%</span>
-                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" value={s.label} onChange={(e) => patch({ label: e.target.value })} />
+                    <Input className="flex-1 min-w-40" placeholder="Descrição da etapa" disabled={locked} value={s.label} onChange={(e) => patch({ label: e.target.value })} />
                     <span className="text-sm w-24 text-right">€ {(total * Number(s.pct || 0) / 100).toFixed(2)}</span>
-                    <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                    {!locked && <Button size="icon" variant="ghost" onClick={() => setStages(stages.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>}
                   </div>
                 );
               })}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
-                <div className="text-xs text-muted-foreground">
-                  Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+              {!locked && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setStages([...stages, { label: "", pct: 0 }])}>+ Adicionar etapa</Button>
+                  <div className="text-xs text-muted-foreground">
+                    Total: {stages.reduce((a, s) => a + Number(s.pct || 0), 0)}% · € {stages.reduce((a, s) => a + total * Number(s.pct || 0) / 100, 0).toFixed(2)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
+
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
@@ -444,22 +465,71 @@ function Orcamento() {
               {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleDateString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
             </div>
 
+            {locked && (
+              <div className="rounded-md border border-primary/30 bg-muted/40 p-3 text-sm flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                Orçamento validado em {new Date(p.budget_validated_at).toLocaleString("pt-PT")} — edição bloqueada.
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="outline" onClick={async () => { if (await save()) close(); }}>Guardar</Button>
-              <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
-                <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
-              </Button>
-              <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
-                <Check className="h-4 w-4 mr-1" /> Aprovar Venda
-              </Button>
+              {!locked && (
+                <Button variant="outline" onClick={async () => { if (await save()) close(); }}>
+                  <Save className="h-4 w-4 mr-1" /> Salvar
+                </Button>
+              )}
+              {locked && (
+                <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
+                  <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
+                </Button>
+              )}
+              {locked && isAdmin && (
+                <Button variant="outline" onClick={unlockBudget}>
+                  <Unlock className="h-4 w-4 mr-1" /> Desbloquear edição
+                </Button>
+              )}
+              {!locked && (
+                <Button className="gradient-gold text-gold-foreground" onClick={async () => { if (await save(true) && await validate()) close(); }}>
+                  <Check className="h-4 w-4 mr-1" /> Aprovar Venda
+                </Button>
+              )}
             </div>
+
 
           </>
         )}
       </Card>
 
       <Card className="p-4">
+        <div className="font-semibold text-sm">Orçamentos Salvos</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {savedBudgets.map((x: any) => (
+              <TableRow key={x.id}>
+                <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
+                <TableCell>{x.clients?.name ?? "—"}</TableCell>
+                <TableCell className="text-xs">{x.budget_saved_at ? new Date(x.budget_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
+                <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
+                    pickProposal(x.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}><Pencil className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {savedBudgets.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nenhum orçamento salvo.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Card className="p-4">
          <div className="font-semibold text-sm mb-2">Vendas Fechadas</div>
+
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Data da viagem</TableHead><TableHead>Validado</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>

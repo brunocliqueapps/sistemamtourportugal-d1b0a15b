@@ -1579,6 +1579,7 @@ export type Database = {
           budget_receipt_info: string | null
           budget_refusal_reason: string | null
           budget_refused_at: string | null
+          budget_saved_at: string | null
           budget_status: string | null
           budget_validated_at: string | null
           client_id: string | null
@@ -1605,6 +1606,8 @@ export type Database = {
           proposal_type: string | null
           region_id: string | null
           responsible: string | null
+          roteiro_saved_at: string | null
+          roteiro_validated_at: string | null
           status: Database["public"]["Enums"]["proposal_status"] | null
           title: string | null
           total_value: number | null
@@ -1629,6 +1632,7 @@ export type Database = {
           budget_receipt_info?: string | null
           budget_refusal_reason?: string | null
           budget_refused_at?: string | null
+          budget_saved_at?: string | null
           budget_status?: string | null
           budget_validated_at?: string | null
           client_id?: string | null
@@ -1655,6 +1659,8 @@ export type Database = {
           proposal_type?: string | null
           region_id?: string | null
           responsible?: string | null
+          roteiro_saved_at?: string | null
+          roteiro_validated_at?: string | null
           status?: Database["public"]["Enums"]["proposal_status"] | null
           title?: string | null
           total_value?: number | null
@@ -1679,6 +1685,7 @@ export type Database = {
           budget_receipt_info?: string | null
           budget_refusal_reason?: string | null
           budget_refused_at?: string | null
+          budget_saved_at?: string | null
           budget_status?: string | null
           budget_validated_at?: string | null
           client_id?: string | null
@@ -1705,6 +1712,8 @@ export type Database = {
           proposal_type?: string | null
           region_id?: string | null
           responsible?: string | null
+          roteiro_saved_at?: string | null
+          roteiro_validated_at?: string | null
           status?: Database["public"]["Enums"]["proposal_status"] | null
           title?: string | null
           total_value?: number | null
