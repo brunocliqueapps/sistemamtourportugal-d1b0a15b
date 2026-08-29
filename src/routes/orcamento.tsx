@@ -22,6 +22,7 @@ import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { useFinalizedProposalIds } from "@/lib/finalized";
+import { usePermissions } from "@/lib/permissions";
 
 
 
