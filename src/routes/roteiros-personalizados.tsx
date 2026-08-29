@@ -58,6 +58,7 @@ function Propostas() {
   const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(empty);
   const [search, setSearch] = useState("");
+  const [clientOpen, setClientOpen] = useState(false);
   
 
   const { data: props = [] } = useQuery({
