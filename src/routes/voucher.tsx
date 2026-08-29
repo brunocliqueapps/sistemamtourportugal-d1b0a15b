@@ -48,7 +48,6 @@ function Voucher() {
   const [proposalId, setProposalId] = useState("");
   const [viewing, setViewing] = useState<any | null>(null);
 
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-voucher"], queryFn: async () => (await (supabase.from("clients") as any).select("*").order("name")).data ?? [] });
   const { data: props = [], refetch: refetchProps } = useQuery({
     queryKey: ["proposals-voucher", clientId],
     enabled: !!clientId,
@@ -63,6 +62,26 @@ function Voucher() {
     queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_saved_at", "is", null).is("voucher_validated_at", null).order("voucher_saved_at", { ascending: false })).data ?? [],
   });
 
+  // Clientes com proposta/orçamento validado (têm voucher gerado). Inclui o cliente atual ao editar um voucher salvo.
+  const validatedClients = useMemo(() => {
+    const map = new Map<string, any>();
+    (validated || []).forEach((x: any) => {
+      if (x.clients && !map.has(x.client_id)) map.set(x.client_id, x.clients);
+    });
+    return Array.from(map.values());
+  }, [validated]);
+  const validatedClientIds = useMemo(() => new Set((validated || []).map((x: any) => x.client_id)), [validated]);
+  const { data: extraClient } = useQuery({
+    queryKey: ["client-voucher-extra", clientId],
+    enabled: !!clientId && !validatedClientIds.has(clientId),
+    queryFn: async () => (await (supabase.from("clients") as any).select("*").eq("id", clientId).single()).data,
+  });
+  const clientOptions = useMemo(() => {
+    const list = [...validatedClients];
+    if (extraClient && !list.find((x: any) => x.id === extraClient.id)) list.push(extraClient);
+    return list;
+  }, [validatedClients, extraClient]);
+
   const { isAdmin } = usePermissions();
   const refetchAll = () => { refetchProps(); refetchValidated(); refetchSaved(); };
   const openProposal = (x: any) => { setClientId(x.client_id); setProposalId(x.id); setHasUnsavedChanges(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -71,7 +90,7 @@ function Voucher() {
   const activeVouchers = useMemo(() => (validated as any[]).filter((x: any) => !finalizedIds.has(x.id)), [validated, finalizedIds]);
   const historyVouchers = useMemo(() => (validated as any[]).filter((x: any) => finalizedIds.has(x.id)), [validated, finalizedIds]);
 
-  const c: any = useMemo(() => clients.find((x: any) => x.id === clientId), [clients, clientId]);
+  const c: any = useMemo(() => clientOptions.find((x: any) => x.id === clientId), [clientOptions, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
 
   const [localNotes, setLocalNotes] = useState<any[]>([]);
@@ -132,7 +151,7 @@ function Voucher() {
                   <CommandInput placeholder="Procurar por nome, nº cliente, NIF…" />
                   <CommandList>
                     <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                    {(clients as any[]).map((x: any) => (
+                    {(clientOptions as any[]).map((x: any) => (
                       <CommandItem
                         key={x.id}
                         value={`${x.name} ${x.client_number ?? ""} ${x.nif ?? ""} ${x.email ?? ""}`}
@@ -156,7 +175,11 @@ function Voucher() {
           <div className="space-y-1"><Label>Proposta / Roteiro</Label>
             <Select value={proposalId} onValueChange={setProposalId} disabled={!clientId}>
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-              <SelectContent>{props.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {props
+                  .filter((x: any) => !!x.voucher_validated_at || x.id === proposalId)
+                  .map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
         </div>
