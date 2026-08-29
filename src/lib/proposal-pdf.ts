@@ -25,6 +25,30 @@ function applyWatermarkToAllPages(doc: jsPDF) {
   }
 }
 
+/** Limite inferior do conteúdo (acima do rodapé). */
+const BOTTOM_LIMIT = 70;
+
+/** Garante espaço antes do rodapé; cria nova página se necessário. */
+function ensureSpace(doc: jsPDF, y: number, need = 14) {
+  const H = doc.internal.pageSize.getHeight();
+  if (y + need > H - BOTTOM_LIMIT) {
+    doc.addPage();
+    return 60;
+  }
+  return y;
+}
+
+/** Escreve um parágrafo respeitando a margem do rodapé. */
+function writeLines(doc: jsPDF, text: string, y: number, lineHeight = 12) {
+  const W = doc.internal.pageSize.getWidth();
+  doc.splitTextToSize(String(text), W - 80).forEach((l: string) => {
+    y = ensureSpace(doc, y, lineHeight);
+    doc.text(l, 40, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
 async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean; skipFooter?: boolean }) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
