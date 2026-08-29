@@ -191,23 +191,32 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
   return (doc as any).lastAutoTable.finalY + 18;
 }
 
-function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa") {
+function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa", dayNotes?: any[]) {
   const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
   // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
   const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
   const list = days.length ? days : saved;
   if (!list.length) return y;
   const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
+  const noteFor = (d: any) => {
+    if (!Array.isArray(dayNotes)) return "";
+    const found = dayNotes.find((n: any) => n?.date && d?.date && String(n.date).slice(0, 10) === String(d.date).slice(0, 10));
+    return found?.note && String(found.note).trim() ? String(found.note).trim() : "";
+  };
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text(p.proposal_kind === "servico_privado" ? "Serviço privado — descritivo diário" : "Roteiro personalizado", 40, y);
   y += 6;
   autoTable(doc, {
     startY: y,
     head: [["Data", columnLabel]],
-    body: list.map((d, i) => [
-      `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
-      (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—",
-    ]),
+    body: list.map((d, i) => {
+      const base = (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—";
+      const note = noteFor(d);
+      return [
+        `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
+        note ? `${base}\n\nObservações: ${note}` : base,
+      ];
+    }),
     columnStyles: { 0: { cellWidth: 80 } },
     styles: { fontSize: 9, cellPadding: 5, valign: "top" },
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
@@ -308,26 +317,9 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   y += 8;
   y = travelBlock(doc, p, y);
   
-  // No voucher, acrescentar também tudo que tem em Orçamento, inclusive os valores e formas de pagamento.
-  y = itineraryBlock(doc, p, y, "Serviço contratado");
-
-  // Adicionar orientações diárias se houver
+  // No voucher, as observações de cada dia aparecem logo após a data do respetivo roteiro.
   const dayNotes: any[] = Array.isArray(p.voucher_day_notes) ? p.voucher_day_notes : [];
-  if (dayNotes.length > 0) {
-    doc.setFont("helvetica", "bold").setFontSize(11);
-    doc.text("Orientações Importantes", 40, y); y += 14;
-    dayNotes.forEach((dn) => {
-      if (dn.note && dn.note.trim()) {
-        doc.setFont("helvetica", "bold").setFontSize(9);
-        doc.text(`${fmtDate(dn.date)}:`, 40, y);
-        doc.setFont("helvetica", "normal");
-        const lines = doc.splitTextToSize(dn.note, doc.internal.pageSize.getWidth() - 120);
-        doc.text(lines, 110, y);
-        y += (lines.length * 12) + 6;
-      }
-    });
-    y += 10;
-  }
+  y = itineraryBlock(doc, p, y, "Serviço contratado", dayNotes);
 
   // Tabela de Valores e Etapas (Igual ao Orçamento)
   const days = p.days_count ?? daysBetween(p.itinerary_start, p.itinerary_end) ?? 1;
@@ -374,29 +366,31 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
 
   y = await generalConditionsBlock(doc, y);
 
-  // Assinatura final — Local, data de validação e empresa
+  // Assinatura final — validação digital
   {
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     y += 30;
-    if (y > H - 150) { doc.addPage(); y = 80; }
+    if (y > H - 160) { doc.addPage(); y = 80; }
     const cityName = (company as any)?.city || "Lisboa";
     const validated = p.voucher_validated_at ? fmtDate(String(p.voucher_validated_at).slice(0, 10)) : fmtDate(new Date().toISOString().slice(0, 10));
     doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
     doc.text(`${cityName}, ${validated}`, W / 2, y, { align: "center" });
+    y += 24;
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(16, 33, 66);
+    doc.text("DOCUMENTO VALIDADO DIGITALMENTE", W / 2, y, { align: "center" });
+    y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(110);
+    doc.text("Dispensa assinatura manuscrita", W / 2, y, { align: "center" });
     y += 22;
-    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
-    doc.text("Documento Assinado Eletronicamente", W / 2, y, { align: "center" });
-    y += 28;
-    doc.setDrawColor(176, 141, 68).setLineWidth(1);
-    doc.line(W / 2 - 110, y, W / 2 + 110, y); y += 14;
-    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
-    doc.text(String((company as any)?.trade_name ?? (company as any)?.name ?? "Mtour Portugal"), W / 2, y, { align: "center" });
-    if ((company as any)?.legal_name) {
-      y += 12;
-      doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110);
-      doc.text(String((company as any).legal_name), W / 2, y, { align: "center" });
-    }
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(16, 33, 66);
+    doc.text("Mtour Portugal", W / 2, y, { align: "center" });
+    y += 13;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+    doc.text("Experiências Exclusivas", W / 2, y, { align: "center" });
+    y += 13;
+    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110);
+    doc.text("Façanha Próspera - Unipessoal, Lda", W / 2, y, { align: "center" });
     doc.setTextColor(0);
   }
 
