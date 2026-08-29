@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown, Save, Lock, Unlock } from "lucide-react";
+import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown, Save, Lock, Unlock, Eye } from "lucide-react";
+import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -68,6 +69,7 @@ function Orcamento() {
   const [statusDate, setStatusDate] = useState<string>(today());
   const [action, setAction] = useState<"" | "aprovado" | "analise" | "recusado">("");
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
 
 
@@ -535,6 +537,7 @@ function Orcamento() {
                 <TableCell className="text-xs">{x.budget_saved_at ? new Date(x.budget_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
                     pickProposal(x.id);
                     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -566,6 +569,7 @@ function Orcamento() {
                 <TableCell className="text-xs">{new Date(x.budget_validated_at).toLocaleString("pt-PT")}</TableCell>
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
                     pickProposal(x.id);
                     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -598,6 +602,7 @@ function Orcamento() {
                 </TableCell>
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
+                  <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="PDF" onClick={() => generateBudgetPdf(x.id).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
@@ -609,6 +614,28 @@ function Orcamento() {
         </Table>
 
       </Card>
+
+      <QuickViewDialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Orçamento"
+        record={viewing}
+        fields={[
+          { key: "code", label: "Nº", format: (v: any) => shortCode(v) },
+          { key: "clients", label: "Cliente", format: (v: any, r: any) => v?.name ?? r?.leads?.name ?? "—" },
+          { key: "title", label: "Serviço" },
+          { key: "passengers", label: "Nº de pessoas" },
+          { key: "itinerary_start", label: "Início da viagem", format: (v: any) => fmtDate(v) || "—" },
+          { key: "itinerary_end", label: "Fim da viagem", format: (v: any) => fmtDate(v) || "—" },
+          { key: "total_value", label: "Valor total", format: (v: any) => `€ ${Number(v || 0).toFixed(2)}` },
+          { key: "budget_status", label: "Estado do orçamento" },
+          { key: "budget_saved_at", label: "Salvo em" },
+          { key: "budget_validated_at", label: "Validado em" },
+          { key: "payment_method", label: "Forma de pagamento" },
+          { key: "payment_terms", label: "Condições de pagamento", fullWidth: true },
+          { key: "descriptive", label: "Descritivo", fullWidth: true },
+        ]}
+      />
     </div>
 
   );
