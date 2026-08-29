@@ -483,6 +483,11 @@ function Orcamento() {
                   <Save className="h-4 w-4 mr-1" /> Salvar
                 </Button>
               )}
+              {!locked && p.budget_saved_at && (
+                <Button variant="outline" onClick={unsaveBudget}>
+                  <X className="h-4 w-4 mr-1" /> Não Salvo
+                </Button>
+              )}
               {locked && (
                 <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
