@@ -366,29 +366,31 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
 
   y = await generalConditionsBlock(doc, y);
 
-  // Assinatura final — Local, data de validação e empresa
+  // Assinatura final — validação digital
   {
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     y += 30;
-    if (y > H - 150) { doc.addPage(); y = 80; }
+    if (y > H - 160) { doc.addPage(); y = 80; }
     const cityName = (company as any)?.city || "Lisboa";
     const validated = p.voucher_validated_at ? fmtDate(String(p.voucher_validated_at).slice(0, 10)) : fmtDate(new Date().toISOString().slice(0, 10));
     doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
     doc.text(`${cityName}, ${validated}`, W / 2, y, { align: "center" });
+    y += 24;
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(16, 33, 66);
+    doc.text("DOCUMENTO VALIDADO DIGITALMENTE", W / 2, y, { align: "center" });
+    y += 14;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(110);
+    doc.text("Dispensa assinatura manuscrita", W / 2, y, { align: "center" });
     y += 22;
-    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
-    doc.text("Documento Assinado Eletronicamente", W / 2, y, { align: "center" });
-    y += 28;
-    doc.setDrawColor(176, 141, 68).setLineWidth(1);
-    doc.line(W / 2 - 110, y, W / 2 + 110, y); y += 14;
-    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(16, 33, 66);
-    doc.text(String((company as any)?.trade_name ?? (company as any)?.name ?? "Mtour Portugal"), W / 2, y, { align: "center" });
-    if ((company as any)?.legal_name) {
-      y += 12;
-      doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110);
-      doc.text(String((company as any).legal_name), W / 2, y, { align: "center" });
-    }
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(16, 33, 66);
+    doc.text("Mtour Portugal", W / 2, y, { align: "center" });
+    y += 13;
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
+    doc.text("Experiências Exclusivas", W / 2, y, { align: "center" });
+    y += 13;
+    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110);
+    doc.text("Façanha Próspera - Unipessoal, Lda", W / 2, y, { align: "center" });
     doc.setTextColor(0);
   }
 
