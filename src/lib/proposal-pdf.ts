@@ -25,6 +25,30 @@ function applyWatermarkToAllPages(doc: jsPDF) {
   }
 }
 
+/** Limite inferior do conteúdo (acima do rodapé). */
+const BOTTOM_LIMIT = 70;
+
+/** Garante espaço antes do rodapé; cria nova página se necessário. */
+function ensureSpace(doc: jsPDF, y: number, need = 14) {
+  const H = doc.internal.pageSize.getHeight();
+  if (y + need > H - BOTTOM_LIMIT) {
+    doc.addPage();
+    return 60;
+  }
+  return y;
+}
+
+/** Escreve um parágrafo respeitando a margem do rodapé. */
+function writeLines(doc: jsPDF, text: string, y: number, lineHeight = 12) {
+  const W = doc.internal.pageSize.getWidth();
+  doc.splitTextToSize(String(text), W - 80).forEach((l: string) => {
+    y = ensureSpace(doc, y, lineHeight);
+    doc.text(l, 40, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
 async function header(doc: jsPDF, docTitle: string, code?: string, opts?: { skipWatermark?: boolean; skipFooter?: boolean }) {
   const { data: company } = await supabase.from("company_settings").select("*").maybeSingle();
   const c: any = company ?? {};
@@ -128,18 +152,14 @@ async function generalConditionsBlock(doc: jsPDF, y: number) {
   const text = (company as any)?.proposal_general_conditions;
   if (!text) return y;
   const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
   y += 24;
-  if (y > H - 120) { doc.addPage(); y = 60; }
+  y = ensureSpace(doc, y, 60);
   doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(16, 33, 66);
   doc.text("Condições Gerais", 40, y); y += 8;
   doc.setDrawColor(176, 141, 68).setLineWidth(1);
   doc.line(40, y, W - 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(80);
-  doc.splitTextToSize(String(text), W - 80).forEach((l: string) => {
-    if (y > H - 60) { doc.addPage(); y = 60; }
-    doc.text(l, 40, y); y += 12;
-  });
+  y = writeLines(doc, String(text), y);
   doc.setTextColor(0);
   return y + 10;
 }
@@ -186,7 +206,7 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255], fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 245, 245] },
 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
@@ -222,7 +242,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa",
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   return (doc as any).lastAutoTable.finalY + 18;
 }
@@ -241,17 +261,19 @@ export async function generateProposalPdf(id: string, opts?: { variant?: "propos
   y = travelBlock(doc, p, y);
   y = itineraryBlock(doc, p, y);
   if (p.descriptive) {
+    y = ensureSpace(doc, y, 30);
     doc.setFont("helvetica", "bold").setFontSize(11); doc.text("Descritivo", 40, y); y += 14;
     doc.setFont("helvetica", "normal").setFontSize(10);
-    doc.splitTextToSize(p.descriptive, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { doc.text(l, 40, y); y += 12; });
+    y = writeLines(doc, p.descriptive, y);
     y += 6;
   }
 
   if (!isRoteiro) {
+    y = ensureSpace(doc, y, 40);
     doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(16, 33, 66);
     doc.text(`Valor total: € ${Number(p.total_value || 0).toFixed(2)}`, 40, y); y += 16;
     doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
-    doc.text(`Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, 40, y); y += 12;
+    y = writeLines(doc, `Condições: ${p.payment_terms ?? suggestPaymentTerms(p.days_count ?? 1)}`, y);
     y = await generalConditionsBlock(doc, y);
   }
 
@@ -276,11 +298,12 @@ export async function generateBudgetPdf(id: string) {
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 18;
 
+  y = ensureSpace(doc, y, 60);
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Condições de pagamento", 40, y); y += 6;
   const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
@@ -293,12 +316,12 @@ export async function generateBudgetPdf(id: string) {
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
-  if (p.payment_terms) { doc.text(p.payment_terms, 40, y); y += 12; }
+  if (p.payment_terms) { y = writeLines(doc, p.payment_terms, y); }
   y = await generalConditionsBlock(doc, y);
   doc.save(`Orcamento-${p.code ?? p.id}.pdf`);
 }
@@ -313,7 +336,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   doc.setFont("helvetica", "normal").setFontSize(10);
   [c.address, [c.postal_code, c.city].filter(Boolean).join(" "), c.country,
    c.birth_date ? `Data de nascimento: ${fmtDate(c.birth_date)}` : null]
-    .filter(Boolean).forEach((l: any) => { doc.text(String(l), 40, y); y += 12; });
+    .filter(Boolean).forEach((l: any) => { y = ensureSpace(doc, y); doc.text(String(l), 40, y); y += 12; });
   y += 8;
   y = travelBlock(doc, p, y);
   
@@ -332,10 +355,11 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   y = (doc as any).lastAutoTable.finalY + 18;
 
+  y = ensureSpace(doc, y, 60);
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Forma de Pagamento", 40, y); y += 6;
   const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
@@ -348,20 +372,19 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
   });
   y = (doc as any).lastAutoTable.finalY + 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
-  if (p.payment_terms) doc.text(p.payment_terms, 40, y);
+  if (p.payment_terms) y = writeLines(doc, p.payment_terms, y);
   y += 20;
 
   if (p.voucher_final_note) {
+    y = ensureSpace(doc, y, 30);
     doc.setFont("helvetica", "bold").setFontSize(11);
     doc.text("Nota Final", 40, y); y += 14;
     doc.setFont("helvetica", "normal").setFontSize(10);
-    doc.splitTextToSize(p.voucher_final_note, doc.internal.pageSize.getWidth() - 80).forEach((l: string) => { 
-      doc.text(l, 40, y); y += 12; 
-    });
+    y = writeLines(doc, p.voucher_final_note, y);
   }
 
   y = await generalConditionsBlock(doc, y);
@@ -371,7 +394,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     y += 30;
-    if (y > H - 160) { doc.addPage(); y = 80; }
+    if (y > H - 220) { doc.addPage(); y = 80; }
     const cityName = (company as any)?.city || "Lisboa";
     const validated = p.voucher_validated_at ? fmtDate(String(p.voucher_validated_at).slice(0, 10)) : fmtDate(new Date().toISOString().slice(0, 10));
     doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(80);
@@ -424,15 +447,16 @@ export async function generateServiceOrderPdf(id: string) {
     ]],
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: 70, top: 60 },
 
   });
   y = (doc as any).lastAutoTable.finalY + 18;
   if (s.proposals) y = itineraryBlock(doc, s.proposals, y, "Serviço contratado");
+  y = ensureSpace(doc, y, 40);
   doc.setFont("helvetica", "bold").setFontSize(12);
   doc.text(`Valor: € ${Number(s.sale_value ?? s.proposals?.total_value ?? 0).toFixed(2)}`, 40, y); y += 16;
   doc.setFont("helvetica", "normal").setFontSize(10);
-  if (s.payment_terms ?? s.proposals?.payment_terms) doc.text(String(s.payment_terms ?? s.proposals?.payment_terms), 40, y);
+  if (s.payment_terms ?? s.proposals?.payment_terms) y = writeLines(doc, String(s.payment_terms ?? s.proposals?.payment_terms), y);
   doc.save(`OS-${shortCode(s.oc_code) ?? s.id}.pdf`);
 }
 
