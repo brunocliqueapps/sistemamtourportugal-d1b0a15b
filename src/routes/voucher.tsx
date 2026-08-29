@@ -151,7 +151,7 @@ function Voucher() {
                   <CommandInput placeholder="Procurar por nome, nº cliente, NIF…" />
                   <CommandList>
                     <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                    {(clients as any[]).map((x: any) => (
+                    {(clientOptions as any[]).map((x: any) => (
                       <CommandItem
                         key={x.id}
                         value={`${x.name} ${x.client_number ?? ""} ${x.nif ?? ""} ${x.email ?? ""}`}
@@ -175,7 +175,11 @@ function Voucher() {
           <div className="space-y-1"><Label>Proposta / Roteiro</Label>
             <Select value={proposalId} onValueChange={setProposalId} disabled={!clientId}>
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-              <SelectContent>{props.map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {props
+                  .filter((x: any) => !!x.voucher_validated_at || x.id === proposalId)
+                  .map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
         </div>
