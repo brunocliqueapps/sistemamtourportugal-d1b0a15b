@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare, Send, Plus, RefreshCw, AlertTriangle, User2, Search } from "lucide-react";
+import { MessageSquare, Send, Plus, RefreshCw, AlertTriangle, User2, Search, QrCode, Power, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { fmtDateTime } from "@/lib/format-date";
 import { sendWhatsappMessage, getWhatsappStatus } from "@/lib/whatsapp.functions";
+import { getInstanceStatus, connectInstance, disconnectInstance } from "@/lib/wa-instance.functions";
 
 export const Route = createFileRoute("/mensagens")({
   component: Mensagens,
@@ -67,6 +68,49 @@ function Mensagens() {
   const { data: config } = useQuery({
     queryKey: ["wa-status"],
     queryFn: () => statusFn({}),
+  });
+
+  // Instância (API não oficial)
+  const instStatusFn = useServerFn(getInstanceStatus);
+  const connectFn = useServerFn(connectInstance);
+  const disconnectFn = useServerFn(disconnectInstance);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
+  const [pairing, setPairing] = useState<string | null>(null);
+
+  const inst = useQuery({
+    queryKey: ["wa-instance"],
+    queryFn: () => instStatusFn({}),
+    refetchInterval: qrOpen ? 5000 : 30000,
+  });
+  const connected = inst.data?.state === "open";
+
+  useEffect(() => {
+    if (qrOpen && connected) {
+      setQrOpen(false);
+      setQr(null);
+      toast.success("WhatsApp ligado com sucesso.");
+    }
+  }, [qrOpen, connected]);
+
+  const connectMut = useMutation({
+    mutationFn: async () => connectFn({}),
+    onSuccess: (res: any) => {
+      setQr(res?.qr ?? null);
+      setPairing(res?.pairingCode ?? null);
+      setQrOpen(true);
+      if (!res?.qr) toast.info("Instância já ligada ou sem QR disponível.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível gerar o QR Code."),
+  });
+
+  const disconnectMut = useMutation({
+    mutationFn: async () => disconnectFn({}),
+    onSuccess: () => {
+      toast.success("Sessão do WhatsApp terminada.");
+      inst.refetch();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível desligar a instância."),
   });
 
   const convs = useQuery({
@@ -171,6 +215,17 @@ function Mensagens() {
             <Button variant="outline" size="sm" onClick={() => { convs.refetch(); msgs.refetch(); }}>
               <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
             </Button>
+            {inst.data?.configured && (
+              connected ? (
+                <Button variant="outline" size="sm" onClick={() => disconnectMut.mutate()} disabled={disconnectMut.isPending}>
+                  <Power className="h-4 w-4 mr-2" /> Desligar WhatsApp
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                  <QrCode className="h-4 w-4 mr-2" /> Ligar WhatsApp
+                </Button>
+              )
+            )}
             <Button size="sm" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nova conversa
             </Button>
@@ -178,20 +233,49 @@ function Mensagens() {
         }
       />
 
-      {notConfigured && (
+      {inst.data?.configured ? (
+        <Card className="p-4 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Smartphone className="h-5 w-5 text-muted-foreground" />
+              <div className="text-sm">
+                <div className="font-medium">
+                  Instância WhatsApp: <span className="font-mono">{inst.data.instance}</span>
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  {connected
+                    ? "Ligado — a receber e enviar mensagens."
+                    : inst.data.state === "connecting"
+                      ? "A ligar… leia o QR Code no telemóvel."
+                      : "Desligado — clique em Ligar WhatsApp para ler o QR Code."}
+                </div>
+              </div>
+            </div>
+            <Badge variant={connected ? "secondary" : "outline"}>
+              {connected ? "Ligado" : (inst.data.state ?? "desligado")}
+            </Badge>
+          </div>
+        </Card>
+      ) : (
         <Card className="p-4 mb-4 border-amber-500/40 bg-amber-500/5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm space-y-1">
-              <div className="font-medium">Integração WhatsApp ainda não configurada</div>
+              <div className="font-medium">Instância WhatsApp ainda não configurada</div>
               <p className="text-muted-foreground">
-                Adicione as credenciais da Meta (WhatsApp Cloud API) para enviar e receber mensagens.
-                No painel Meta for Developers, configure o webhook com o URL abaixo e o campo{" "}
-                <span className="font-medium">messages</span>.
+                Para usar a API não oficial (por instância) é preciso guardar os segredos{" "}
+                <span className="font-mono">EVOLUTION_API_URL</span>,{" "}
+                <span className="font-mono">EVOLUTION_API_KEY</span>,{" "}
+                <span className="font-mono">EVOLUTION_INSTANCE</span> e{" "}
+                <span className="font-mono">EVOLUTION_WEBHOOK_TOKEN</span>. Depois basta ligar o
+                telemóvel por QR Code. O webhook da instância deve apontar para:
               </p>
               <code className="block text-xs bg-muted rounded px-2 py-1 mt-1 break-all">
-                {typeof window !== "undefined" ? window.location.origin : ""}/api/public/whatsapp/webhook
+                {typeof window !== "undefined" ? window.location.origin : ""}/api/public/whatsapp/evolution?token=SEU_TOKEN
               </code>
+              {notConfigured ? null : (
+                <p className="text-muted-foreground text-xs">A Cloud API oficial continua ativa como alternativa.</p>
+              )}
             </div>
           </div>
         </Card>
@@ -362,6 +446,40 @@ function Mensagens() {
           </DialogFooter>
         </DialogContent>
 
+      </Dialog>
+
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ligar WhatsApp por QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              No telemóvel: WhatsApp → Definições → Dispositivos ligados → Ligar dispositivo e leia o
+              código abaixo.
+            </p>
+            {qr ? (
+              <img
+                src={qr.startsWith("data:") ? qr : `data:image/png;base64,${qr}`}
+                alt="QR Code para ligar o WhatsApp à instância"
+                className="mx-auto h-64 w-64 rounded-lg bg-white p-2"
+              />
+            ) : (
+              <div className="text-muted-foreground">Sem QR Code disponível.</div>
+            )}
+            {pairing && (
+              <div className="text-center">
+                Código de emparelhamento: <span className="font-mono font-semibold">{pairing}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Novo QR
+            </Button>
+            <Button onClick={() => setQrOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

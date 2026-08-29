@@ -37,6 +37,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
+import { Route as ApiPublicWhatsappEvolutionRouteImport } from './routes/api/public/whatsapp/evolution'
 
 const VoucherRoute = VoucherRouteImport.update({
   id: '/voucher',
@@ -179,6 +180,12 @@ const ApiPublicWhatsappWebhookRoute =
     path: '/api/public/whatsapp/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWhatsappEvolutionRoute =
+  ApiPublicWhatsappEvolutionRouteImport.update({
+    id: '/api/public/whatsapp/evolution',
+    path: '/api/public/whatsapp/evolution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -238,6 +246,7 @@ export interface FileRoutesByTo {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
@@ -269,6 +278,7 @@ export interface FileRoutesById {
   '/voucher': typeof VoucherRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
@@ -361,6 +373,7 @@ export interface FileRouteTypes {
     | '/voucher'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -391,6 +404,7 @@ export interface RootRouteChildren {
   TvdeRoute: typeof TvdeRoute
   VoucherRoute: typeof VoucherRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
+  ApiPublicWhatsappEvolutionRoute: typeof ApiPublicWhatsappEvolutionRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
@@ -592,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp/evolution': {
+      id: '/api/public/whatsapp/evolution'
+      path: '/api/public/whatsapp/evolution'
+      fullPath: '/api/public/whatsapp/evolution'
+      preLoaderRoute: typeof ApiPublicWhatsappEvolutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -632,6 +653,7 @@ const rootRouteChildren: RootRouteChildren = {
   TvdeRoute: TvdeRoute,
   VoucherRoute: VoucherRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
+  ApiPublicWhatsappEvolutionRoute: ApiPublicWhatsappEvolutionRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
