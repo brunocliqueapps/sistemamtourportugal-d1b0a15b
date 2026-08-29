@@ -147,13 +147,26 @@ function Orcamento() {
         total_value: total,
         payment_stages: stages.map((s) => ({ label: s.label, pct: Number(s.pct || 0) })),
         payment_terms: terms || p.payment_terms || stageTerms() || suggestPaymentTerms(days || 1),
-      })
+        budget_saved_at: new Date().toISOString(),
+      } as any)
       .eq("id", p.id);
     if (error) { toast.error(error.message); return false; }
-    if (!silent) { toast.success("Orçamento atualizado"); setHasUnsavedChanges(false); }
+    if (!silent) { toast.success("Orçamento salvo"); setHasUnsavedChanges(false); }
     refetch();
     return true;
   }
+
+  async function unlockBudget() {
+    if (!p) return;
+    if (!confirm("Desbloquear este orçamento para edição? A validação será removida.")) return;
+    const { error } = await supabase.from("proposals")
+      .update({ budget_validated_at: null, budget_saved_at: new Date().toISOString() } as any)
+      .eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Orçamento desbloqueado para edição");
+    refetch();
+  }
+
 
   async function validate() {
     if (!p) return false;
