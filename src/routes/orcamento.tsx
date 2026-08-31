@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown, Save, Lock, Unlock, Eye } from "lucide-react";
+import { FileDown, Check, Clock, X, Pencil, ChevronsUpDown, Save, Lock, Unlock, Eye, Plus } from "lucide-react";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
@@ -257,7 +257,19 @@ function Orcamento() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <PageHeader title="Proposta/Orçamento" description="Puxa todos os dados do roteiro, define valor, condições e aprova, coloca em análise ou recusa." />
+      <PageHeader title="Proposta/Orçamento" description="Puxa todos os dados do roteiro, define valor, condições e aprova, coloca em análise ou recusa." actions={
+        <Button
+          className="gradient-gold text-gold-foreground"
+          onClick={() => {
+            setSelected("");
+            setAction("");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            setOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Proposta/Orçamento
+        </Button>
+      } />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="p-4">
