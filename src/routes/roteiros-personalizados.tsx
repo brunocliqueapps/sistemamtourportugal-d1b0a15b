@@ -76,6 +76,8 @@ function Propostas() {
 
 
   const days = daysBetween(form.itinerary_start, form.itinerary_end);
+  const allItinerary = (form.itinerary ?? []) as ItineraryDay[];
+  const dayNumberMap = new Map(allItinerary.map((d, i) => [d.date, i + 1]));
 
   function pickClient(id: string) {
     setHasUnsavedChanges(true);
@@ -402,7 +404,7 @@ function Propostas() {
 
               {(form.itinerary ?? []).filter((d: ItineraryDay) => !d.deleted).length > 0 && (
                 <div className="mt-3 space-y-2">
-                  {(form.itinerary as ItineraryDay[]).filter((d: ItineraryDay) => !d.deleted).map((d, i) => {
+                  {allItinerary.filter((d: ItineraryDay) => !d.deleted).map((d) => {
                     const patch = (v: Partial<ItineraryDay>) => {
                       const list = [...(form.itinerary as ItineraryDay[])];
                       const idx = list.findIndex((x) => x.date === d.date && !x.deleted);
@@ -416,11 +418,12 @@ function Propostas() {
                       setForm({ ...form, itinerary: list });
                     };
                     const custom = (d.mode ?? "sugestao") === "personalizado";
+                    const dayNumber = dayNumberMap.get(d.date) ?? 0;
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
-                            <div><Label className="text-xs">Dia {i + 1} — data</Label>
+                            <div><Label className="text-xs">Dia {dayNumber} — data</Label>
                               <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
                             </div>
                             <div><Label className="text-xs">Roteiro do dia</Label>
@@ -537,14 +540,16 @@ function Propostas() {
             label: "Roteiro",
             fullWidth: true,
             format: (v, r) => {
-              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              const full = Array.isArray(v) ? v : [];
+              const list = full.filter((d: any) => !d.deleted);
               if (!list.length) return "—";
+              const dayNumberMap = new Map(full.map((d: any, i: number) => [d.date, i + 1]));
               const fallback = r?.tour_routes?.name ?? "";
               return (
                 <div className="space-y-1">
                   {list.map((d: any, i: number) => (
                     <div key={i} className="flex flex-col sm:flex-row sm:gap-3 border-b border-border/50 pb-1 last:border-0">
-                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {i + 1} · {fmtDate(d.date) || "—"}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {dayNumberMap.get(d.date) ?? i + 1} · {fmtDate(d.date) || "—"}</span>
                       <span className="min-w-0 break-words">{(d.text && d.text.trim()) || fallback || "—"}</span>
                     </div>
                   ))}

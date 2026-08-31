@@ -457,13 +457,15 @@ function Voucher() {
             label: "Serviços contratados",
             fullWidth: true,
             format: (v: any) => {
-              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              const full = Array.isArray(v) ? v : [];
+              const list = full.filter((d: any) => !d.deleted);
               if (!list.length) return "—";
+              const dayNumberMap = new Map(full.map((d: any, i: number) => [d.date, i + 1]));
               return (
                 <div className="space-y-2">
                   {list.map((d: any, i: number) => (
                     <div key={`${d.date}-${i}`} className="border-b border-border/50 pb-2 last:border-0">
-                      <div className="text-xs text-muted-foreground">Dia {i + 1} · {fmtDate(d.date) || "—"}</div>
+                      <div className="text-xs text-muted-foreground">Dia {dayNumberMap.get(d.date) ?? i + 1} · {fmtDate(d.date) || "—"}</div>
                       <div className="break-words">{d.text?.trim() || "—"}</div>
                     </div>
                   ))}
