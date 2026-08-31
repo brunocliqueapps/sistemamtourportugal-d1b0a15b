@@ -114,13 +114,14 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
   ];
   if (d.rentalCost > 0) resume.push(["Aluguer da viatura", `- ${eur(d.rentalCost)}`]);
   resume.push(["Lucro líquido", eur(d.netProfit)]);
-  if (d.companyAmount > 0) {
-    const label = d.driverPct !== null && d.driverPct !== undefined
-      ? `Crédito a empresa (aluguer + ${d.driverPct}%)`
-      : "Crédito a empresa (aluguer)";
-    resume.push([label, eur(d.companyAmount)]);
-  }
-  resume.push(["A pagar ao motorista", eur(d.driverAmount)]);
+  // O PDF é entregue ao motorista: o crédito da empresa não é apresentado.
+  resume.push([
+    d.driverPct !== null && d.driverPct !== undefined && d.rentalCost <= 0
+      ? `Crédito ao motorista (${d.driverPct}%)`
+      : "Crédito ao motorista",
+    eur(d.driverAmount),
+  ]);
+
 
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 16,

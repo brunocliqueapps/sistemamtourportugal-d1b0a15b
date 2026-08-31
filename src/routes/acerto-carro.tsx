@@ -268,13 +268,25 @@ function AcertoCarro() {
       const driver = drivers.find((d: any) => d.id === driverId);
 
       const pctRaw = settlement?.closed_at
-        ? settlement?.driver_pct
-        : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
-      const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const pctAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      // Crédito a empresa = aluguer da viatura + percentagem da empresa
-      const companyAmount = !hasIncome ? rentalCost : rentalCost + pctAmount;
-      const driverAmount = !hasIncome ? 0 : Math.max(netProfit - companyAmount, 0);
+        ? (settlement?.driver_pct ?? 40)
+        : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? 40));
+      const pctNum = pctRaw === "" || pctRaw === null || pctRaw === undefined ? 40 : Number(pctRaw);
+      const pct = Number.isFinite(pctNum) ? pctNum : 40;
+      const positiveNet = netProfit > 0 ? netProfit : 0;
+      // Viatura própria: motorista fica com a % definida (por omissão 40%), a empresa com o restante.
+      // Viatura de aluguer: o líquido (já sem aluguer) é todo crédito do motorista; a empresa fica com o aluguer.
+      let driverAmount = 0;
+      let companyAmount = rentalCost;
+      if (hasIncome) {
+        if (isRental) {
+          driverAmount = positiveNet;
+          companyAmount = rentalCost;
+        } else {
+          driverAmount = positiveNet * (pct / 100);
+          companyAmount = positiveNet - driverAmount;
+        }
+      }
+
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
@@ -548,14 +560,18 @@ function AcertoCarro() {
 
                 <div className="grid gap-3 sm:grid-cols-3 items-end">
                   <div>
-                    <Label>% da empresa (opcional)</Label>
-                    <Input type="number" step="0.01" disabled={!isAdmin || closed}
-                      value={r.pct ?? ""}
+                    <Label>% do motorista</Label>
+                    <Input type="number" step="0.01" disabled={!isAdmin || closed || r.isRental}
+                      value={r.isRental ? "" : (r.pct ?? 40)}
+                      placeholder={r.isRental ? "N/A (aluguer)" : "40"}
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
                    <div><div className="text-xs text-muted-foreground">Crédito ao motorista</div><div className="font-bold">{eur(r.driverAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
+                  {isAdmin && (
+                    <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
+                  )}
                 </div>
+
 
                 <div>
                   <Label>Detalhes</Label>
@@ -576,7 +592,7 @@ function AcertoCarro() {
                 <TableHead>Semana</TableHead><TableHead>Viatura</TableHead><TableHead>Motorista</TableHead>
                 <TableHead className="text-right">Entradas</TableHead><TableHead className="text-right">Saídas</TableHead>
                 <TableHead className="text-right">Aluguer</TableHead><TableHead className="text-right">Líquido</TableHead>
-                <TableHead className="text-right">Motorista</TableHead><TableHead className="text-right">Empresa</TableHead>
+                <TableHead className="text-right">Motorista</TableHead>{isAdmin && <TableHead className="text-right">Empresa</TableHead>}
                 <TableHead>Estado</TableHead><TableHead>Detalhes</TableHead>
               </TableRow></TableHeader>
               <TableBody>
@@ -593,7 +609,7 @@ function AcertoCarro() {
                       <TableCell className="text-right">{eur(h.rental_cost)}</TableCell>
                       <TableCell className="text-right font-medium">{eur(h.net_profit)}</TableCell>
                       <TableCell className="text-right">{eur(h.driver_amount)}</TableCell>
-                      <TableCell className="text-right">{h.driver_pct === null ? "—" : eur(h.company_amount)}</TableCell>
+                      {isAdmin && <TableCell className="text-right">{eur(h.company_amount)}</TableCell>}
                       <TableCell>{h.closed_at ? <Badge className="bg-emerald-600 text-white">Fechada</Badge> : <Badge variant="outline">Em curso</Badge>}</TableCell>
                       <TableCell className="max-w-xs text-sm text-muted-foreground">{h.details ?? "—"}</TableCell>
                     </TableRow>
