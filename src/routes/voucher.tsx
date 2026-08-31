@@ -62,15 +62,24 @@ function Voucher() {
     queryFn: async () => (await (supabase.from("proposals") as any).select("*,clients(*)").not("voucher_saved_at", "is", null).is("voucher_validated_at", null).order("voucher_saved_at", { ascending: false })).data ?? [],
   });
 
-  // Clientes com proposta/orçamento validado (têm voucher gerado). Inclui o cliente atual ao editar um voucher salvo.
+  // Propostas elegíveis para voucher: orçamento validado (venda fechada) ou voucher já iniciado.
+  const { data: eligible = [] } = useQuery({
+    queryKey: ["proposals-voucher-eligible"],
+    queryFn: async () =>
+      (await (supabase.from("proposals") as any)
+        .select("id,client_id,clients(*)")
+        .or("budget_validated_at.not.is.null,voucher_saved_at.not.is.null,voucher_validated_at.not.is.null")
+        .order("created_at", { ascending: false })).data ?? [],
+  });
+
   const validatedClients = useMemo(() => {
     const map = new Map<string, any>();
-    (validated || []).forEach((x: any) => {
+    [...(eligible || []), ...(saved || []), ...(validated || [])].forEach((x: any) => {
       if (x.clients && !map.has(x.client_id)) map.set(x.client_id, x.clients);
     });
-    return Array.from(map.values());
-  }, [validated]);
-  const validatedClientIds = useMemo(() => new Set((validated || []).map((x: any) => x.client_id)), [validated]);
+    return Array.from(map.values()).sort((a: any, b: any) => (a.name ?? "").localeCompare(b.name ?? ""));
+  }, [eligible, saved, validated]);
+  const validatedClientIds = useMemo(() => new Set(validatedClients.map((x: any) => x.id)), [validatedClients]);
   const { data: extraClient } = useQuery({
     queryKey: ["client-voucher-extra", clientId],
     enabled: !!clientId && !validatedClientIds.has(clientId),
@@ -81,6 +90,7 @@ function Voucher() {
     if (extraClient && !list.find((x: any) => x.id === extraClient.id)) list.push(extraClient);
     return list;
   }, [validatedClients, extraClient]);
+
 
   const { isAdmin } = usePermissions();
   const refetchAll = () => { refetchProps(); refetchValidated(); refetchSaved(); };
@@ -177,7 +187,7 @@ function Voucher() {
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
               <SelectContent>
                 {props
-                  .filter((x: any) => !!x.voucher_validated_at || x.id === proposalId)
+                  .filter((x: any) => !!x.voucher_validated_at || !!x.voucher_saved_at || !!x.budget_validated_at || x.id === proposalId)
                   .map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}
               </SelectContent>
             </Select>
