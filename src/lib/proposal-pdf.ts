@@ -233,11 +233,12 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa",
   autoTable(doc, {
     startY: y,
     head: [["Data", columnLabel]],
-    body: list.map((d, i) => {
+    body: list.map((d) => {
       const base = (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—";
       const note = noteFor(d);
+      const n = dayNumber.get(String(d.date ?? "").slice(0, 10)) ?? 0;
       return [
-        `Dia ${i + 1}\n${fmtDate(d.date) || "—"}`,
+        `Dia ${n}\n${fmtDate(d.date) || "—"}`,
         note ? `${base}\n\nObservações: ${note}` : base,
       ];
     }),
