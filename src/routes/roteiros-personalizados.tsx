@@ -400,9 +400,12 @@ function Propostas() {
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
 
-              {(form.itinerary ?? []).filter((d: ItineraryDay) => !d.deleted).length > 0 && (
+              const allItinerary = (form.itinerary ?? []) as ItineraryDay[];
+              const dayNumberMap = new Map(allItinerary.map((d, i) => [d.date, i + 1]));
+
+              {allItinerary.filter((d: ItineraryDay) => !d.deleted).length > 0 && (
                 <div className="mt-3 space-y-2">
-                  {(form.itinerary as ItineraryDay[]).filter((d: ItineraryDay) => !d.deleted).map((d, i) => {
+                  {allItinerary.filter((d: ItineraryDay) => !d.deleted).map((d) => {
                     const patch = (v: Partial<ItineraryDay>) => {
                       const list = [...(form.itinerary as ItineraryDay[])];
                       const idx = list.findIndex((x) => x.date === d.date && !x.deleted);
@@ -416,11 +419,12 @@ function Propostas() {
                       setForm({ ...form, itinerary: list });
                     };
                     const custom = (d.mode ?? "sugestao") === "personalizado";
+                    const dayNumber = dayNumberMap.get(d.date) ?? 0;
                     return (
                       <div key={d.date} className="rounded-md border p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
-                            <div><Label className="text-xs">Dia {i + 1} — data</Label>
+                            <div><Label className="text-xs">Dia {dayNumber} — data</Label>
                               <Input type="date" value={d.date} onChange={(e) => patch({ date: e.target.value })} />
                             </div>
                             <div><Label className="text-xs">Roteiro do dia</Label>
