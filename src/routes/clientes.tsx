@@ -27,7 +27,7 @@ import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 
 export const Route = createFileRoute("/clientes")({ component: Clientes });
 
-const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Outro"];
+const ORIGINS = ["Instagram", "Facebook", "Site", "Indicação", "Parcerias", "Cliente Recorrente", "Outro"];
 const ORIGINS_WITH_DETAIL = ["Indicação", "Parcerias", "Outro"];
 
 const cols: { key: string; label: string }[] = [
