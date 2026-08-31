@@ -76,6 +76,8 @@ function Propostas() {
 
 
   const days = daysBetween(form.itinerary_start, form.itinerary_end);
+  const allItinerary = (form.itinerary ?? []) as ItineraryDay[];
+  const dayNumberMap = new Map(allItinerary.map((d, i) => [d.date, i + 1]));
 
   function pickClient(id: string) {
     setHasUnsavedChanges(true);
