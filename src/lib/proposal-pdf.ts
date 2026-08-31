@@ -215,7 +215,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa",
   const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
   // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
   const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
-  const list = days.length ? days : saved;
+  const list = (days.length ? days : saved).filter((d) => !d?.deleted);
   if (!list.length) return y;
   const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
   const noteFor = (d: any) => {
