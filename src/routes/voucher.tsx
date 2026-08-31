@@ -128,7 +128,21 @@ function Voucher() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." />
+      <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." actions={
+        <Button
+          className="gradient-gold text-gold-foreground"
+          onClick={() => {
+            if (hasUnsavedChanges && !confirm("Deseja sair sem validar/guardar?")) return;
+            setClientId("");
+            setProposalId("");
+            setHasUnsavedChanges(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            setClientOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Voucher
+        </Button>
+      } />
 
       <Card className="p-4 w-full sm:w-auto mb-4">
         <div className="text-xs text-muted-foreground">Total de vouchers</div>
