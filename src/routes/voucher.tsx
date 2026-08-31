@@ -187,7 +187,7 @@ function Voucher() {
               <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
               <SelectContent>
                 {props
-                  .filter((x: any) => !!x.voucher_validated_at || x.id === proposalId)
+                  .filter((x: any) => !!x.voucher_validated_at || !!x.voucher_saved_at || !!x.budget_validated_at || x.id === proposalId)
                   .map((x: any) => <SelectItem key={x.id} value={x.id}>{shortCode(x.code)} · {x.title ?? ""}</SelectItem>)}
               </SelectContent>
             </Select>
