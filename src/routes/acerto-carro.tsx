@@ -268,13 +268,25 @@ function AcertoCarro() {
       const driver = drivers.find((d: any) => d.id === driverId);
 
       const pctRaw = settlement?.closed_at
-        ? settlement?.driver_pct
-        : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? ""));
-      const pct = pctRaw === "" || pctRaw === null || pctRaw === undefined ? null : Number(pctRaw);
-      const pctAmount = pct === null ? 0 : (netProfit > 0 ? netProfit : 0) * (pct / 100);
-      // Crédito a empresa = aluguer da viatura + percentagem da empresa
-      const companyAmount = !hasIncome ? rentalCost : rentalCost + pctAmount;
-      const driverAmount = !hasIncome ? 0 : Math.max(netProfit - companyAmount, 0);
+        ? (settlement?.driver_pct ?? 40)
+        : (pctDraft[v.id] !== undefined ? pctDraft[v.id] : (settlement?.driver_pct ?? driver?.commission_pct ?? 40));
+      const pctNum = pctRaw === "" || pctRaw === null || pctRaw === undefined ? 40 : Number(pctRaw);
+      const pct = Number.isFinite(pctNum) ? pctNum : 40;
+      const positiveNet = netProfit > 0 ? netProfit : 0;
+      // Viatura própria: motorista fica com a % definida (por omissão 40%), a empresa com o restante.
+      // Viatura de aluguer: o líquido (já sem aluguer) é todo crédito do motorista; a empresa fica com o aluguer.
+      let driverAmount = 0;
+      let companyAmount = rentalCost;
+      if (hasIncome) {
+        if (isRental) {
+          driverAmount = positiveNet;
+          companyAmount = rentalCost;
+        } else {
+          driverAmount = positiveNet * (pct / 100);
+          companyAmount = positiveNet - driverAmount;
+        }
+      }
+
 
       return {
         vehicle: v, driver, driverId, isRental, rentalCost,
