@@ -24,13 +24,14 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
     const d = new Date(start as string);
     d.setDate(d.getDate() + i);
     const iso = d.toISOString().slice(0, 10);
-    const prev = existing.find((e) => e.date === iso && !e.deleted);
+    const prev = existing.find((e) => e.date === iso);
     out.push({
       date: iso,
       text: prev?.text ?? "",
       mode: prev?.mode ?? "sugestao",
       region_id: prev?.region_id ?? "",
       tour_route_id: prev?.tour_route_id ?? "",
+      deleted: prev?.deleted ?? false,
     });
   }
   return out;
