@@ -592,7 +592,7 @@ function AcertoCarro() {
                 <TableHead>Semana</TableHead><TableHead>Viatura</TableHead><TableHead>Motorista</TableHead>
                 <TableHead className="text-right">Entradas</TableHead><TableHead className="text-right">Saídas</TableHead>
                 <TableHead className="text-right">Aluguer</TableHead><TableHead className="text-right">Líquido</TableHead>
-                <TableHead className="text-right">Motorista</TableHead><TableHead className="text-right">Empresa</TableHead>
+                <TableHead className="text-right">Motorista</TableHead>{isAdmin && <TableHead className="text-right">Empresa</TableHead>}
                 <TableHead>Estado</TableHead><TableHead>Detalhes</TableHead>
               </TableRow></TableHeader>
               <TableBody>
