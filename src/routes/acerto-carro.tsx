@@ -560,14 +560,18 @@ function AcertoCarro() {
 
                 <div className="grid gap-3 sm:grid-cols-3 items-end">
                   <div>
-                    <Label>% da empresa (opcional)</Label>
-                    <Input type="number" step="0.01" disabled={!isAdmin || closed}
-                      value={r.pct ?? ""}
+                    <Label>% do motorista</Label>
+                    <Input type="number" step="0.01" disabled={!isAdmin || closed || r.isRental}
+                      value={r.isRental ? "" : (r.pct ?? 40)}
+                      placeholder={r.isRental ? "N/A (aluguer)" : "40"}
                       onChange={(e) => setPctDraft({ ...pctDraft, [r.vehicle.id]: e.target.value })} />
                   </div>
                    <div><div className="text-xs text-muted-foreground">Crédito ao motorista</div><div className="font-bold">{eur(r.driverAmount)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
+                  {isAdmin && (
+                    <div><div className="text-xs text-muted-foreground">Crédito a empresa</div><div className="font-bold text-gold">{r.companyAmount > 0 ? eur(r.companyAmount) : "—"}</div></div>
+                  )}
                 </div>
+
 
                 <div>
                   <Label>Detalhes</Label>
