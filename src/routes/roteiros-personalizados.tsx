@@ -540,14 +540,16 @@ function Propostas() {
             label: "Roteiro",
             fullWidth: true,
             format: (v, r) => {
-              const list = Array.isArray(v) ? v.filter((d: any) => !d.deleted) : [];
+              const full = Array.isArray(v) ? v : [];
+              const list = full.filter((d: any) => !d.deleted);
               if (!list.length) return "—";
+              const dayNumberMap = new Map(full.map((d: any, i: number) => [d.date, i + 1]));
               const fallback = r?.tour_routes?.name ?? "";
               return (
                 <div className="space-y-1">
                   {list.map((d: any, i: number) => (
                     <div key={i} className="flex flex-col sm:flex-row sm:gap-3 border-b border-border/50 pb-1 last:border-0">
-                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {i + 1} · {fmtDate(d.date) || "—"}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground sm:w-40">Dia {dayNumberMap.get(d.date) ?? i + 1} · {fmtDate(d.date) || "—"}</span>
                       <span className="min-w-0 break-words">{(d.text && d.text.trim()) || fallback || "—"}</span>
                     </div>
                   ))}
