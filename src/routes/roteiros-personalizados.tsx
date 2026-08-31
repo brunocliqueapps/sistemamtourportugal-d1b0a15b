@@ -246,7 +246,7 @@ function Propostas() {
                 : (p.roteiro_saved_at ? new Date(p.roteiro_saved_at).toLocaleString("pt-PT") : "—")}
             </TableCell>
             <TableCell className="text-right space-x-1 whitespace-nowrap">
-              {validated && (
+              {(
                 <Button size="icon" variant="ghost" title="PDF do roteiro" onClick={() => generateProposalPdf(p.id, { variant: "roteiro" }).catch((e) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
               )}
               <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(p)}><Eye className="h-4 w-4" /></Button>
@@ -295,7 +295,7 @@ function Propostas() {
 
       <Card className="p-4 mb-4">
         <div className="font-semibold text-sm">Roteiros Salvos</div>
-        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — PDF disponível.</div>
         {rows(savedProps, false)}
       </Card>
 
@@ -487,11 +487,11 @@ function Propostas() {
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <div className="flex-1 text-xs text-muted-foreground hidden sm:block">
-              Salve para guardar as informações; valide para bloquear e liberar o PDF.
+              Salve para guardar as informações; o PDF está sempre disponível.
             </div>
             <div className="flex flex-wrap items-center gap-2 justify-end">
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              {editingLocked && editing?.id && (
+              {editing?.id && (
                 <Button variant="outline" onClick={() => generateProposalPdf(editing.id, { variant: "roteiro" }).catch((e: any) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> PDF
                 </Button>

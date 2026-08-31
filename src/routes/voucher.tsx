@@ -315,7 +315,7 @@ function Voucher() {
                   refetchAll();
                 }}><Save className="h-4 w-4 mr-1" /> Salvar</Button>
               )}
-              {locked && (
+              {(
                 <Button variant="outline" onClick={() => generateVoucherPdf(p.id).catch((e) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
                 </Button>
@@ -351,7 +351,7 @@ function Voucher() {
 
       <Card className="p-4 mt-4">
         <div className="font-semibold text-sm">Vouchers Salvos</div>
-        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — sem PDF até à validação.</div>
+        <div className="text-xs text-muted-foreground mb-2">Salvos e ainda não validados — PDF disponível.</div>
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
