@@ -400,10 +400,7 @@ function Propostas() {
               </div>
               <div className="text-xs text-muted-foreground mt-2">Quantidade de dias: <span className="font-semibold text-foreground">{days || 0}</span></div>
 
-              const allItinerary = (form.itinerary ?? []) as ItineraryDay[];
-              const dayNumberMap = new Map(allItinerary.map((d, i) => [d.date, i + 1]));
-
-              {allItinerary.filter((d: ItineraryDay) => !d.deleted).length > 0 && (
+              {(form.itinerary ?? []).filter((d: ItineraryDay) => !d.deleted).length > 0 && (
                 <div className="mt-3 space-y-2">
                   {allItinerary.filter((d: ItineraryDay) => !d.deleted).map((d) => {
                     const patch = (v: Partial<ItineraryDay>) => {
