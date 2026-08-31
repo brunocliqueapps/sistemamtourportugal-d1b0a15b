@@ -362,6 +362,7 @@ function Voucher() {
                 <TableCell className="text-xs">{x.voucher_saved_at ? new Date(x.voucher_saved_at).toLocaleString("pt-PT") : "—"}</TableCell>
                 <TableCell className="text-right space-x-1">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Descarregar PDF" onClick={() => generateVoucherPdf(x.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Editar voucher" onClick={() => openProposal(x)}><Pencil className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>

@@ -538,6 +538,7 @@ function Orcamento() {
                 <TableCell className="text-right">€ {Number(x.total_value || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
                   <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing(x)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="PDF" onClick={() => generateBudgetPdf(x.id).catch((e: any) => toast.error(e.message))}><FileDown className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" title="Editar orçamento" onClick={() => {
                     pickProposal(x.id);
                     window.scrollTo({ top: 0, behavior: "smooth" });
