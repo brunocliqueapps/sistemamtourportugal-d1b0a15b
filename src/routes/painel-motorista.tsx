@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
 import { TRIP_PROPOSAL_COLS, tripRange } from "@/lib/trip-dates";
-import { Car, Clock, MapPin, Plus, Ticket, Trash2, Users, Wallet } from "lucide-react";
+import { Car, Clock, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
 
 export const Route = createFileRoute("/painel-motorista")({
   component: PainelMotorista,
@@ -53,6 +54,33 @@ const SERVICE_TYPES: { value: string; label: string }[] = [
   { value: "privado", label: "Serviço privado" },
   { value: "interno", label: "Roteiro Personalizado Mtour" },
 ];
+
+/** Origens de entrada — iguais às do Acerto do Carro, para padronizar. */
+const INCOME_ORIGINS = [
+  "TVDE (Uber/Bolt)",
+  "Serviço privado",
+  "Roteiro Mtour",
+  "Transferência do motorista",
+  "Reembolso",
+  "Outros",
+];
+
+type EntryDraft = {
+  kind: string;
+  amount: string;
+  description: string;
+  origin: string;
+  cost_center_id: string;
+  other_label: string;
+  invoice_number: string;
+  entry_date: string;
+};
+const EMPTY_ENTRY: EntryDraft = {
+  kind: "entrada", amount: "", description: "",
+  origin: "", cost_center_id: "", other_label: "", invoice_number: "", entry_date: "",
+};
+
+
 
 function PainelMotorista() {
   const { user } = useAuth();
@@ -157,9 +185,22 @@ function PainelMotorista() {
         .order("created_at")).data ?? [],
   });
 
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["pm-cost-centers"],
+    queryFn: async () =>
+      (await supabase.from("cost_centers").select("id,name,active").order("name")).data ?? [],
+  });
+
 
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
+  const [editShiftId, setEditShiftId] = useState<string | null>(null);
+  const editingShift: any = useMemo(
+    () => (editShiftId ? (weekShifts as any[]).find((s) => s.id === editShiftId) ?? null : null),
+    [editShiftId, weekShifts],
+  );
+  /** Turno em edição: o escolhido no histórico ou o turno aberto de hoje. */
+  const targetShift: any = editingShift ?? openShift;
   const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
 
   // Veículo sugerido: o principal atribuído ao motorista, ou o único que tiver
@@ -170,18 +211,18 @@ function PainelMotorista() {
   }, [myVehicleLinks, vehicles]);
 
   useEffect(() => {
-    if (openShift) {
+    if (targetShift) {
       setDayForm({
-        vehicle_id: openShift.vehicle_id ?? "",
-        operation_type: openShift.operation_type ?? "tvde",
-        km_initial: openShift.km_initial != null ? String(openShift.km_initial) : "",
-        km_final: openShift.km_final != null ? String(openShift.km_final) : "",
-        notes: openShift.notes ?? "",
+        vehicle_id: targetShift.vehicle_id ?? "",
+        operation_type: targetShift.operation_type ?? "tvde",
+        km_initial: targetShift.km_initial != null ? String(targetShift.km_initial) : "",
+        km_final: targetShift.km_final != null ? String(targetShift.km_final) : "",
+        notes: targetShift.notes ?? "",
       });
     } else {
       setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
     }
-  }, [openShift?.id, defaultVehicleId]);
+  }, [targetShift?.id, defaultVehicleId]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
@@ -191,6 +232,7 @@ function PainelMotorista() {
   const startDay = useMutation({
     mutationFn: async () => {
       if (!myDriver?.id) throw new Error("Sem registo de motorista");
+      if (openShift) throw new Error("Feche o serviço anterior (KM final) antes de iniciar outro");
       if (!dayForm.vehicle_id) throw new Error("Escolha o veículo");
       if (dayForm.km_initial === "") throw new Error("Indique o KM inicial");
       const { error } = await (supabase.from("tvde_shifts") as any).insert({
@@ -205,17 +247,17 @@ function PainelMotorista() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Dia iniciado");
+      toast.success("Serviço iniciado");
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o dia"),
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o serviço"),
   });
 
   const saveDay = useMutation({
     mutationFn: async (close: boolean) => {
-      if (!openShift) throw new Error("Não há lançamento aberto");
-      if (close && dayForm.km_final === "") throw new Error("Indique o KM final para encerrar o dia");
+      if (!targetShift) throw new Error("Não há lançamento selecionado");
+      if (close && dayForm.km_final === "") throw new Error("Indique o KM final para encerrar o serviço");
       const payload: any = {
         vehicle_id: dayForm.vehicle_id || null,
         operation_type: dayForm.operation_type,
@@ -228,12 +270,13 @@ function PainelMotorista() {
         payload.closed_at = new Date().toISOString();
         payload.closed_by = user!.id;
       }
-      const { error } = await (supabase.from("tvde_shifts") as any).update(payload).eq("id", openShift.id);
+      const { error } = await (supabase.from("tvde_shifts") as any).update(payload).eq("id", targetShift.id);
       if (error) throw error;
       return close;
     },
     onSuccess: (close) => {
-      toast.success(close ? "Serviços do dia encerrados" : "Lançamento guardado");
+      toast.success(close ? "Serviço encerrado" : "Lançamento guardado");
+      setEditShiftId(null);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
@@ -242,34 +285,71 @@ function PainelMotorista() {
     onError: (e: any) => toast.error(e.message ?? "Não foi possível guardar"),
   });
 
-  /* ---------- Entradas e saídas da semana ---------- */
-  const [mov, setMov] = useState({ kind: "entrada", amount: "", description: "", entry_date: today, vehicle_id: "" });
-  useEffect(() => {
-    const suggested = defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "";
-    if (suggested && mov.vehicle_id !== suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
-  }, [openShift?.vehicle_id, shifts.length, defaultVehicleId]);
+  /* ---------- Entradas e saídas da semana (mesmo formulário do Acerto do Carro) ---------- */
+  const movVehicleId = useMemo(
+    () => defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "",
+    [defaultVehicleId, openShift?.vehicle_id, shifts],
+  );
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+
+  function openNewEntry() {
+    setEditingEntryId(null);
+    setEntry({ ...EMPTY_ENTRY, entry_date: today >= weekStart && today <= weekEnd ? today : weekStart });
+    setEntryOpen(true);
+  }
+  function openEditEntry(m: any) {
+    setEditingEntryId(m.id);
+    setEntry({
+      kind: m.kind,
+      amount: String(m.amount ?? ""),
+      description: m.description ?? "",
+      origin: m.origin ?? "",
+      cost_center_id: m.cost_center_id ?? (m.kind === "saida" && m.other_label ? "outros" : ""),
+      other_label: m.other_label ?? "",
+      invoice_number: m.invoice_number ?? "",
+      entry_date: m.entry_date ?? String(m.created_at ?? "").slice(0, 10),
+    });
+    setEntryOpen(true);
+  }
+
 
 
 
   const addMov = useMutation({
     mutationFn: async () => {
-      if (!mov.vehicle_id) throw new Error("Escolha o veículo");
-      if (!mov.amount) throw new Error("Indique o valor");
-      if (mov.entry_date < weekStart || mov.entry_date > weekEnd) throw new Error("A data tem de estar dentro da semana");
-      const { error } = await (supabase.from("car_settlement_entries") as any).insert({
-        vehicle_id: mov.vehicle_id,
+      if (!movVehicleId) throw new Error("Nenhum veículo associado a este motorista");
+      if (!Number(entry.amount)) throw new Error("Valor obrigatório.");
+      if (entry.kind === "entrada" && !entry.origin) throw new Error("Selecione a origem.");
+      if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
+      const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
+      if (isOther && !entry.other_label.trim()) throw new Error("Indique qual é o 'Outros'.");
+      const entryDate = entry.entry_date || weekStart;
+      if (entryDate < weekStart || entryDate > weekEnd) throw new Error("A data tem de estar dentro da semana");
+      const payload: any = {
+        vehicle_id: movVehicleId,
         week_start: weekStart,
-        kind: mov.kind,
-        amount: Number(mov.amount),
-        description: mov.description || null,
-        entry_date: mov.entry_date,
-        created_by: user!.id,
-      });
-      if (error) throw error;
+        kind: entry.kind,
+        amount: Number(entry.amount),
+        description: entry.description || null,
+        origin: entry.kind === "entrada" ? entry.origin : null,
+        cost_center_id: entry.kind === "saida" && entry.cost_center_id !== "outros" ? entry.cost_center_id : null,
+        other_label: isOther ? entry.other_label.trim() : null,
+        invoice_number: entry.invoice_number.trim() || null,
+        entry_date: entryDate,
+      };
+      if (editingEntryId) {
+        const { error } = await (supabase.from("car_settlement_entries") as any).update(payload).eq("id", editingEntryId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("car_settlement_entries") as any).insert({ ...payload, created_by: user!.id });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Lançamento registado");
-      setMov((m) => ({ ...m, amount: "", description: "" }));
+      toast.success(editingEntryId ? "Lançamento atualizado" : "Lançamento registado");
+      setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível registar"),
@@ -379,8 +459,17 @@ function PainelMotorista() {
       {myDriver && (
         <Card className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Lançamento do dia</div>
-            <Badge variant="outline">{openShift ? "em curso" : (shifts as any[]).length ? "encerrado" : "não iniciado"}</Badge>
+            <div className="font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4" /> {editingShift ? `Editar serviço · ${fmtDate(editingShift.shift_date)}` : "Lançamento do dia"}
+            </div>
+            <div className="flex items-center gap-2">
+              {editingShift && (
+                <Button size="sm" variant="ghost" onClick={() => setEditShiftId(null)}>
+                  <X className="h-4 w-4 mr-1" /> Cancelar edição
+                </Button>
+              )}
+              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) hoje` : "não iniciado"}</Badge>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -410,7 +499,7 @@ function PainelMotorista() {
             </div>
             <div className="space-y-1">
               <Label>KM final</Label>
-              <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!openShift} />
+              <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!targetShift} />
             </div>
             <div className="space-y-1 sm:col-span-2 lg:col-span-4">
               <Label>Notas do dia</Label>
@@ -419,17 +508,17 @@ function PainelMotorista() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!openShift ? (
+            {!targetShift ? (
               <>
                 <Button
                   onClick={() => startDay.mutate()}
                   disabled={startDay.isPending || viewingOther || !canStartDay}
                 >
-                  Iniciar dia de trabalho
+                  Iniciar serviço
                 </Button>
                 {!canStartDay && (
                   <span className="text-xs text-muted-foreground">
-                    Preencha veículo, tipo de serviço e KM inicial.
+                    Preencha tipo de serviço e KM inicial.
                   </span>
                 )}
               </>
@@ -438,14 +527,18 @@ function PainelMotorista() {
                 <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
                   Guardar lançamento
                 </Button>
-                <Button
-                  onClick={() => saveDay.mutate(true)}
-                  disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
-                >
-                  Encerrar dia com KM final
-                </Button>
-                {dayForm.km_final === "" && (
-                  <span className="text-xs text-muted-foreground">Indique o KM final para encerrar.</span>
+                {!targetShift.closed_at && (
+                  <>
+                    <Button
+                      onClick={() => saveDay.mutate(true)}
+                      disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                    >
+                      Encerrar serviço com KM final
+                    </Button>
+                    {dayForm.km_final === "" && (
+                      <span className="text-xs text-muted-foreground">Indique o KM final para encerrar e poder iniciar outro serviço.</span>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -472,11 +565,17 @@ function PainelMotorista() {
                     <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
+                    {!viewingOther && (
+                      <Button size="icon" variant="ghost" className="ml-auto" title="Editar este serviço" onClick={() => setEditShiftId(s.id)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
+
 
         </Card>
       )}
@@ -532,43 +631,17 @@ function PainelMotorista() {
         <Card className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
-            <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="space-y-1">
-              <Label>Tipo</Label>
-              <Select value={mov.kind} onValueChange={(v) => setMov({ ...mov, kind: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="entrada">Entrada</SelectItem>
-                  <SelectItem value="saida">Saída</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Veículo</Label>
-              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
-                {mov.vehicle_id ? vehicleLabel(mov.vehicle_id) : "Sem veículo atribuído"}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label>Data</Label>
-              <Input type="date" min={weekStart} max={weekEnd} value={mov.entry_date} onChange={(e) => setMov({ ...mov, entry_date: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>Valor (€)</Label>
-              <Input type="number" step="0.01" value={mov.amount} onChange={(e) => setMov({ ...mov, amount: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>Descrição</Label>
-              <Input value={mov.description} onChange={(e) => setMov({ ...mov, description: e.target.value })} placeholder="Ex.: combustível, Uber, portagem" />
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry} disabled={viewingOther}>
+                <Plus className="h-4 w-4 mr-1" /> Lançamento
+              </Button>
             </div>
           </div>
-          <Button onClick={() => addMov.mutate()} disabled={addMov.isPending || viewingOther}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar lançamento
-          </Button>
+
+          <div className="text-xs text-muted-foreground">
+            Veículo: <span className="font-mono">{movVehicleId ? vehicleLabel(movVehicleId) : "sem veículo atribuído"}</span>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-md border border-border p-3">
@@ -585,22 +658,36 @@ function PainelMotorista() {
             {myEntries.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
             ) : (
-              myEntries.map((e: any) => (
-                <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
-                  <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
-                  <span className="font-medium">{eur(e.amount)}</span>
-                  <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
-                  <span className="text-muted-foreground">{vehicleLabel(e.vehicle_id)}</span>
-                  <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
-                  {e.created_by === user?.id && !viewingOther && (
-                    <Button size="icon" variant="ghost" className="ml-auto" onClick={() => delMov.mutate(e.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))
+              myEntries.map((e: any) => {
+                const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
+                const label = e.kind === "entrada"
+                  ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
+                  : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
+                const mine = e.created_by === user?.id && !viewingOther;
+                return (
+                  <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
+                    <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
+                    <span className="font-medium">{eur(e.amount)}</span>
+                    <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
+                    <span>{label}</span>
+                    {e.invoice_number && <span className="text-muted-foreground">Fatura {e.invoice_number}</span>}
+                    <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
+                    {mine && (
+                      <div className="ml-auto flex items-center">
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openEditEntry(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Eliminar" onClick={() => { if (confirm("Eliminar este lançamento?")) delMov.mutate(e.id); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
+
 
           <Button asChild variant="outline" size="sm"><Link to="/acerto-carro">Abrir Acerto do Carro</Link></Button>
         </Card>
@@ -625,6 +712,69 @@ function PainelMotorista() {
           <Button asChild variant="outline" size="sm"><Link to="/oc">Ver ordens de serviço</Link></Button>
         </div>
       </Card>
+
+      <Dialog open={entryOpen} onOpenChange={(o) => { if (!o) { setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY }); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingEntryId ? "Editar lançamento" : "Lançamento manual"}{movVehicleId ? ` · ${vehicleLabel(movVehicleId).split(" ·")[0]}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v, origin: "", cost_center_id: "", other_label: "" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entrada">Entrada (ganho)</SelectItem>
+                  <SelectItem value="saida">Saída (custo)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {entry.kind === "entrada" ? (
+              <div>
+                <Label>Origem</Label>
+                <Select value={entry.origin} onValueChange={(v) => setEntry({ ...entry, origin: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent>
+                    {INCOME_ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Centro de custo</Label>
+                <Select value={entry.cost_center_id} onValueChange={(v) => setEntry({ ...entry, cost_center_id: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar centro de custo" /></SelectTrigger>
+                  <SelectContent>
+                    {(costCenters as any[]).filter((c) => c.active !== false).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {((entry.kind === "entrada" && entry.origin === "Outros") || (entry.kind === "saida" && entry.cost_center_id === "outros")) && (
+              <div><Label>Qual? (Outros)</Label><Input value={entry.other_label} onChange={(e) => setEntry({ ...entry, other_label: e.target.value })} /></div>
+            )}
+
+            <div>
+              <Label>Data da operação</Label>
+              <Input type="date" min={weekStart} max={weekEnd} value={entry.entry_date} onChange={(e) => setEntry({ ...entry, entry_date: e.target.value })} />
+            </div>
+            <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} /></div>
+            <div><Label>N.º da fatura (opcional)</Label><Input value={entry.invoice_number} onChange={(e) => setEntry({ ...entry, invoice_number: e.target.value })} placeholder="Só se existir fatura" /></div>
+            <div><Label>Descrição</Label><Input value={entry.description} onChange={(e) => setEntry({ ...entry, description: e.target.value })} /></div>
+            <div className="text-xs text-muted-foreground">Veículo: {movVehicleId ? vehicleLabel(movVehicleId) : "—"}</div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY }); }}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" disabled={addMov.isPending} onClick={() => addMov.mutate()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
     </div>
   );
