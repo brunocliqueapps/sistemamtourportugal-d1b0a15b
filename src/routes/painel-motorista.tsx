@@ -631,43 +631,17 @@ function PainelMotorista() {
         <Card className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
-            <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="space-y-1">
-              <Label>Tipo</Label>
-              <Select value={mov.kind} onValueChange={(v) => setMov({ ...mov, kind: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="entrada">Entrada</SelectItem>
-                  <SelectItem value="saida">Saída</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Veículo</Label>
-              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
-                {mov.vehicle_id ? vehicleLabel(mov.vehicle_id) : "Sem veículo atribuído"}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label>Data</Label>
-              <Input type="date" min={weekStart} max={weekEnd} value={mov.entry_date} onChange={(e) => setMov({ ...mov, entry_date: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>Valor (€)</Label>
-              <Input type="number" step="0.01" value={mov.amount} onChange={(e) => setMov({ ...mov, amount: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>Descrição</Label>
-              <Input value={mov.description} onChange={(e) => setMov({ ...mov, description: e.target.value })} placeholder="Ex.: combustível, Uber, portagem" />
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry} disabled={viewingOther}>
+                <Plus className="h-4 w-4 mr-1" /> Lançamento
+              </Button>
             </div>
           </div>
-          <Button onClick={() => addMov.mutate()} disabled={addMov.isPending || viewingOther}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar lançamento
-          </Button>
+
+          <div className="text-xs text-muted-foreground">
+            Veículo: <span className="font-mono">{movVehicleId ? vehicleLabel(movVehicleId) : "sem veículo atribuído"}</span>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-md border border-border p-3">
@@ -684,22 +658,36 @@ function PainelMotorista() {
             {myEntries.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
             ) : (
-              myEntries.map((e: any) => (
-                <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
-                  <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
-                  <span className="font-medium">{eur(e.amount)}</span>
-                  <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
-                  <span className="text-muted-foreground">{vehicleLabel(e.vehicle_id)}</span>
-                  <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
-                  {e.created_by === user?.id && !viewingOther && (
-                    <Button size="icon" variant="ghost" className="ml-auto" onClick={() => delMov.mutate(e.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))
+              myEntries.map((e: any) => {
+                const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
+                const label = e.kind === "entrada"
+                  ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
+                  : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
+                const mine = e.created_by === user?.id && !viewingOther;
+                return (
+                  <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
+                    <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
+                    <span className="font-medium">{eur(e.amount)}</span>
+                    <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
+                    <span>{label}</span>
+                    {e.invoice_number && <span className="text-muted-foreground">Fatura {e.invoice_number}</span>}
+                    <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
+                    {mine && (
+                      <div className="ml-auto flex items-center">
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openEditEntry(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Eliminar" onClick={() => { if (confirm("Eliminar este lançamento?")) delMov.mutate(e.id); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
+
 
           <Button asChild variant="outline" size="sm"><Link to="/acerto-carro">Abrir Acerto do Carro</Link></Button>
         </Card>
