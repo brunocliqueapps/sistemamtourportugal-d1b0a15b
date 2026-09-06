@@ -310,9 +310,10 @@ function PainelMotorista() {
 
   const list = kind === "privado" ? privados : kind === "roteiro" ? roteiros : [];
   const vehicleLabel = (id: string) => {
-    const v = (vehicles as any[]).find((x) => x.id === id);
+    const v = (allVehicles as any[]).find((x) => x.id === id);
     return v ? `${v.plate}${v.brand ? ` · ${v.brand} ${v.model ?? ""}` : ""}` : "—";
   };
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
