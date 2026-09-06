@@ -67,7 +67,7 @@ function RelatorioDiario() {
     const out: { day: string; clients: number; proposals: number; proposalValue: number; closed: number; value: number }[] = [];
     for (let d = new Date(from + "T00:00:00Z"); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
       const day = d.toISOString().slice(0, 10);
-      const approved = (data?.approvedProposals ?? []).filter((p: any) => dayOf(p.budget_approved_at) === day);
+      const approved = (data?.approvedProposals ?? []).filter((p: any) => p.closed_day === day);
       const closed = (data?.orders ?? []).filter((o: any) => dayOf(o.service_date) === day);
       const dayProposals = (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day);
       out.push({
@@ -120,7 +120,7 @@ function RelatorioDiario() {
         items: [
           ...(data?.approvedProposals ?? []).map((p: any) => ({
             id: p.id,
-            day: dayOf(p.budget_approved_at),
+            day: p.closed_day,
             primary: [p.code, p.clients?.name, "Orçamento aprovado"].filter(Boolean).join(" · "),
             secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : undefined,
           })),
@@ -191,6 +191,7 @@ function RelatorioDiario() {
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full sm:w-44" />
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { setFrom(today()); setTo(today()); }}>Hoje</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(6)); setTo(today()); }}>Últimos 7 dias</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(14)); setTo(today()); }}>Últimos 15 dias</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(29)); setTo(today()); }}>Últimos 30 dias</Button>
