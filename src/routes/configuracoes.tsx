@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { createAppUser } from "@/lib/admin-users.functions";
+import { createAppUser, linkUserToDriver } from "@/lib/admin-users.functions";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -252,6 +252,20 @@ function UsersPanel() {
   const qc = useQueryClient();
   const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: async () => (await (supabase.from("profiles") as any).select("*").order("created_at", { ascending: false })).data ?? [] });
   const { data: userRoles = [] } = useQuery({ queryKey: ["user_roles"], queryFn: async () => (await (supabase.from("user_roles") as any).select("*")).data ?? [] });
+  const { data: drivers = [] } = useQuery({ queryKey: ["drivers-link"], queryFn: async () => (await (supabase.from("drivers") as any).select("id,full_name,user_id").order("full_name")).data ?? [] });
+
+  const linkDriver = useServerFn(linkUserToDriver);
+  const setDriver = useMutation({
+    mutationFn: async ({ userId, driverId }: { userId: string; driverId: string | null }) => {
+      await linkDriver({ data: { userId, driverId } });
+    },
+    onSuccess: () => {
+      toast.success("Vínculo com motorista atualizado");
+      qc.invalidateQueries({ queryKey: ["drivers-link"] });
+      qc.invalidateQueries({ queryKey: ["crud-drivers"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const setRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
@@ -271,16 +285,17 @@ function UsersPanel() {
     <Card>
       <div className="p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
-          Utilizadores registados. Crie novos abaixo ou peça o auto-registo em <code>/registro</code>. Depois atribua o papel.
+          Utilizadores registados. Crie novos abaixo ou peça o auto-registo em <code>/registro</code>. Depois atribua o papel e, para motoristas, o registo de motorista.
         </div>
-        <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); }} />
+        <CreateUserDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["user_roles"] }); qc.invalidateQueries({ queryKey: ["drivers-link"] }); }} />
       </div>
       <div className="overflow-x-auto">
       <Table>
-        <TableHeader><TableRow><TableHead>Avatar</TableHead><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Avatar</TableHead><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Papel atual</TableHead><TableHead>Atribuir</TableHead><TableHead>Motorista</TableHead></TableRow></TableHeader>
         <TableBody>
           {profiles.map((p: any) => {
             const cur = userRoles.find((r: any) => r.user_id === p.id)?.role ?? "";
+            const linked = (drivers as any[]).find((d) => d.user_id === p.id);
             return (
               <TableRow key={p.id}>
                 <TableCell>
@@ -302,16 +317,33 @@ function UsersPanel() {
                     <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                   </Select>
                 </TableCell>
+                <TableCell>
+                  <Select
+                    value={linked?.id ?? "none"}
+                    onValueChange={(v) => setDriver.mutate({ userId: p.id, driverId: v === "none" ? null : v })}
+                  >
+                    <SelectTrigger className="w-48"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem vínculo</SelectItem>
+                      {(drivers as any[]).map((d) => (
+                        <SelectItem key={d.id} value={d.id} disabled={!!d.user_id && d.user_id !== p.id}>
+                          {d.full_name}{d.user_id && d.user_id !== p.id ? " (ocupado)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
               </TableRow>
             );
           })}
-          {profiles.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Sem utilizadores.</TableCell></TableRow>}
+          {profiles.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Sem utilizadores.</TableCell></TableRow>}
         </TableBody>
       </Table>
       </div>
     </Card>
   );
 }
+
 
 function PermissionsMatrix() {
   const qc = useQueryClient();
@@ -367,18 +399,23 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<AppRole>("comercial");
+  const [driverId, setDriverId] = useState<string>("new");
   const [busy, setBusy] = useState(false);
 
   const createUser = useServerFn(createAppUser);
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-link"],
+    queryFn: async () => (await (supabase.from("drivers") as any).select("id,full_name,user_id").order("full_name")).data ?? [],
+  });
 
   const submit = async () => {
     if (!email || !password) { toast.error("Email e senha obrigatórios"); return; }
     setBusy(true);
     try {
-      await createUser({ data: { email, password, name, role } });
-      toast.success("Utilizador criado e ativo (sem confirmação de email).");
+      await createUser({ data: { email, password, name, role, driverId: role === "motorista" ? driverId : undefined } });
+      toast.success(role === "motorista" ? "Utilizador criado e ligado ao motorista." : "Utilizador criado e ativo (sem confirmação de email).");
       setOpen(false);
-      setEmail(""); setPassword(""); setName(""); setRole("comercial");
+      setEmail(""); setPassword(""); setName(""); setRole("comercial"); setDriverId("new");
       onCreated();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar utilizador");
@@ -405,6 +442,21 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
               <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          {role === "motorista" && (
+            <div>
+              <Label>Motorista associado</Label>
+              <Select value={driverId} onValueChange={setDriverId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Criar novo registo de motorista</SelectItem>
+                  {(drivers as any[]).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.full_name}{d.user_id ? " (já ligado)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">O motorista só vê o seu painel quando o utilizador está ligado a um registo de motorista.</p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
@@ -414,3 +466,4 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
     </Dialog>
   );
 }
+
