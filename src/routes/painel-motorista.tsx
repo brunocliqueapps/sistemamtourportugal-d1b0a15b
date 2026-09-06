@@ -55,6 +55,33 @@ const SERVICE_TYPES: { value: string; label: string }[] = [
   { value: "interno", label: "Roteiro Personalizado Mtour" },
 ];
 
+/** Origens de entrada — iguais às do Acerto do Carro, para padronizar. */
+const INCOME_ORIGINS = [
+  "TVDE (Uber/Bolt)",
+  "Serviço privado",
+  "Roteiro Mtour",
+  "Transferência do motorista",
+  "Reembolso",
+  "Outros",
+];
+
+type EntryDraft = {
+  kind: string;
+  amount: string;
+  description: string;
+  origin: string;
+  cost_center_id: string;
+  other_label: string;
+  invoice_number: string;
+  entry_date: string;
+};
+const EMPTY_ENTRY: EntryDraft = {
+  kind: "entrada", amount: "", description: "",
+  origin: "", cost_center_id: "", other_label: "", invoice_number: "", entry_date: "",
+};
+
+
+
 function PainelMotorista() {
   const { user } = useAuth();
   const { isAdmin } = usePermissions();
