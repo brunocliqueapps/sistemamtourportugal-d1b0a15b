@@ -383,30 +383,66 @@ function PainelMotorista() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!openShift ? (
-              <Button onClick={() => startDay.mutate()} disabled={startDay.isPending || viewingOther}>
-                Iniciar dia de trabalho
-              </Button>
+              <>
+                <Button
+                  onClick={() => startDay.mutate()}
+                  disabled={startDay.isPending || viewingOther || !canStartDay}
+                >
+                  Iniciar dia de trabalho
+                </Button>
+                {!canStartDay && (
+                  <span className="text-xs text-muted-foreground">
+                    Preencha veículo, tipo de serviço e KM inicial.
+                  </span>
+                )}
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
                   Guardar lançamento
                 </Button>
-                <Button onClick={() => saveDay.mutate(true)} disabled={saveDay.isPending || viewingOther}>
-                  Encerrar serviços do dia
+                <Button
+                  onClick={() => saveDay.mutate(true)}
+                  disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                >
+                  Encerrar dia com KM final
                 </Button>
+                {dayForm.km_final === "" && (
+                  <span className="text-xs text-muted-foreground">Indique o KM final para encerrar.</span>
+                )}
               </>
             )}
           </div>
 
-          {(shifts as any[]).filter((s) => s.closed_at).map((s) => (
-            <div key={s.id} className="rounded-md border border-border p-3 text-sm flex flex-wrap gap-3">
-              <span className="font-mono">{s.vehicles?.plate ?? "—"}</span>
-              <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
-              <Badge variant="outline">encerrado</Badge>
+          {/* Histórico da semana */}
+          <div className="space-y-2 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-semibold">Histórico da semana</div>
+              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
             </div>
-          ))}
+            {(weekShifts as any[]).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
+            ) : (
+              (weekShifts as any[]).map((s) => {
+                const km = s.km_initial != null && s.km_final != null ? Number(s.km_final) - Number(s.km_initial) : null;
+                return (
+                  <div key={s.id} className="rounded-md border border-border p-3 text-sm flex flex-wrap items-center gap-3">
+                    <span className="font-medium">{fmtDate(s.shift_date)}</span>
+                    <span className="font-mono">{s.vehicles?.plate ?? "—"}</span>
+                    <span className="text-muted-foreground">
+                      {SERVICE_TYPES.find((t) => t.value === s.operation_type)?.label ?? s.operation_type ?? "—"}
+                    </span>
+                    <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
+                    {km != null && <span className="text-muted-foreground">({km} km)</span>}
+                    <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
         </Card>
       )}
 
