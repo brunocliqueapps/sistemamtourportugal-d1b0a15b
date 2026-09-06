@@ -85,11 +85,28 @@ function PainelMotorista() {
 
   const viewingOther = isAdmin && !!pickedDriver && pickedDriver !== myDriverRow?.id;
 
-  const { data: vehicles = [] } = useQuery({
+  const { data: allVehicles = [] } = useQuery({
     queryKey: ["pm-vehicles"],
     queryFn: async () =>
       (await supabase.from("vehicles").select("id,plate,brand,model,active").order("plate")).data ?? [],
   });
+
+  // Veículos atribuídos ao motorista (o veículo está sempre associado ao motorista)
+  const { data: myVehicleLinks = [] } = useQuery({
+    queryKey: ["pm-vehicle-links", myDriver?.id],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await supabase
+        .from("vehicle_drivers")
+        .select("vehicle_id,is_primary")
+        .eq("driver_id", myDriver!.id)).data ?? [],
+  });
+
+  const vehicles = useMemo(() => {
+    const ids = new Set((myVehicleLinks as any[]).map((l) => l.vehicle_id));
+    return (allVehicles as any[]).filter((v) => ids.has(v.id));
+  }, [allVehicles, myVehicleLinks]);
+
 
   const { data: services = [] } = useQuery({
     queryKey: ["pm-services", myDriver?.id, today],
@@ -145,6 +162,13 @@ function PainelMotorista() {
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
   const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
 
+  // Veículo sugerido: o principal atribuído ao motorista, ou o único que tiver
+  const defaultVehicleId = useMemo(() => {
+    const primary = (myVehicleLinks as any[]).find((l) => l.is_primary);
+    if (primary && (vehicles as any[]).some((v) => v.id === primary.vehicle_id)) return primary.vehicle_id;
+    return (vehicles as any[]).length ? (vehicles as any[])[0].id : "";
+  }, [myVehicleLinks, vehicles]);
+
   useEffect(() => {
     if (openShift) {
       setDayForm({
@@ -155,12 +179,13 @@ function PainelMotorista() {
         notes: openShift.notes ?? "",
       });
     } else {
-      setDayForm({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
+      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
     }
-  }, [openShift?.id]);
+  }, [openShift?.id, defaultVehicleId]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
+
 
 
   const startDay = useMutation({
@@ -220,10 +245,10 @@ function PainelMotorista() {
   /* ---------- Entradas e saídas da semana ---------- */
   const [mov, setMov] = useState({ kind: "entrada", amount: "", description: "", entry_date: today, vehicle_id: "" });
   useEffect(() => {
-    if (!mov.vehicle_id && (openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id)) {
-      setMov((m) => ({ ...m, vehicle_id: openShift?.vehicle_id ?? (shifts as any[])[0]?.vehicle_id }));
-    }
-  }, [openShift?.vehicle_id, shifts.length]);
+    const suggested = openShift?.vehicle_id ?? (shifts as any[])[0]?.vehicle_id ?? defaultVehicleId;
+    if (!mov.vehicle_id && suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
+  }, [openShift?.vehicle_id, shifts.length, defaultVehicleId]);
+
 
   const addMov = useMutation({
     mutationFn: async () => {
@@ -293,9 +318,10 @@ function PainelMotorista() {
 
   const list = kind === "privado" ? privados : kind === "roteiro" ? roteiros : [];
   const vehicleLabel = (id: string) => {
-    const v = (vehicles as any[]).find((x) => x.id === id);
+    const v = (allVehicles as any[]).find((x) => x.id === id);
     return v ? `${v.plate}${v.brand ? ` · ${v.brand} ${v.model ?? ""}` : ""}` : "—";
   };
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
@@ -359,15 +385,19 @@ function PainelMotorista() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label>Veículo</Label>
-              <Select value={dayForm.vehicle_id} onValueChange={(v) => setDayForm({ ...dayForm, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Escolher veículo" /></SelectTrigger>
+              <Select value={dayForm.vehicle_id} onValueChange={(v) => setDayForm({ ...dayForm, vehicle_id: v })} disabled={vehicles.length === 0}>
+                <SelectTrigger><SelectValue placeholder={vehicles.length ? "Escolher veículo" : "Sem veículo atribuído"} /></SelectTrigger>
                 <SelectContent>
                   {(vehicles as any[]).map((v) => (
                     <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {vehicles.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum veículo associado a este motorista. Peça ao administrador para associar em Cadastros → Veículos.</p>
+              )}
             </div>
+
             <div className="space-y-1">
               <Label>Tipo de serviço</Label>
               <Select value={dayForm.operation_type} onValueChange={(v) => setDayForm({ ...dayForm, operation_type: v })}>
