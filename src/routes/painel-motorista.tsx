@@ -547,15 +547,11 @@ function PainelMotorista() {
             </div>
             <div className="space-y-1">
               <Label>Veículo</Label>
-              <Select value={mov.vehicle_id} onValueChange={(v) => setMov({ ...mov, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger>
-                <SelectContent>
-                  {(vehicles as any[]).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
+                {mov.vehicle_id ? vehicleLabel(mov.vehicle_id) : "Sem veículo atribuído"}
+              </div>
             </div>
+
             <div className="space-y-1">
               <Label>Data</Label>
               <Input type="date" min={weekStart} max={weekEnd} value={mov.entry_date} onChange={(e) => setMov({ ...mov, entry_date: e.target.value })} />
