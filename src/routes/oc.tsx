@@ -19,6 +19,7 @@ import { generateServiceOrderPdf } from "@/lib/proposal-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { FINALIZED_STATUS } from "@/lib/finalized";
+import { useDriverScope } from "@/lib/driver-scope";
 
 
 
@@ -43,6 +44,7 @@ function OCList() {
   const qc = useQueryClient();
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const { user } = useAuth();
+  const driverScope = useDriverScope();
 
   const [selected, setSelected] = useState<string>("");
   const [creating, setCreating] = useState(false);
@@ -75,9 +77,13 @@ function OCList() {
   const finLabel = (c: string) => financial.find((o: any) => o.code === c)?.label ?? c;
 
   const q = search.trim().toLowerCase();
-  const allRows = useMemo(() => !q ? (data as any[]) : (data as any[]).filter((s: any) =>
+  const scoped = useMemo(
+    () => (data as any[]).filter((s: any) => driverScope.allowOrder(s.id)),
+    [data, driverScope],
+  );
+  const allRows = useMemo(() => !q ? scoped : scoped.filter((s: any) =>
     [s.clients?.client_number, s.clients?.name, s.clients?.email, s.oc_code]
-      .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [data, q]);
+      .some((v: any) => String(v ?? "").toLowerCase().includes(q))), [scoped, q]);
   const rows = useMemo(() => allRows.filter((r: any) => r.status !== FINALIZED_STATUS), [allRows]);
   const history = useMemo(() => allRows.filter((r: any) => r.status === FINALIZED_STATUS), [allRows]);
 
@@ -228,7 +234,9 @@ function OCList() {
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader title="Ordens de Serviço (OS)" description="OSs geradas pelos orçamentos validados ou criadas manualmente." actions={
-        <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
+        driverScope.isDriverOnly ? undefined : (
+          <Button onClick={openNew} className="gradient-gold text-gold-foreground"><Plus className="h-4 w-4 mr-1" /> Nova OS</Button>
+        )
       } />
 
       <Card className="p-4 w-full sm:w-auto">
