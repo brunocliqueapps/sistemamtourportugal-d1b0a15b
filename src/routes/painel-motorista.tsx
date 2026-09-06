@@ -118,6 +118,18 @@ function PainelMotorista() {
         .order("start_time", { ascending: true })).data ?? [],
   });
 
+  const { data: weekShifts = [] } = useQuery({
+    queryKey: ["pm-week-shifts", myDriver?.id, weekStart],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await (supabase.from("tvde_shifts") as any)
+        .select("*, vehicles(plate,brand,model)")
+        .eq("driver_id", myDriver!.id)
+        .gte("shift_date", weekStart)
+        .lte("shift_date", weekEnd)
+        .order("shift_date", { ascending: false })).data ?? [],
+  });
+
   const { data: entries = [] } = useQuery({
     queryKey: ["pm-entries", myDriver?.id, weekStart],
     enabled: !!myDriver?.id,
@@ -127,6 +139,7 @@ function PainelMotorista() {
         .eq("week_start", weekStart)
         .order("created_at")).data ?? [],
   });
+
 
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
@@ -147,6 +160,8 @@ function PainelMotorista() {
   }, [openShift?.id]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
+  const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
+
 
   const startDay = useMutation({
     mutationFn: async () => {
@@ -164,7 +179,11 @@ function PainelMotorista() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Dia iniciado"); qc.invalidateQueries({ queryKey: ["pm-shifts"] }); },
+    onSuccess: () => {
+      toast.success("Dia iniciado");
+      qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
+    },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o dia"),
   });
 
@@ -191,7 +210,9 @@ function PainelMotorista() {
     onSuccess: (close) => {
       toast.success(close ? "Serviços do dia encerrados" : "Lançamento guardado");
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
+
     },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível guardar"),
   });
@@ -370,30 +391,66 @@ function PainelMotorista() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!openShift ? (
-              <Button onClick={() => startDay.mutate()} disabled={startDay.isPending || viewingOther}>
-                Iniciar dia de trabalho
-              </Button>
+              <>
+                <Button
+                  onClick={() => startDay.mutate()}
+                  disabled={startDay.isPending || viewingOther || !canStartDay}
+                >
+                  Iniciar dia de trabalho
+                </Button>
+                {!canStartDay && (
+                  <span className="text-xs text-muted-foreground">
+                    Preencha veículo, tipo de serviço e KM inicial.
+                  </span>
+                )}
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
                   Guardar lançamento
                 </Button>
-                <Button onClick={() => saveDay.mutate(true)} disabled={saveDay.isPending || viewingOther}>
-                  Encerrar serviços do dia
+                <Button
+                  onClick={() => saveDay.mutate(true)}
+                  disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                >
+                  Encerrar dia com KM final
                 </Button>
+                {dayForm.km_final === "" && (
+                  <span className="text-xs text-muted-foreground">Indique o KM final para encerrar.</span>
+                )}
               </>
             )}
           </div>
 
-          {(shifts as any[]).filter((s) => s.closed_at).map((s) => (
-            <div key={s.id} className="rounded-md border border-border p-3 text-sm flex flex-wrap gap-3">
-              <span className="font-mono">{s.vehicles?.plate ?? "—"}</span>
-              <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
-              <Badge variant="outline">encerrado</Badge>
+          {/* Histórico da semana */}
+          <div className="space-y-2 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-semibold">Histórico da semana</div>
+              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
             </div>
-          ))}
+            {(weekShifts as any[]).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
+            ) : (
+              (weekShifts as any[]).map((s) => {
+                const km = s.km_initial != null && s.km_final != null ? Number(s.km_final) - Number(s.km_initial) : null;
+                return (
+                  <div key={s.id} className="rounded-md border border-border p-3 text-sm flex flex-wrap items-center gap-3">
+                    <span className="font-medium">{fmtDate(s.shift_date)}</span>
+                    <span className="font-mono">{s.vehicles?.plate ?? "—"}</span>
+                    <span className="text-muted-foreground">
+                      {SERVICE_TYPES.find((t) => t.value === s.operation_type)?.label ?? s.operation_type ?? "—"}
+                    </span>
+                    <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
+                    {km != null && <span className="text-muted-foreground">({km} km)</span>}
+                    <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
         </Card>
       )}
 
