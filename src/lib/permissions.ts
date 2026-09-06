@@ -6,7 +6,8 @@ export type AppRole = "admin" | "comercial" | "administrativo" | "motorista";
 export type ModuleKey =
   | "dashboard" | "agenda" | "crm" | "propostas" | "voucher" | "oc" | "operacao" | "tvde"
   | "financeiro" | "conta_corrente" | "fechamento" | "relatorios" | "relatorio_diario"
-  | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas" | "mensagens";
+  | "cadastros" | "pos_venda" | "importar" | "configuracoes" | "alertas" | "mensagens"
+  | "acerto_carro" | "painel_motorista";
 
 
 /** Mapa de rota -> módulo de permissão (rotas não listadas são livres) */
