@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
 import { Logo } from "./Logo";
@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, FileText, Wallet, Moon, Sun, LogOut,
   Calendar, ClipboardCheck, Car, Landmark, BarChart3, Calculator, Menu, Settings, Upload, Star, Bell, MessageSquare,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions, moduleForPath, type ModuleKey } from "@/lib/permissions";
@@ -21,6 +21,7 @@ type Group = { label: string; items: Item[] };
 
 const groups: Group[] = [
   { label: "Início", items: [
+    { to: "/painel-motorista", label: "Painel do Motorista", icon: Car, module: "painel_motorista" },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   ]},
   { label: "Comercial", items: [
@@ -40,7 +41,7 @@ const groups: Group[] = [
   { label: "Logística", items: [
     { to: "/roteiro", label: "Roteiro do Dia", icon: Calendar, module: "operacao" },
     { to: "/servicos-privados", label: "Serviços Privados", icon: ClipboardCheck, module: "operacao" },
-    { to: "/acerto-carro", label: "Acerto do Carro", icon: Car, module: "tvde" },
+    { to: "/acerto-carro", label: "Acerto do Carro", icon: Car, module: "acerto_carro" },
   ]},
   { label: "Financeiro", items: [
     { to: "/financeiro", label: "Faturas", icon: Wallet, module: "financeiro" },
@@ -85,9 +86,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const agendaAlert = useAgendaAlert();
-  const { can, loading: permsLoading, error: permsError } = usePermissions();
+  const { can, roles, isAdmin, loading: permsLoading, error: permsError } = usePermissions();
   const loc = useLocation();
+  const nav = useNavigate();
   const { hasUnsavedChanges } = useUnsavedChanges();
+
+  // O motorista entra diretamente no seu painel
+  const isDriverOnly = !isAdmin && roles.includes("motorista");
+  useEffect(() => {
+    if (permsLoading || !isDriverOnly) return;
+    if (loc.pathname === "/dashboard" || loc.pathname === "/") nav({ to: "/painel-motorista" });
+  }, [permsLoading, isDriverOnly, loc.pathname, nav]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLinkClick = (e: React.MouseEvent) => {

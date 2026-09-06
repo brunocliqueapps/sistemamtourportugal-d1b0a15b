@@ -17,6 +17,7 @@ import { Route as RoteiroRouteImport } from './routes/roteiro'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as RelatorioDiarioRouteImport } from './routes/relatorio-diario'
 import { Route as PosVendaRouteImport } from './routes/pos-venda'
+import { Route as PainelMotoristaRouteImport } from './routes/painel-motorista'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as OcRouteImport } from './routes/oc'
 import { Route as MensagensRouteImport } from './routes/mensagens'
@@ -77,6 +78,11 @@ const RelatorioDiarioRoute = RelatorioDiarioRouteImport.update({
 const PosVendaRoute = PosVendaRouteImport.update({
   id: '/pos-venda',
   path: '/pos-venda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PainelMotoristaRoute = PainelMotoristaRouteImport.update({
+  id: '/painel-motorista',
+  path: '/painel-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrcamentoRoute = OrcamentoRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
+  '/painel-motorista': typeof PainelMotoristaRoute
   '/pos-venda': typeof PosVendaRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
+  '/painel-motorista': typeof PainelMotoristaRoute
   '/pos-venda': typeof PosVendaRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
+  '/painel-motorista': typeof PainelMotoristaRoute
   '/pos-venda': typeof PosVendaRoute
   '/relatorio-diario': typeof RelatorioDiarioRoute
   '/relatorios': typeof RelatoriosRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/mensagens'
     | '/oc'
     | '/orcamento'
+    | '/painel-motorista'
     | '/pos-venda'
     | '/relatorio-diario'
     | '/relatorios'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/mensagens'
     | '/oc'
     | '/orcamento'
+    | '/painel-motorista'
     | '/pos-venda'
     | '/relatorio-diario'
     | '/relatorios'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/mensagens'
     | '/oc'
     | '/orcamento'
+    | '/painel-motorista'
     | '/pos-venda'
     | '/relatorio-diario'
     | '/relatorios'
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   MensagensRoute: typeof MensagensRoute
   OcRoute: typeof OcRouteWithChildren
   OrcamentoRoute: typeof OrcamentoRoute
+  PainelMotoristaRoute: typeof PainelMotoristaRoute
   PosVendaRoute: typeof PosVendaRoute
   RelatorioDiarioRoute: typeof RelatorioDiarioRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/pos-venda'
       fullPath: '/pos-venda'
       preLoaderRoute: typeof PosVendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/painel-motorista': {
+      id: '/painel-motorista'
+      path: '/painel-motorista'
+      fullPath: '/painel-motorista'
+      preLoaderRoute: typeof PainelMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orcamento': {
@@ -644,6 +664,7 @@ const rootRouteChildren: RootRouteChildren = {
   MensagensRoute: MensagensRoute,
   OcRoute: OcRouteWithChildren,
   OrcamentoRoute: OrcamentoRoute,
+  PainelMotoristaRoute: PainelMotoristaRoute,
   PosVendaRoute: PosVendaRoute,
   RelatorioDiarioRoute: RelatorioDiarioRoute,
   RelatoriosRoute: RelatoriosRoute,
