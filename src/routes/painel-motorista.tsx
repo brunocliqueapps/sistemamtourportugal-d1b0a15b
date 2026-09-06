@@ -118,6 +118,18 @@ function PainelMotorista() {
         .order("start_time", { ascending: true })).data ?? [],
   });
 
+  const { data: weekShifts = [] } = useQuery({
+    queryKey: ["pm-week-shifts", myDriver?.id, weekStart],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await (supabase.from("tvde_shifts") as any)
+        .select("*, vehicles(plate,brand,model)")
+        .eq("driver_id", myDriver!.id)
+        .gte("shift_date", weekStart)
+        .lte("shift_date", weekEnd)
+        .order("shift_date", { ascending: false })).data ?? [],
+  });
+
   const { data: entries = [] } = useQuery({
     queryKey: ["pm-entries", myDriver?.id, weekStart],
     enabled: !!myDriver?.id,
@@ -127,6 +139,7 @@ function PainelMotorista() {
         .eq("week_start", weekStart)
         .order("created_at")).data ?? [],
   });
+
 
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
