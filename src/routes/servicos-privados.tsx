@@ -77,10 +77,16 @@ function ServicosPrivados() {
   };
   const { user } = useAuth();
 
+  const { data: clientList = [] } = useQuery({
+    queryKey: ["clients-mini-priv-main"],
+    queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [],
+  });
+
   const saveEdit = useMutation({
     mutationFn: async () => {
       if (!editing) return;
       const payload: any = {
+        client_id: editing.client_id && editing.client_id !== "__none" ? editing.client_id : null,
         oc_code: editing.oc_code,
         voucher_code: editing.voucher_code,
         service_date: editing.service_date,
@@ -97,6 +103,17 @@ function ServicosPrivados() {
     onSuccess: () => { toast.success("Serviço atualizado"); setEditing(null); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const delSvc = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("service_closings").delete().eq("service_order_id", id);
+      const { error } = await supabase.from("service_orders").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Serviço removido"); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const bulkClose = useMutation({
     mutationFn: async () => {
       if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
