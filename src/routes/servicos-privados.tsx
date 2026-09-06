@@ -862,8 +862,6 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><Label>Nº OS</Label><Input value={form.oc_code} onChange={(e) => setForm({ ...form, oc_code: e.target.value })} placeholder="auto se vazio" /></div>
-          <div><Label>Nº Voucher</Label><Input value={form.voucher_code} onChange={(e) => setForm({ ...form, voucher_code: e.target.value })} placeholder="auto se vazio" /></div>
           <div className="col-span-2"><Label>Cliente *</Label>
             <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
