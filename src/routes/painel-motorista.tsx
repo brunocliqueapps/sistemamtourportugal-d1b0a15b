@@ -245,9 +245,10 @@ function PainelMotorista() {
   /* ---------- Entradas e saídas da semana ---------- */
   const [mov, setMov] = useState({ kind: "entrada", amount: "", description: "", entry_date: today, vehicle_id: "" });
   useEffect(() => {
-    const suggested = openShift?.vehicle_id ?? (shifts as any[])[0]?.vehicle_id ?? defaultVehicleId;
-    if (!mov.vehicle_id && suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
+    const suggested = defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "";
+    if (suggested && mov.vehicle_id !== suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
   }, [openShift?.vehicle_id, shifts.length, defaultVehicleId]);
+
 
 
   const addMov = useMutation({
@@ -385,18 +386,14 @@ function PainelMotorista() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label>Veículo</Label>
-              <Select value={dayForm.vehicle_id} onValueChange={(v) => setDayForm({ ...dayForm, vehicle_id: v })} disabled={vehicles.length === 0}>
-                <SelectTrigger><SelectValue placeholder={vehicles.length ? "Escolher veículo" : "Sem veículo atribuído"} /></SelectTrigger>
-                <SelectContent>
-                  {(vehicles as any[]).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {vehicles.length === 0 && (
+              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
+                {dayForm.vehicle_id ? vehicleLabel(dayForm.vehicle_id) : "Sem veículo atribuído"}
+              </div>
+              {!defaultVehicleId && (
                 <p className="text-xs text-muted-foreground">Nenhum veículo associado a este motorista. Peça ao administrador para associar em Cadastros → Veículos.</p>
               )}
             </div>
+
 
             <div className="space-y-1">
               <Label>Tipo de serviço</Label>
@@ -551,15 +548,11 @@ function PainelMotorista() {
             </div>
             <div className="space-y-1">
               <Label>Veículo</Label>
-              <Select value={mov.vehicle_id} onValueChange={(v) => setMov({ ...mov, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger>
-                <SelectContent>
-                  {(vehicles as any[]).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
+                {mov.vehicle_id ? vehicleLabel(mov.vehicle_id) : "Sem veículo atribuído"}
+              </div>
             </div>
+
             <div className="space-y-1">
               <Label>Data</Label>
               <Input type="date" min={weekStart} max={weekEnd} value={mov.entry_date} onChange={(e) => setMov({ ...mov, entry_date: e.target.value })} />
@@ -614,22 +607,25 @@ function PainelMotorista() {
       )}
 
       <Card className="p-4 sm:p-6 space-y-3">
-        <div className="font-semibold flex items-center gap-2"><Ticket className="h-4 w-4" /> Vouchers do dia</div>
-        {(services as any[]).filter((s) => s.voucher_code).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sem vouchers para hoje.</p>
+        <div className="font-semibold flex items-center gap-2"><Ticket className="h-4 w-4" /> Ordens de Serviço de hoje</div>
+        {(services as any[]).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem ordens de serviço para hoje.</p>
         ) : (
-          (services as any[]).filter((s) => s.voucher_code).map((s) => (
-            <div key={s.id} className="flex items-center justify-between text-sm border border-border rounded-md p-2">
-              <span className="font-mono">{s.voucher_code}</span>
-              <span className="text-muted-foreground truncate ml-2">{s.clients?.name}</span>
+          (services as any[]).map((s) => (
+            <div key={s.id} className="flex flex-wrap items-center gap-2 text-sm border border-border rounded-md p-2">
+              <span className="font-mono">{s.oc_code ?? s.service_code ?? "—"}</span>
+              <span className="text-muted-foreground truncate">{s.clients?.name ?? "—"}</span>
+              {s.start_time && <span className="text-muted-foreground">{String(s.start_time).slice(0, 5)}</span>}
+              <Badge variant="outline" className="ml-auto">{s.status}</Badge>
             </div>
           ))
         )}
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm"><Link to="/roteiro">Ver roteiro do dia</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link to="/voucher">Ver vouchers</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/oc">Ver ordens de serviço</Link></Button>
         </div>
       </Card>
+
     </div>
   );
 }
