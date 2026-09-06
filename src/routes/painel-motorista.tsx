@@ -210,7 +210,9 @@ function PainelMotorista() {
     onSuccess: (close) => {
       toast.success(close ? "Serviços do dia encerrados" : "Lançamento guardado");
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
+
     },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível guardar"),
   });
