@@ -77,10 +77,16 @@ function ServicosPrivados() {
   };
   const { user } = useAuth();
 
+  const { data: clientList = [] } = useQuery({
+    queryKey: ["clients-mini-priv-main"],
+    queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [],
+  });
+
   const saveEdit = useMutation({
     mutationFn: async () => {
       if (!editing) return;
       const payload: any = {
+        client_id: editing.client_id && editing.client_id !== "__none" ? editing.client_id : null,
         oc_code: editing.oc_code,
         voucher_code: editing.voucher_code,
         service_date: editing.service_date,
@@ -97,6 +103,17 @@ function ServicosPrivados() {
     onSuccess: () => { toast.success("Serviço atualizado"); setEditing(null); qc.invalidateQueries(); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const delSvc = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("service_closings").delete().eq("service_order_id", id);
+      const { error } = await supabase.from("service_orders").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Serviço removido"); qc.invalidateQueries(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const bulkClose = useMutation({
     mutationFn: async () => {
       if (selectedIds.length === 0) throw new Error("Nenhum serviço selecionado.");
@@ -226,7 +243,10 @@ function ServicosPrivados() {
                     <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
                     <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
                   </TableCell>
-                  <TableCell>{s.clients?.name ?? "—"}<div className="text-xs text-muted-foreground">{s.clients?.phone ?? ""}</div></TableCell>
+                  <TableCell>
+                    {s.clients?.name ?? <Badge variant="outline" className="border-amber-500 text-amber-600">A completar pelo comercial</Badge>}
+                    <div className="text-xs text-muted-foreground">{s.clients?.phone ?? ""}</div>
+                  </TableCell>
                   <TableCell className="text-sm">{s.drivers?.full_name ?? "—"}<div className="text-xs text-muted-foreground">{s.vehicles?.plate ?? ""}</div></TableCell>
                   <TableCell className="text-xs">{s.origin ?? "—"} → {s.destination ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">€ {Number(s.sale_value || 0).toFixed(2)}</TableCell>
@@ -239,8 +259,10 @@ function ServicosPrivados() {
                     <div className="inline-flex items-center gap-1">
                       <Button size="icon" variant="ghost" title="Visualizar" onClick={() => setViewing({ ...s, _closing: c })}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing({ ...s })}><Pencil className="h-4 w-4" /></Button>
-                      <FinalizeDialog service={s} closing={c} />
+                      <Button size="icon" variant="ghost" title="Eliminar" onClick={() => { if (confirm("Eliminar este serviço?")) delSvc.mutate(s.id); }}><Trash2 className="h-4 w-4" /></Button>
+                      {s.client_id && <FinalizeDialog service={s} closing={c} />}
                     </div>
+
                   </TableCell>
                 </TableRow>
               );
@@ -293,6 +315,15 @@ function ServicosPrivados() {
           <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="col-span-2"><Label>Cliente</Label>
+                <Select value={editing.client_id ?? "__none"} onValueChange={(v) => setEditing({ ...editing, client_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Sem cliente (a completar)</SelectItem>
+                    {clientList.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label>Nº OS</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
               <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
@@ -826,12 +857,11 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!form.client_id) throw new Error("Cliente é obrigatório.");
       if (!form.service_date) throw new Error("Data é obrigatória.");
       const payload: any = {
         oc_code: form.oc_code || null,
         voucher_code: form.voucher_code || null,
-        client_id: form.client_id,
+        client_id: form.client_id && form.client_id !== "__none" ? form.client_id : null,
         driver_id: form.driver_id || null,
         vehicle_id: form.vehicle_id || null,
         service_date: form.service_date,
@@ -862,12 +892,19 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="col-span-2"><Label>Cliente *</Label>
+          <div className="col-span-2"><Label>Cliente</Label>
             <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
+                {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sem cliente, o serviço fica registado com as informações básicas e o comercial completa mais tarde.
+            </p>
           </div>
+
           <div><Label>Data *</Label><Input type="date" value={form.service_date} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
           <div><Label>Horário</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
           <div><Label>Origem</Label><Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>

@@ -15,7 +15,8 @@ import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
 import { TRIP_PROPOSAL_COLS, tripRange } from "@/lib/trip-dates";
-import { Car, Clock, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
+import { generateSettlementPdf, type SettlementLine } from "@/lib/settlement-pdf";
+import { Car, ChevronLeft, ChevronRight, Clock, FileDown, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
 
 export const Route = createFileRoute("/painel-motorista")({
   component: PainelMotorista,
@@ -87,7 +88,9 @@ function PainelMotorista() {
   const { isAdmin } = usePermissions();
   const qc = useQueryClient();
   const today = iso(new Date());
-  const weekStart = iso(mondayOf(new Date()));
+  /** Dia em consulta: permite ver, editar ou apagar lançamentos de datas anteriores. */
+  const [dayDate, setDayDate] = useState(today);
+  const weekStart = useMemo(() => iso(mondayOf(new Date(dayDate + "T12:00:00"))), [dayDate]);
   const weekEnd = addDays(weekStart, 6);
   const [kind, setKind] = useState<Kind | null>(null);
   const [pickedDriver, setPickedDriver] = useState<string>("");
@@ -137,7 +140,7 @@ function PainelMotorista() {
 
 
   const { data: services = [] } = useQuery({
-    queryKey: ["pm-services", myDriver?.id, today],
+    queryKey: ["pm-services", myDriver?.id, dayDate],
     enabled: !!myDriver?.id,
     queryFn: async () => {
       const { data } = await (supabase.from("service_orders") as any)
@@ -147,19 +150,19 @@ function PainelMotorista() {
       return (data ?? []).filter((s: any) => {
         const { start, end } = tripRange(s);
         if (!start) return false;
-        return start <= today && today <= (end || start);
+        return start <= dayDate && dayDate <= (end || start);
       });
     },
   });
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ["pm-shifts", myDriver?.id, today],
+    queryKey: ["pm-shifts", myDriver?.id, dayDate],
     enabled: !!myDriver?.id,
     queryFn: async () =>
       (await (supabase.from("tvde_shifts") as any)
         .select("*, vehicles(plate,brand,model)")
         .eq("driver_id", myDriver!.id)
-        .eq("shift_date", today)
+        .eq("shift_date", dayDate)
         .order("start_time", { ascending: true })).data ?? [],
   });
 
@@ -239,7 +242,7 @@ function PainelMotorista() {
         driver_id: myDriver.id,
         vehicle_id: dayForm.vehicle_id,
         operation_type: dayForm.operation_type,
-        shift_date: today,
+        shift_date: dayDate,
         start_time: new Date().toISOString(),
         km_initial: num(dayForm.km_initial),
         notes: dayForm.notes || null,
@@ -364,6 +367,21 @@ function PainelMotorista() {
     onError: () => toast.error("Só pode remover os seus próprios lançamentos"),
   });
 
+  /** Apagar um serviço registado (o próprio motorista ou o admin). */
+  const delShift = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("tvde_shifts") as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Serviço removido");
+      setEditShiftId(null);
+      qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível remover"),
+  });
+
   const privados = useMemo(
     () => (services as any[]).filter((s) => s.operation_type === "privado" && !s.proposal_id),
     [services],
@@ -403,27 +421,66 @@ function PainelMotorista() {
     return v ? `${v.plate}${v.brand ? ` · ${v.brand} ${v.model ?? ""}` : ""}` : "—";
   };
 
+  /** Resumo PDF da semana do motorista (entradas/saídas registadas). */
+  function weekPdf() {
+    const line = (e: any): SettlementLine => {
+      const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
+      const label = e.kind === "entrada"
+        ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
+        : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
+      return {
+        label,
+        date: e.entry_date ?? String(e.created_at ?? "").slice(0, 10),
+        detail: [e.description, e.invoice_number ? `Fatura ${e.invoice_number}` : null].filter(Boolean).join(" · ") || "—",
+        amount: Number(e.amount || 0),
+      };
+    };
+    const incomes = myEntries.filter((e: any) => e.kind === "entrada").map(line);
+    const expenses = myEntries.filter((e: any) => e.kind === "saida").map(line);
+    const kmDetail = (weekShifts as any[])
+      .map((s) => `${fmtDate(s.shift_date)}: KM ${s.km_initial ?? "—"} → ${s.km_final ?? "—"}`)
+      .join("\n");
+    generateSettlementPdf({
+      weekStart, weekEnd,
+      vehicleLabel: movVehicleId ? vehicleLabel(movVehicleId) : "—",
+      ownership: "Registos do motorista",
+      driverName: myDriver?.full_name ?? "—",
+      incomes, expenses,
+      incomeTotal: week.in, expenseTotal: week.out, rentalCost: 0,
+      netProfit: week.in - week.out,
+      driverPct: null, driverAmount: week.in - week.out, companyAmount: 0,
+      details: kmDetail || null, closedAt: null,
+    }).catch((e) => toast.error(e.message));
+  }
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title={`Olá${myDriver?.full_name ? `, ${myDriver.full_name}` : ""}`}
-        description={`O seu dia de trabalho · ${fmtDate(today)}`}
+        description={`O seu dia de trabalho · ${fmtDate(dayDate)}`}
         actions={
-          isAdmin ? (
-            <div className="w-full sm:w-72">
-              <Select value={pickedDriver} onValueChange={setPickedDriver}>
-                <SelectTrigger><SelectValue placeholder="Ver painel de um motorista…" /></SelectTrigger>
-                <SelectContent>
-                  {(allDrivers as any[]).map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="icon" variant="outline" title="Dia anterior" onClick={() => setDayDate(addDays(dayDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="date" value={dayDate} onChange={(e) => e.target.value && setDayDate(e.target.value)} className="w-40" />
+            <Button size="icon" variant="outline" title="Dia seguinte" onClick={() => setDayDate(addDays(dayDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
+            {dayDate !== today && <Button size="sm" variant="ghost" onClick={() => setDayDate(today)}>Hoje</Button>}
+            {isAdmin && (
+              <div className="w-full sm:w-64">
+                <Select value={pickedDriver} onValueChange={setPickedDriver}>
+                  <SelectTrigger><SelectValue placeholder="Ver painel de um motorista…" /></SelectTrigger>
+                  <SelectContent>
+                    {(allDrivers as any[]).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         }
       />
+
 
       {viewingOther && (
         <Card className="p-3 text-xs text-muted-foreground">
@@ -468,7 +525,7 @@ function PainelMotorista() {
                   <X className="h-4 w-4 mr-1" /> Cancelar edição
                 </Button>
               )}
-              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) hoje` : "não iniciado"}</Badge>
+              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) neste dia` : "não iniciado"}</Badge>
             </div>
           </div>
 
@@ -512,7 +569,7 @@ function PainelMotorista() {
               <>
                 <Button
                   onClick={() => startDay.mutate()}
-                  disabled={startDay.isPending || viewingOther || !canStartDay}
+                  disabled={startDay.isPending || !canStartDay}
                 >
                   Iniciar serviço
                 </Button>
@@ -524,14 +581,14 @@ function PainelMotorista() {
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
+                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending}>
                   Guardar lançamento
                 </Button>
                 {!targetShift.closed_at && (
                   <>
                     <Button
                       onClick={() => saveDay.mutate(true)}
-                      disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                      disabled={saveDay.isPending || dayForm.km_final === ""}
                     >
                       Encerrar serviço com KM final
                     </Button>
@@ -565,11 +622,15 @@ function PainelMotorista() {
                     <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
-                    {!viewingOther && (
-                      <Button size="icon" variant="ghost" className="ml-auto" title="Editar este serviço" onClick={() => setEditShiftId(s.id)}>
+                    <div className="ml-auto flex items-center">
+                      <Button size="icon" variant="ghost" title="Ver / editar este serviço" onClick={() => { setDayDate(s.shift_date); setEditShiftId(s.id); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                    )}
+                      <Button size="icon" variant="ghost" title="Eliminar este serviço" onClick={() => { if (confirm("Eliminar este serviço registado?")) delShift.mutate(s.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
                   </div>
                 );
               })
@@ -633,10 +694,12 @@ function PainelMotorista() {
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry} disabled={viewingOther}>
+              <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
                 <Plus className="h-4 w-4 mr-1" /> Lançamento
               </Button>
             </div>
+
           </div>
 
           <div className="text-xs text-muted-foreground">
@@ -663,7 +726,7 @@ function PainelMotorista() {
                 const label = e.kind === "entrada"
                   ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
                   : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
-                const mine = e.created_by === user?.id && !viewingOther;
+                const mine = e.created_by === user?.id || isAdmin;
                 return (
                   <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
                     <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
