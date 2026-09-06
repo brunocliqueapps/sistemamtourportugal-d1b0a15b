@@ -10,7 +10,9 @@ export const Route = createFileRoute("/cadastros")({ component: Cadastros });
 
 const motoristas: CrudField[] = [
   { key: "full_name", label: "Nome", required: true },
+  { key: "user_id", label: "Utilizador do sistema (acesso ao painel)", type: "select", optionsFrom: { table: "profiles", value: "id", label: "email", orderBy: "email" } },
   { key: "phone", label: "Telefone" }, { key: "email", label: "Email", type: "email" },
+
   { key: "nif", label: "NIF" }, { key: "address", label: "Morada" },
   { key: "id_document_type", label: "Documento de identificação", type: "select", options: [
     { value: "cartao_cidadao", label: "Cartão de Cidadão" },
