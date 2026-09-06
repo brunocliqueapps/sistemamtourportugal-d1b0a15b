@@ -367,18 +367,23 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<AppRole>("comercial");
+  const [driverId, setDriverId] = useState<string>("new");
   const [busy, setBusy] = useState(false);
 
   const createUser = useServerFn(createAppUser);
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers-link"],
+    queryFn: async () => (await (supabase.from("drivers") as any).select("id,full_name,user_id").order("full_name")).data ?? [],
+  });
 
   const submit = async () => {
     if (!email || !password) { toast.error("Email e senha obrigatórios"); return; }
     setBusy(true);
     try {
-      await createUser({ data: { email, password, name, role } });
-      toast.success("Utilizador criado e ativo (sem confirmação de email).");
+      await createUser({ data: { email, password, name, role, driverId: role === "motorista" ? driverId : undefined } });
+      toast.success(role === "motorista" ? "Utilizador criado e ligado ao motorista." : "Utilizador criado e ativo (sem confirmação de email).");
       setOpen(false);
-      setEmail(""); setPassword(""); setName(""); setRole("comercial");
+      setEmail(""); setPassword(""); setName(""); setRole("comercial"); setDriverId("new");
       onCreated();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar utilizador");
@@ -405,6 +410,21 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
               <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          {role === "motorista" && (
+            <div>
+              <Label>Motorista associado</Label>
+              <Select value={driverId} onValueChange={setDriverId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Criar novo registo de motorista</SelectItem>
+                  {(drivers as any[]).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.full_name}{d.user_id ? " (já ligado)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">O motorista só vê o seu painel quando o utilizador está ligado a um registo de motorista.</p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
@@ -414,3 +434,4 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
     </Dialog>
   );
 }
+
