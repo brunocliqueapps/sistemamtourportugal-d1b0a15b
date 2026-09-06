@@ -162,6 +162,13 @@ function PainelMotorista() {
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
   const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
 
+  // Veículo sugerido: o principal atribuído ao motorista, ou o único que tiver
+  const defaultVehicleId = useMemo(() => {
+    const primary = (myVehicleLinks as any[]).find((l) => l.is_primary);
+    if (primary && (vehicles as any[]).some((v) => v.id === primary.vehicle_id)) return primary.vehicle_id;
+    return (vehicles as any[]).length ? (vehicles as any[])[0].id : "";
+  }, [myVehicleLinks, vehicles]);
+
   useEffect(() => {
     if (openShift) {
       setDayForm({
@@ -172,12 +179,13 @@ function PainelMotorista() {
         notes: openShift.notes ?? "",
       });
     } else {
-      setDayForm({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
+      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
     }
-  }, [openShift?.id]);
+  }, [openShift?.id, defaultVehicleId]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
+
 
 
   const startDay = useMutation({
