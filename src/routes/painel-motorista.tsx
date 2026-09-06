@@ -15,7 +15,8 @@ import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
 import { TRIP_PROPOSAL_COLS, tripRange } from "@/lib/trip-dates";
-import { Car, Clock, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
+import { generateSettlementPdf, type SettlementLine } from "@/lib/settlement-pdf";
+import { Car, ChevronLeft, ChevronRight, Clock, FileDown, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
 
 export const Route = createFileRoute("/painel-motorista")({
   component: PainelMotorista,
