@@ -277,7 +277,7 @@ function Voucher() {
               <div className="font-semibold text-sm">Proposta de pagamento</div>
               <div className="text-sm">Valor total: <span className="font-medium">€ {Number(p.total_value || 0).toFixed(2)}</span></div>
               <Table>
-                <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead className="w-40">Data</TableHead><TableHead className="w-20">%</TableHead><TableHead className="text-right w-32">Valor (€)</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Etapa</TableHead><TableHead className="w-40">Data</TableHead><TableHead className="w-44">Forma de pagamento</TableHead><TableHead className="w-20">%</TableHead><TableHead className="text-right w-32">Valor (€)</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {localStages.map((s: any, i: number) => (
                     <TableRow key={i}>
@@ -294,12 +294,28 @@ function Voucher() {
                           }}
                         />
                       </TableCell>
+                      <TableCell>
+                        <Select
+                          value={s.method || ""}
+                          disabled={locked}
+                          onValueChange={(v) => {
+                            setHasUnsavedChanges(true);
+                            setLocalStages((prev) => prev.map((x, j) => (j === i ? { ...x, method: v } : x)));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_METHOD_OPTIONS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>{s.pct}%</TableCell>
                       <TableCell className="text-right">{(Number(p.total_value || 0) * Number(s.pct || 0) / 100).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+
               {p.payment_terms && <div className="text-sm text-muted-foreground">{p.payment_terms}</div>}
             </div>
 
