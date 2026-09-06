@@ -7,21 +7,26 @@ const schema = z.object({
   password: z.string().min(6),
   name: z.string().optional(),
   role: z.enum(["admin", "comercial", "administrativo", "motorista"]),
+  /** ID do motorista já registado a vincular, ou "new" para criar um novo registo de motorista. */
+  driverId: z.string().optional(),
 });
+
+async function assertAdmin(context: any) {
+  const { data: roles, error } = await context.supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", context.userId);
+  if (error) throw new Error(error.message);
+  if (!roles?.some((r: { role: string }) => r.role === "admin")) {
+    throw new Error("Apenas administradores podem gerir utilizadores.");
+  }
+}
 
 export const createAppUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data, context }) => {
-    // Só administradores podem criar utilizadores
-    const { data: roles, error: rolesError } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId);
-    if (rolesError) throw new Error(rolesError.message);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) {
-      throw new Error("Apenas administradores podem criar utilizadores.");
-    }
+    await assertAdmin(context);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -47,5 +52,50 @@ export const createAppUser = createServerFn({ method: "POST" })
     });
     if (roleError) throw new Error(roleError.message);
 
+    // Vínculo com o registo de motorista
+    if (data.role === "motorista") {
+      if (data.driverId === "new") {
+        const { error: dErr } = await (supabaseAdmin.from("drivers") as any).insert({
+          full_name: data.name ?? data.email,
+          email: data.email,
+          user_id: uid,
+          active: true,
+        });
+        if (dErr) throw new Error(dErr.message);
+      } else if (data.driverId) {
+        // um utilizador por motorista
+        await (supabaseAdmin.from("drivers") as any).update({ user_id: null }).eq("user_id", uid);
+        const { error: dErr } = await (supabaseAdmin.from("drivers") as any)
+          .update({ user_id: uid })
+          .eq("id", data.driverId);
+        if (dErr) throw new Error(dErr.message);
+      }
+    }
+
     return { id: uid };
+  });
+
+const linkSchema = z.object({
+  userId: z.string().uuid(),
+  /** null/"" desvincula */
+  driverId: z.string().nullable().optional(),
+});
+
+export const linkUserToDriver = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => linkSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // remove vínculos antigos deste utilizador
+    await (supabaseAdmin.from("drivers") as any).update({ user_id: null }).eq("user_id", data.userId);
+
+    if (data.driverId) {
+      const { error } = await (supabaseAdmin.from("drivers") as any)
+        .update({ user_id: data.userId })
+        .eq("id", data.driverId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });
