@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 
+const PAYMENT_METHOD_OPTIONS = ["Dinheiro", "Link Cartão", "Pay Pal"];
+
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
   head: () => ({
@@ -116,7 +118,7 @@ function Voucher() {
         withDefaultStageDates(
           p,
           Array.isArray(p.payment_stages) && p.payment_stages.length
-            ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "" }))
+            ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", method: s.method ?? "" }))
             : paymentSchedule(p.days_count ?? 1, p.total_value).map((s: any) => ({ ...s, date: "" })),
         )
       );
@@ -347,7 +349,7 @@ function Voucher() {
                     voucher_saved_at: new Date().toISOString(),
                     voucher_final_note: localFinalNote,
                     voucher_day_notes: localNotes,
-                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}), ...(s.method ? { method: s.method } : {}) })),
                   }).eq("id", p.id);
                   if (error) return toast.error(error.message);
                   toast.success("Voucher salvo");
@@ -376,7 +378,7 @@ function Voucher() {
                     voucher_saved_at: new Date().toISOString(),
                     voucher_final_note: localFinalNote,
                     voucher_day_notes: localNotes,
-                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}) })),
+                    payment_stages: localStages.map((s: any) => ({ label: s.label, pct: Number(s.pct || 0), ...(s.date ? { date: s.date } : {}), ...(s.method ? { method: s.method } : {}) })),
                   }).eq("id", p.id);
                   if (error) return toast.error(error.message);
                   toast.success("Voucher validado");

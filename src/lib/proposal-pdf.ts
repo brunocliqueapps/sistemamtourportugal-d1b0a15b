@@ -312,12 +312,12 @@ export async function generateBudgetPdf(id: string) {
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Condições de pagamento", 40, y); y += 6;
   const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
-    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", method: s.method ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
     : paymentSchedule(days || 1, p.total_value));
   autoTable(doc, {
     startY: y,
-    head: [["Etapa", "Data", "%", "Valor (€)"]],
-    body: stages.map((s) => [s.label, s.date ? fmtDate(s.date) : "—", `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
+    head: [["Etapa", "Data", "Forma de pagamento", "%", "Valor (€)"]],
+    body: stages.map((s) => [s.label, s.date ? fmtDate(s.date) : "—", s.method || "—", `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
@@ -368,12 +368,12 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("Forma de Pagamento", 40, y); y += 6;
   const stages: any[] = withDefaultStageDates(p, Array.isArray(p.payment_stages) && p.payment_stages.length
-    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
+    ? p.payment_stages.map((s: any) => ({ label: s.label ?? "Etapa", pct: Number(s.pct || 0), date: s.date ?? "", method: s.method ?? "", value: Number(p.total_value || 0) * Number(s.pct || 0) / 100 }))
     : paymentSchedule(days || 1, p.total_value));
   autoTable(doc, {
     startY: y,
-    head: [["Etapa", "Data", "%", "Valor (€)"]],
-    body: stages.map((s) => [s.label, s.date ? fmtDate(s.date) : "—", `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
+    head: [["Etapa", "Data", "Forma de pagamento", "%", "Valor (€)"]],
+    body: stages.map((s) => [s.label, s.date ? fmtDate(s.date) : "—", s.method || "—", `${s.pct}%`, Number(s.value || 0).toFixed(2)]),
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [176, 141, 68], textColor: [255, 255, 255] }, 
     alternateRowStyles: { fillColor: [255, 252, 245] },
