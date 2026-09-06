@@ -459,8 +459,17 @@ function PainelMotorista() {
       {myDriver && (
         <Card className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Lançamento do dia</div>
-            <Badge variant="outline">{openShift ? "em curso" : (shifts as any[]).length ? "encerrado" : "não iniciado"}</Badge>
+            <div className="font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4" /> {editingShift ? `Editar serviço · ${fmtDate(editingShift.shift_date)}` : "Lançamento do dia"}
+            </div>
+            <div className="flex items-center gap-2">
+              {editingShift && (
+                <Button size="sm" variant="ghost" onClick={() => setEditShiftId(null)}>
+                  <X className="h-4 w-4 mr-1" /> Cancelar edição
+                </Button>
+              )}
+              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) hoje` : "não iniciado"}</Badge>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -490,7 +499,7 @@ function PainelMotorista() {
             </div>
             <div className="space-y-1">
               <Label>KM final</Label>
-              <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!openShift} />
+              <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!targetShift} />
             </div>
             <div className="space-y-1 sm:col-span-2 lg:col-span-4">
               <Label>Notas do dia</Label>
@@ -499,17 +508,17 @@ function PainelMotorista() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!openShift ? (
+            {!targetShift ? (
               <>
                 <Button
                   onClick={() => startDay.mutate()}
                   disabled={startDay.isPending || viewingOther || !canStartDay}
                 >
-                  Iniciar dia de trabalho
+                  Iniciar serviço
                 </Button>
                 {!canStartDay && (
                   <span className="text-xs text-muted-foreground">
-                    Preencha veículo, tipo de serviço e KM inicial.
+                    Preencha tipo de serviço e KM inicial.
                   </span>
                 )}
               </>
@@ -518,14 +527,18 @@ function PainelMotorista() {
                 <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
                   Guardar lançamento
                 </Button>
-                <Button
-                  onClick={() => saveDay.mutate(true)}
-                  disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
-                >
-                  Encerrar dia com KM final
-                </Button>
-                {dayForm.km_final === "" && (
-                  <span className="text-xs text-muted-foreground">Indique o KM final para encerrar.</span>
+                {!targetShift.closed_at && (
+                  <>
+                    <Button
+                      onClick={() => saveDay.mutate(true)}
+                      disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                    >
+                      Encerrar serviço com KM final
+                    </Button>
+                    {dayForm.km_final === "" && (
+                      <span className="text-xs text-muted-foreground">Indique o KM final para encerrar e poder iniciar outro serviço.</span>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -552,11 +565,17 @@ function PainelMotorista() {
                     <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
+                    {!viewingOther && (
+                      <Button size="icon" variant="ghost" className="ml-auto" title="Editar este serviço" onClick={() => setEditShiftId(s.id)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
+
 
         </Card>
       )}
