@@ -21,8 +21,9 @@ type Group = { label: string; items: Item[] };
 
 const groups: Group[] = [
   { label: "Início", items: [
-    { to: "/painel-motorista", label: "Painel do Motorista", icon: Car, module: "painel_motorista" },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
+    { to: "/painel-motorista", label: "Painel do Motorista", icon: Car, module: "painel_motorista" },
+
   ]},
   { label: "Comercial", items: [
     { to: "/mensagens", label: "Leads", icon: MessageSquare, module: "mensagens" },
