@@ -112,11 +112,17 @@ function Clientes() {
       const payload: any = { ...form };
       delete payload.client_number; // número de cliente é fixo
       delete payload.id; delete payload.created_at; delete payload.updated_at; delete payload.lead_id;
-      payload.passengers = payload.passengers === "" || payload.passengers == null ? null : Number(payload.passengers);
+      const pax = payload.passengers === "" || payload.passengers == null ? null : Number(payload.passengers);
+      payload.passengers = Number.isFinite(pax as number) ? pax : null;
       for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
       if (editing?.id) {
         const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
         if (error) throw error;
+        // Propaga o nº de pessoas para as etapas seguintes (propostas/roteiros e ordens de serviço)
+        if (payload.passengers !== (editing.passengers ?? null)) {
+          await supabase.from("proposals").update({ passengers: payload.passengers }).eq("client_id", editing.id);
+          await supabase.from("service_orders").update({ passengers: payload.passengers }).eq("client_id", editing.id);
+        }
       } else {
         const { error } = await supabase.from("clients").insert(payload);
         if (error) throw error;
@@ -126,11 +132,14 @@ function Clientes() {
       toast.success("Guardado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["next-client-number"] });
+      qc.invalidateQueries({ queryKey: ["proposals"] });
+      qc.invalidateQueries({ queryKey: ["service_orders"] });
 
       setOpen(false); setEditing(null); setForm(emptyClient); setHasUnsavedChanges(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const update = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
@@ -449,7 +458,7 @@ function Clientes() {
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
                 <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => { setForm({ ...form, passengers: e.target.value }); setHasUnsavedChanges(true); }} /></div>
+                <div><Label>Número de pessoas</Label><Input type="text" inputMode="numeric" placeholder="0" value={form.passengers ?? ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm({ ...form, passengers: v }); setHasUnsavedChanges(true); }} /></div>
               </div>
             </div>
 
