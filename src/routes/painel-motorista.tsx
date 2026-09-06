@@ -421,27 +421,66 @@ function PainelMotorista() {
     return v ? `${v.plate}${v.brand ? ` · ${v.brand} ${v.model ?? ""}` : ""}` : "—";
   };
 
+  /** Resumo PDF da semana do motorista (entradas/saídas registadas). */
+  function weekPdf() {
+    const line = (e: any): SettlementLine => {
+      const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
+      const label = e.kind === "entrada"
+        ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
+        : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
+      return {
+        label,
+        date: e.entry_date ?? String(e.created_at ?? "").slice(0, 10),
+        detail: [e.description, e.invoice_number ? `Fatura ${e.invoice_number}` : null].filter(Boolean).join(" · ") || "—",
+        amount: Number(e.amount || 0),
+      };
+    };
+    const incomes = myEntries.filter((e: any) => e.kind === "entrada").map(line);
+    const expenses = myEntries.filter((e: any) => e.kind === "saida").map(line);
+    const kmDetail = (weekShifts as any[])
+      .map((s) => `${fmtDate(s.shift_date)}: KM ${s.km_initial ?? "—"} → ${s.km_final ?? "—"}`)
+      .join("\n");
+    generateSettlementPdf({
+      weekStart, weekEnd,
+      vehicleLabel: movVehicleId ? vehicleLabel(movVehicleId) : "—",
+      ownership: "Registos do motorista",
+      driverName: myDriver?.full_name ?? "—",
+      incomes, expenses,
+      incomeTotal: week.in, expenseTotal: week.out, rentalCost: 0,
+      netProfit: week.in - week.out,
+      driverPct: null, driverAmount: week.in - week.out, companyAmount: 0,
+      details: kmDetail || null, closedAt: null,
+    }).catch((e) => toast.error(e.message));
+  }
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
       <PageHeader
         title={`Olá${myDriver?.full_name ? `, ${myDriver.full_name}` : ""}`}
-        description={`O seu dia de trabalho · ${fmtDate(today)}`}
+        description={`O seu dia de trabalho · ${fmtDate(dayDate)}`}
         actions={
-          isAdmin ? (
-            <div className="w-full sm:w-72">
-              <Select value={pickedDriver} onValueChange={setPickedDriver}>
-                <SelectTrigger><SelectValue placeholder="Ver painel de um motorista…" /></SelectTrigger>
-                <SelectContent>
-                  {(allDrivers as any[]).map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="icon" variant="outline" title="Dia anterior" onClick={() => setDayDate(addDays(dayDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="date" value={dayDate} onChange={(e) => e.target.value && setDayDate(e.target.value)} className="w-40" />
+            <Button size="icon" variant="outline" title="Dia seguinte" onClick={() => setDayDate(addDays(dayDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
+            {dayDate !== today && <Button size="sm" variant="ghost" onClick={() => setDayDate(today)}>Hoje</Button>}
+            {isAdmin && (
+              <div className="w-full sm:w-64">
+                <Select value={pickedDriver} onValueChange={setPickedDriver}>
+                  <SelectTrigger><SelectValue placeholder="Ver painel de um motorista…" /></SelectTrigger>
+                  <SelectContent>
+                    {(allDrivers as any[]).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         }
       />
+
 
       {viewingOther && (
         <Card className="p-3 text-xs text-muted-foreground">
