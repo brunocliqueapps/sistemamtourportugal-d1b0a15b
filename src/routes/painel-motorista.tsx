@@ -713,6 +713,69 @@ function PainelMotorista() {
         </div>
       </Card>
 
+      <Dialog open={entryOpen} onOpenChange={(o) => { if (!o) { setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY }); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingEntryId ? "Editar lançamento" : "Lançamento manual"}{movVehicleId ? ` · ${vehicleLabel(movVehicleId).split(" ·")[0]}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={entry.kind} onValueChange={(v) => setEntry({ ...entry, kind: v, origin: "", cost_center_id: "", other_label: "" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entrada">Entrada (ganho)</SelectItem>
+                  <SelectItem value="saida">Saída (custo)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {entry.kind === "entrada" ? (
+              <div>
+                <Label>Origem</Label>
+                <Select value={entry.origin} onValueChange={(v) => setEntry({ ...entry, origin: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                  <SelectContent>
+                    {INCOME_ORIGINS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Centro de custo</Label>
+                <Select value={entry.cost_center_id} onValueChange={(v) => setEntry({ ...entry, cost_center_id: v, other_label: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar centro de custo" /></SelectTrigger>
+                  <SelectContent>
+                    {(costCenters as any[]).filter((c) => c.active !== false).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {((entry.kind === "entrada" && entry.origin === "Outros") || (entry.kind === "saida" && entry.cost_center_id === "outros")) && (
+              <div><Label>Qual? (Outros)</Label><Input value={entry.other_label} onChange={(e) => setEntry({ ...entry, other_label: e.target.value })} /></div>
+            )}
+
+            <div>
+              <Label>Data da operação</Label>
+              <Input type="date" min={weekStart} max={weekEnd} value={entry.entry_date} onChange={(e) => setEntry({ ...entry, entry_date: e.target.value })} />
+            </div>
+            <div><Label>Valor (€)</Label><Input type="number" step="0.01" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} /></div>
+            <div><Label>N.º da fatura (opcional)</Label><Input value={entry.invoice_number} onChange={(e) => setEntry({ ...entry, invoice_number: e.target.value })} placeholder="Só se existir fatura" /></div>
+            <div><Label>Descrição</Label><Input value={entry.description} onChange={(e) => setEntry({ ...entry, description: e.target.value })} /></div>
+            <div className="text-xs text-muted-foreground">Veículo: {movVehicleId ? vehicleLabel(movVehicleId) : "—"}</div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY }); }}>Cancelar</Button>
+            <Button className="gradient-gold text-gold-foreground" disabled={addMov.isPending} onClick={() => addMov.mutate()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
     </div>
   );
 }
