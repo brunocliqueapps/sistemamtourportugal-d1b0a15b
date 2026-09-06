@@ -245,9 +245,10 @@ function PainelMotorista() {
   /* ---------- Entradas e saídas da semana ---------- */
   const [mov, setMov] = useState({ kind: "entrada", amount: "", description: "", entry_date: today, vehicle_id: "" });
   useEffect(() => {
-    const suggested = openShift?.vehicle_id ?? (shifts as any[])[0]?.vehicle_id ?? defaultVehicleId;
-    if (!mov.vehicle_id && suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
+    const suggested = defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "";
+    if (suggested && mov.vehicle_id !== suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
   }, [openShift?.vehicle_id, shifts.length, defaultVehicleId]);
+
 
 
   const addMov = useMutation({
