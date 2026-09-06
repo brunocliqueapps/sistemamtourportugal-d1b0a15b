@@ -85,11 +85,28 @@ function PainelMotorista() {
 
   const viewingOther = isAdmin && !!pickedDriver && pickedDriver !== myDriverRow?.id;
 
-  const { data: vehicles = [] } = useQuery({
+  const { data: allVehicles = [] } = useQuery({
     queryKey: ["pm-vehicles"],
     queryFn: async () =>
       (await supabase.from("vehicles").select("id,plate,brand,model,active").order("plate")).data ?? [],
   });
+
+  // Veículos atribuídos ao motorista (o veículo está sempre associado ao motorista)
+  const { data: myVehicleLinks = [] } = useQuery({
+    queryKey: ["pm-vehicle-links", myDriver?.id],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await supabase
+        .from("vehicle_drivers")
+        .select("vehicle_id,is_primary")
+        .eq("driver_id", myDriver!.id)).data ?? [],
+  });
+
+  const vehicles = useMemo(() => {
+    const ids = new Set((myVehicleLinks as any[]).map((l) => l.vehicle_id));
+    return (allVehicles as any[]).filter((v) => ids.has(v.id));
+  }, [allVehicles, myVehicleLinks]);
+
 
   const { data: services = [] } = useQuery({
     queryKey: ["pm-services", myDriver?.id, today],
