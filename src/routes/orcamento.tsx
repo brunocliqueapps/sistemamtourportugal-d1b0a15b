@@ -514,6 +514,20 @@ function Orcamento() {
                   <X className="h-4 w-4 mr-1" /> Não Salvo
                 </Button>
               )}
+              {!locked && (
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!(await save(true))) return;
+                    if (!statusDate) setStatusDate(today());
+                    await setBudgetStatus("analise");
+                    toast.success("Orçamento apresentado para análise — PDF disponível");
+                    await generateBudgetPdf(p.id).catch((e: any) => toast.error(e.message));
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-1" /> Apresentar para Análise
+                </Button>
+              )}
               {(
                 <Button variant="outline" onClick={() => generateBudgetPdf(p.id).catch((e) => toast.error(e.message))}>
                   <FileDown className="h-4 w-4 mr-1" /> Descarregar PDF
