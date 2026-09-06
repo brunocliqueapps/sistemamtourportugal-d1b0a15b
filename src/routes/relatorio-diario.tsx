@@ -32,7 +32,7 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
 const dayOf = (v?: string | null) => (v ? String(v).slice(0, 10) : "");
 
 function RelatorioDiario() {
-  const [from, setFrom] = useState(daysAgo(6));
+  const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
 
   const { data, isFetching } = useQuery({
@@ -43,17 +43,24 @@ function RelatorioDiario() {
         supabase.from("clients").select("id,created_at,name,client_number,phone,email").gte("created_at", from).lte("created_at", endTs),
         supabase.from("proposals").select("id,created_at,code,title,total_value,status,clients(name)").gte("created_at", from).lte("created_at", endTs),
         supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,proposal_id,clients(name)").gte("service_date", from).lte("service_date", to),
-        supabase.from("proposals").select("id,budget_approved_at,total_value,code,clients(name)").eq("budget_status", "aprovado").gte("budget_approved_at", from).lte("budget_approved_at", endTs),
+        supabase
+          .from("proposals")
+          .select("id,budget_approved_at,budget_validated_at,budget_status,total_value,code,clients(name)")
+          .or("budget_status.eq.aprovado,budget_validated_at.not.is.null"),
       ]);
-      const approvedIds = new Set(((approvedProposals.data ?? []) as any[]).map((p: any) => p.id));
+      const closedList = ((approvedProposals.data ?? []) as any[])
+        .map((p: any) => ({ ...p, closed_day: dayOf(p.budget_approved_at || p.budget_validated_at) }))
+        .filter((p: any) => p.closed_day && p.closed_day >= from && p.closed_day <= to);
+      const approvedIds = new Set(closedList.map((p: any) => p.id));
       return {
         clients: clients.data ?? [],
         proposals: proposals.data ?? [],
         orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status)) && (!o.proposal_id || !approvedIds.has(o.proposal_id))),
-        approvedProposals: approvedProposals.data ?? [],
+        approvedProposals: closedList,
       };
     },
   });
+
 
   const rows = useMemo(() => {
     if (!from || !to || from > to) return [];
