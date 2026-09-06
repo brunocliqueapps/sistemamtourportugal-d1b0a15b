@@ -211,18 +211,18 @@ function PainelMotorista() {
   }, [myVehicleLinks, vehicles]);
 
   useEffect(() => {
-    if (openShift) {
+    if (targetShift) {
       setDayForm({
-        vehicle_id: openShift.vehicle_id ?? "",
-        operation_type: openShift.operation_type ?? "tvde",
-        km_initial: openShift.km_initial != null ? String(openShift.km_initial) : "",
-        km_final: openShift.km_final != null ? String(openShift.km_final) : "",
-        notes: openShift.notes ?? "",
+        vehicle_id: targetShift.vehicle_id ?? "",
+        operation_type: targetShift.operation_type ?? "tvde",
+        km_initial: targetShift.km_initial != null ? String(targetShift.km_initial) : "",
+        km_final: targetShift.km_final != null ? String(targetShift.km_final) : "",
+        notes: targetShift.notes ?? "",
       });
     } else {
       setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
     }
-  }, [openShift?.id, defaultVehicleId]);
+  }, [targetShift?.id, defaultVehicleId]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
@@ -232,6 +232,7 @@ function PainelMotorista() {
   const startDay = useMutation({
     mutationFn: async () => {
       if (!myDriver?.id) throw new Error("Sem registo de motorista");
+      if (openShift) throw new Error("Feche o serviço anterior (KM final) antes de iniciar outro");
       if (!dayForm.vehicle_id) throw new Error("Escolha o veículo");
       if (dayForm.km_initial === "") throw new Error("Indique o KM inicial");
       const { error } = await (supabase.from("tvde_shifts") as any).insert({
@@ -246,17 +247,17 @@ function PainelMotorista() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Dia iniciado");
+      toast.success("Serviço iniciado");
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o dia"),
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o serviço"),
   });
 
   const saveDay = useMutation({
     mutationFn: async (close: boolean) => {
-      if (!openShift) throw new Error("Não há lançamento aberto");
-      if (close && dayForm.km_final === "") throw new Error("Indique o KM final para encerrar o dia");
+      if (!targetShift) throw new Error("Não há lançamento selecionado");
+      if (close && dayForm.km_final === "") throw new Error("Indique o KM final para encerrar o serviço");
       const payload: any = {
         vehicle_id: dayForm.vehicle_id || null,
         operation_type: dayForm.operation_type,
@@ -269,12 +270,13 @@ function PainelMotorista() {
         payload.closed_at = new Date().toISOString();
         payload.closed_by = user!.id;
       }
-      const { error } = await (supabase.from("tvde_shifts") as any).update(payload).eq("id", openShift.id);
+      const { error } = await (supabase.from("tvde_shifts") as any).update(payload).eq("id", targetShift.id);
       if (error) throw error;
       return close;
     },
     onSuccess: (close) => {
-      toast.success(close ? "Serviços do dia encerrados" : "Lançamento guardado");
+      toast.success(close ? "Serviço encerrado" : "Lançamento guardado");
+      setEditShiftId(null);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
@@ -283,12 +285,35 @@ function PainelMotorista() {
     onError: (e: any) => toast.error(e.message ?? "Não foi possível guardar"),
   });
 
-  /* ---------- Entradas e saídas da semana ---------- */
-  const [mov, setMov] = useState({ kind: "entrada", amount: "", description: "", entry_date: today, vehicle_id: "" });
-  useEffect(() => {
-    const suggested = defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "";
-    if (suggested && mov.vehicle_id !== suggested) setMov((m) => ({ ...m, vehicle_id: suggested }));
-  }, [openShift?.vehicle_id, shifts.length, defaultVehicleId]);
+  /* ---------- Entradas e saídas da semana (mesmo formulário do Acerto do Carro) ---------- */
+  const movVehicleId = useMemo(
+    () => defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "",
+    [defaultVehicleId, openShift?.vehicle_id, shifts],
+  );
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+
+  function openNewEntry() {
+    setEditingEntryId(null);
+    setEntry({ ...EMPTY_ENTRY, entry_date: today >= weekStart && today <= weekEnd ? today : weekStart });
+    setEntryOpen(true);
+  }
+  function openEditEntry(m: any) {
+    setEditingEntryId(m.id);
+    setEntry({
+      kind: m.kind,
+      amount: String(m.amount ?? ""),
+      description: m.description ?? "",
+      origin: m.origin ?? "",
+      cost_center_id: m.cost_center_id ?? (m.kind === "saida" && m.other_label ? "outros" : ""),
+      other_label: m.other_label ?? "",
+      invoice_number: m.invoice_number ?? "",
+      entry_date: m.entry_date ?? String(m.created_at ?? "").slice(0, 10),
+    });
+    setEntryOpen(true);
+  }
+
 
 
 
