@@ -185,9 +185,22 @@ function PainelMotorista() {
         .order("created_at")).data ?? [],
   });
 
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["pm-cost-centers"],
+    queryFn: async () =>
+      (await supabase.from("cost_centers").select("id,name,active").order("name")).data ?? [],
+  });
+
 
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
+  const [editShiftId, setEditShiftId] = useState<string | null>(null);
+  const editingShift: any = useMemo(
+    () => (editShiftId ? (weekShifts as any[]).find((s) => s.id === editShiftId) ?? null : null),
+    [editShiftId, weekShifts],
+  );
+  /** Turno em edição: o escolhido no histórico ou o turno aberto de hoje. */
+  const targetShift: any = editingShift ?? openShift;
   const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
 
   // Veículo sugerido: o principal atribuído ao motorista, ou o único que tiver
