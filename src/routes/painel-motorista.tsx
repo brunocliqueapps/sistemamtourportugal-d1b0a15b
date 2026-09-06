@@ -569,7 +569,7 @@ function PainelMotorista() {
               <>
                 <Button
                   onClick={() => startDay.mutate()}
-                  disabled={startDay.isPending || viewingOther || !canStartDay}
+                  disabled={startDay.isPending || !canStartDay}
                 >
                   Iniciar serviço
                 </Button>
@@ -581,14 +581,14 @@ function PainelMotorista() {
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending || viewingOther}>
+                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending}>
                   Guardar lançamento
                 </Button>
                 {!targetShift.closed_at && (
                   <>
                     <Button
                       onClick={() => saveDay.mutate(true)}
-                      disabled={saveDay.isPending || viewingOther || dayForm.km_final === ""}
+                      disabled={saveDay.isPending || dayForm.km_final === ""}
                     >
                       Encerrar serviço com KM final
                     </Button>
@@ -622,11 +622,15 @@ function PainelMotorista() {
                     <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
-                    {!viewingOther && (
-                      <Button size="icon" variant="ghost" className="ml-auto" title="Editar este serviço" onClick={() => setEditShiftId(s.id)}>
+                    <div className="ml-auto flex items-center">
+                      <Button size="icon" variant="ghost" title="Ver / editar este serviço" onClick={() => { setDayDate(s.shift_date); setEditShiftId(s.id); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                    )}
+                      <Button size="icon" variant="ghost" title="Eliminar este serviço" onClick={() => { if (confirm("Eliminar este serviço registado?")) delShift.mutate(s.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
                   </div>
                 );
               })
@@ -690,10 +694,12 @@ function PainelMotorista() {
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry} disabled={viewingOther}>
+              <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
                 <Plus className="h-4 w-4 mr-1" /> Lançamento
               </Button>
             </div>
+
           </div>
 
           <div className="text-xs text-muted-foreground">
