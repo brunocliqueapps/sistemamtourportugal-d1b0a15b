@@ -525,7 +525,7 @@ function PainelMotorista() {
                   <X className="h-4 w-4 mr-1" /> Cancelar edição
                 </Button>
               )}
-              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) hoje` : "não iniciado"}</Badge>
+              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) neste dia` : "não iniciado"}</Badge>
             </div>
           </div>
 
@@ -726,7 +726,7 @@ function PainelMotorista() {
                 const label = e.kind === "entrada"
                   ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
                   : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
-                const mine = e.created_by === user?.id && !viewingOther;
+                const mine = e.created_by === user?.id || isAdmin;
                 return (
                   <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
                     <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
