@@ -826,12 +826,11 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!form.client_id) throw new Error("Cliente é obrigatório.");
       if (!form.service_date) throw new Error("Data é obrigatória.");
       const payload: any = {
         oc_code: form.oc_code || null,
         voucher_code: form.voucher_code || null,
-        client_id: form.client_id,
+        client_id: form.client_id && form.client_id !== "__none" ? form.client_id : null,
         driver_id: form.driver_id || null,
         vehicle_id: form.vehicle_id || null,
         service_date: form.service_date,
@@ -862,12 +861,19 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="col-span-2"><Label>Cliente *</Label>
+          <div className="col-span-2"><Label>Cliente</Label>
             <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
               <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
+                {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sem cliente, o serviço fica registado com as informações básicas e o comercial completa mais tarde.
+            </p>
           </div>
+
           <div><Label>Data *</Label><Input type="date" value={form.service_date} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></div>
           <div><Label>Horário</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
           <div><Label>Origem</Label><Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
