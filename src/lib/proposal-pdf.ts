@@ -185,7 +185,7 @@ function clientBlock(doc: jsPDF, p: any, y: number) {
     [c.phone_country, c.phone].filter(Boolean).join(" ") || null,
     c.email || null,
     c.emergency_contact ? `Contacto de emergência: ${c.emergency_contact}` : null,
-    p.passengers ? `Nº de pessoas: ${p.passengers}` : null,
+    (c.passengers ?? p.passengers) ? `Nº de pessoas: ${c.passengers ?? p.passengers}` : null,
     p.responsible ? `Responsável: ${p.responsible}` : null,
   ].filter(Boolean) as string[];
   lines.forEach((l) => { doc.text(l, 40, y); y += 12; });
@@ -299,7 +299,7 @@ export async function generateBudgetPdf(id: string) {
     head: [["Descrição", "Dias", "Pessoas", "Total (€)"]],
     body: [[
       p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
-      String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
+      String(days || 1), String(p.clients?.passengers ?? p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 
@@ -356,7 +356,7 @@ export async function generateVoucherPdf(id: string, opts?: { output?: "save" | 
     head: [["Descrição", "Dias", "Pessoas", "Total (€)"]],
     body: [[
       p.descriptive || p.title || (p.proposal_kind === "servico_privado" ? "Serviço privado" : "Roteiro personalizado"),
-      String(days || 1), String(p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
+      String(days || 1), String(p.clients?.passengers ?? p.passengers ?? "—"), Number(p.total_value || 0).toFixed(2),
     ]],
     styles: { fontSize: 9 }, 
     headStyles: { fillColor: [16, 33, 66], textColor: [255, 255, 255] }, 

@@ -119,10 +119,8 @@ function Clientes() {
         const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
         if (error) throw error;
         // Propaga o nº de pessoas para as etapas seguintes (propostas/roteiros e ordens de serviço)
-        if (payload.passengers !== (editing.passengers ?? null)) {
-          await supabase.from("proposals").update({ passengers: payload.passengers }).eq("client_id", editing.id);
-          await supabase.from("service_orders").update({ passengers: payload.passengers }).eq("client_id", editing.id);
-        }
+        await supabase.from("proposals").update({ passengers: payload.passengers }).eq("client_id", editing.id);
+        await supabase.from("service_orders").update({ passengers: payload.passengers }).eq("client_id", editing.id);
       } else {
         const { error } = await supabase.from("clients").insert(payload);
         if (error) throw error;
