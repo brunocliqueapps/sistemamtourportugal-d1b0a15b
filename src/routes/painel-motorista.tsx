@@ -606,22 +606,25 @@ function PainelMotorista() {
       )}
 
       <Card className="p-4 sm:p-6 space-y-3">
-        <div className="font-semibold flex items-center gap-2"><Ticket className="h-4 w-4" /> Vouchers do dia</div>
-        {(services as any[]).filter((s) => s.voucher_code).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sem vouchers para hoje.</p>
+        <div className="font-semibold flex items-center gap-2"><Ticket className="h-4 w-4" /> Ordens de Serviço de hoje</div>
+        {(services as any[]).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem ordens de serviço para hoje.</p>
         ) : (
-          (services as any[]).filter((s) => s.voucher_code).map((s) => (
-            <div key={s.id} className="flex items-center justify-between text-sm border border-border rounded-md p-2">
-              <span className="font-mono">{s.voucher_code}</span>
-              <span className="text-muted-foreground truncate ml-2">{s.clients?.name}</span>
+          (services as any[]).map((s) => (
+            <div key={s.id} className="flex flex-wrap items-center gap-2 text-sm border border-border rounded-md p-2">
+              <span className="font-mono">{s.oc_code ?? s.service_code ?? "—"}</span>
+              <span className="text-muted-foreground truncate">{s.clients?.name ?? "—"}</span>
+              {s.start_time && <span className="text-muted-foreground">{String(s.start_time).slice(0, 5)}</span>}
+              <Badge variant="outline" className="ml-auto">{s.status}</Badge>
             </div>
           ))
         )}
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm"><Link to="/roteiro">Ver roteiro do dia</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link to="/voucher">Ver vouchers</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/oc">Ver ordens de serviço</Link></Button>
         </div>
       </Card>
+
     </div>
   );
 }
