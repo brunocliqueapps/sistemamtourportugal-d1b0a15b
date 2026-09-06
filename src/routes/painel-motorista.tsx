@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
 import { TRIP_PROPOSAL_COLS, tripRange } from "@/lib/trip-dates";
-import { Car, Clock, MapPin, Plus, Ticket, Trash2, Users, Wallet } from "lucide-react";
+import { Car, Clock, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
 
 export const Route = createFileRoute("/painel-motorista")({
   component: PainelMotorista,
