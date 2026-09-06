@@ -503,7 +503,6 @@ function AcertoCarro() {
                     <div className="text-sm text-muted-foreground mt-1">Motorista: {r.driver?.full_name ?? "—"}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => pdf(r)}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
                     {isAdmin && !closed && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => { setEditingId(null); const t = iso(new Date()); setEntry({ ...EMPTY_ENTRY, entry_date: t >= weekStart && t <= weekEnd ? t : weekStart }); setEntryFor(r); }}><Plus className="h-4 w-4 mr-1" /> Lançamento</Button>
@@ -512,10 +511,14 @@ function AcertoCarro() {
                         </Button>
                       </>
                     )}
+                    {closed && (
+                      <Button size="sm" variant="outline" onClick={() => pdf(r)}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+                    )}
                     {isAdmin && closed && (
                       <Button size="sm" variant="outline" onClick={() => reopen.mutate((r.settlement as any).id)}><Unlock className="h-4 w-4 mr-1" /> Reabrir</Button>
                     )}
                   </div>
+
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
