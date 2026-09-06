@@ -385,15 +385,19 @@ function PainelMotorista() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label>Veículo</Label>
-              <Select value={dayForm.vehicle_id} onValueChange={(v) => setDayForm({ ...dayForm, vehicle_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Escolher veículo" /></SelectTrigger>
+              <Select value={dayForm.vehicle_id} onValueChange={(v) => setDayForm({ ...dayForm, vehicle_id: v })} disabled={vehicles.length === 0}>
+                <SelectTrigger><SelectValue placeholder={vehicles.length ? "Escolher veículo" : "Sem veículo atribuído"} /></SelectTrigger>
                 <SelectContent>
                   {(vehicles as any[]).map((v) => (
                     <SelectItem key={v.id} value={v.id}>{v.plate} · {v.brand ?? ""} {v.model ?? ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {vehicles.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum veículo associado a este motorista. Peça ao administrador para associar em Cadastros → Veículos.</p>
+              )}
             </div>
+
             <div className="space-y-1">
               <Label>Tipo de serviço</Label>
               <Select value={dayForm.operation_type} onValueChange={(v) => setDayForm({ ...dayForm, operation_type: v })}>
