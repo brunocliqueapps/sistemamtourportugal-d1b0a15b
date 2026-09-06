@@ -226,7 +226,7 @@ function Voucher() {
         {p && (
           <>
             <div className="rounded-md border p-3 text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>Pessoas: <span className="font-medium">{p.passengers ?? "—"}</span></div>
+              <div>Pessoas: <span className="font-medium">{c?.passengers ?? p.passengers ?? "—"}</span></div>
               <div>Responsável: <span className="font-medium">{p.responsible ?? "—"}</span></div>
               <div>Chegada: <span className="font-medium">{[fmtDate(p.arrival_date), p.arrival_time, p.arrival_place].filter(Boolean).join(" · ") || "—"}</span></div>
               <div>Saída: <span className="font-medium">{[fmtDate(p.departure_date), p.departure_time, p.departure_place].filter(Boolean).join(" · ") || "—"}</span></div>

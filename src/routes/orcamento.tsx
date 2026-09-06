@@ -222,7 +222,7 @@ function Orcamento() {
           client_id: p.client_id,
           sale_value: total,
           service_date: (p.itinerary_start ?? when).slice(0, 10),
-          passengers: p.passengers ?? p.clients?.passengers ?? null,
+          passengers: p.clients?.passengers ?? p.passengers ?? null,
           origin: p.arrival_place ?? null,
           destination: p.departure_place ?? null,
           payment_terms: terms || p.payment_terms || stageTerms() || null,
@@ -378,7 +378,7 @@ function Orcamento() {
               <div>Email: <span className="font-medium">{p.clients?.email ?? "—"}</span></div>
               <div>Contacto emergência: <span className="font-medium">{p.clients?.emergency_contact ?? "—"}</span></div>
               <div>Responsável: <span className="font-medium">{p.responsible ?? "—"}</span></div>
-              <div>Passageiros: <span className="font-medium">{p.passengers ?? p.clients?.passengers ?? "—"}</span></div>
+              <div>Passageiros: <span className="font-medium">{p.clients?.passengers ?? p.passengers ?? "—"}</span></div>
               <div>Dias: <span className="font-medium">{days || "—"}</span></div>
               <div>Tipo: <span className="font-medium">{p.proposal_kind === "servico_privado" ? "Serviço Privado" : "Roteiro Personalizado"}</span></div>
               <div>Região: <span className="font-medium">{p.regions?.name ?? "—"}</span></div>

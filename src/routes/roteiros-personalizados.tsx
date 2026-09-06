@@ -190,7 +190,7 @@ function Propostas() {
     setForm({
       client_id: p.client_id ?? "", lead_id: p.lead_id ?? "", status: p.status ?? "rascunho",
       proposal_kind: p.proposal_kind ?? "roteiro_personalizado", responsible: p.responsible ?? "",
-      passengers: p.passengers ?? 1,
+      passengers: p.clients?.passengers ?? p.passengers ?? 1,
       arrival_date: p.arrival_date ?? "", arrival_time: p.arrival_time ?? "", arrival_place: p.arrival_place ?? "",
       departure_date: p.departure_date ?? "", departure_time: p.departure_time ?? "", departure_place: p.departure_place ?? "",
       itinerary_start: p.itinerary_start ?? "", itinerary_end: p.itinerary_end ?? "",
