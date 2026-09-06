@@ -88,7 +88,9 @@ function PainelMotorista() {
   const { isAdmin } = usePermissions();
   const qc = useQueryClient();
   const today = iso(new Date());
-  const weekStart = iso(mondayOf(new Date()));
+  /** Dia em consulta: permite ver, editar ou apagar lançamentos de datas anteriores. */
+  const [dayDate, setDayDate] = useState(today);
+  const weekStart = useMemo(() => iso(mondayOf(new Date(dayDate + "T12:00:00"))), [dayDate]);
   const weekEnd = addDays(weekStart, 6);
   const [kind, setKind] = useState<Kind | null>(null);
   const [pickedDriver, setPickedDriver] = useState<string>("");
@@ -138,7 +140,7 @@ function PainelMotorista() {
 
 
   const { data: services = [] } = useQuery({
-    queryKey: ["pm-services", myDriver?.id, today],
+    queryKey: ["pm-services", myDriver?.id, dayDate],
     enabled: !!myDriver?.id,
     queryFn: async () => {
       const { data } = await (supabase.from("service_orders") as any)
@@ -148,19 +150,19 @@ function PainelMotorista() {
       return (data ?? []).filter((s: any) => {
         const { start, end } = tripRange(s);
         if (!start) return false;
-        return start <= today && today <= (end || start);
+        return start <= dayDate && dayDate <= (end || start);
       });
     },
   });
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ["pm-shifts", myDriver?.id, today],
+    queryKey: ["pm-shifts", myDriver?.id, dayDate],
     enabled: !!myDriver?.id,
     queryFn: async () =>
       (await (supabase.from("tvde_shifts") as any)
         .select("*, vehicles(plate,brand,model)")
         .eq("driver_id", myDriver!.id)
-        .eq("shift_date", today)
+        .eq("shift_date", dayDate)
         .order("start_time", { ascending: true })).data ?? [],
   });
 
@@ -240,7 +242,7 @@ function PainelMotorista() {
         driver_id: myDriver.id,
         vehicle_id: dayForm.vehicle_id,
         operation_type: dayForm.operation_type,
-        shift_date: today,
+        shift_date: dayDate,
         start_time: new Date().toISOString(),
         km_initial: num(dayForm.km_initial),
         notes: dayForm.notes || null,
@@ -363,6 +365,21 @@ function PainelMotorista() {
     },
     onSuccess: () => { toast.success("Lançamento removido"); qc.invalidateQueries({ queryKey: ["pm-entries"] }); },
     onError: () => toast.error("Só pode remover os seus próprios lançamentos"),
+  });
+
+  /** Apagar um serviço registado (o próprio motorista ou o admin). */
+  const delShift = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("tvde_shifts") as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Serviço removido");
+      setEditShiftId(null);
+      qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível remover"),
   });
 
   const privados = useMemo(
