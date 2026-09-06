@@ -32,7 +32,7 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
 const dayOf = (v?: string | null) => (v ? String(v).slice(0, 10) : "");
 
 function RelatorioDiario() {
-  const [from, setFrom] = useState(daysAgo(6));
+  const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
 
   const { data, isFetching } = useQuery({
@@ -43,24 +43,31 @@ function RelatorioDiario() {
         supabase.from("clients").select("id,created_at,name,client_number,phone,email").gte("created_at", from).lte("created_at", endTs),
         supabase.from("proposals").select("id,created_at,code,title,total_value,status,clients(name)").gte("created_at", from).lte("created_at", endTs),
         supabase.from("service_orders").select("id,status,service_date,sale_value,oc_code,origin,destination,proposal_id,clients(name)").gte("service_date", from).lte("service_date", to),
-        supabase.from("proposals").select("id,budget_approved_at,total_value,code,clients(name)").eq("budget_status", "aprovado").gte("budget_approved_at", from).lte("budget_approved_at", endTs),
+        supabase
+          .from("proposals")
+          .select("id,budget_approved_at,budget_validated_at,budget_status,total_value,code,clients(name)")
+          .or("budget_status.eq.aprovado,budget_validated_at.not.is.null"),
       ]);
-      const approvedIds = new Set(((approvedProposals.data ?? []) as any[]).map((p: any) => p.id));
+      const closedList = ((approvedProposals.data ?? []) as any[])
+        .map((p: any) => ({ ...p, closed_day: dayOf(p.budget_approved_at || p.budget_validated_at) }))
+        .filter((p: any) => p.closed_day && p.closed_day >= from && p.closed_day <= to);
+      const approvedIds = new Set(closedList.map((p: any) => p.id));
       return {
         clients: clients.data ?? [],
         proposals: proposals.data ?? [],
         orders: (orders.data ?? []).filter((o: any) => ["finalizado", "atendimento_finalizado"].includes(String(o.status)) && (!o.proposal_id || !approvedIds.has(o.proposal_id))),
-        approvedProposals: approvedProposals.data ?? [],
+        approvedProposals: closedList,
       };
     },
   });
+
 
   const rows = useMemo(() => {
     if (!from || !to || from > to) return [];
     const out: { day: string; clients: number; proposals: number; proposalValue: number; closed: number; value: number }[] = [];
     for (let d = new Date(from + "T00:00:00Z"); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
       const day = d.toISOString().slice(0, 10);
-      const approved = (data?.approvedProposals ?? []).filter((p: any) => dayOf(p.budget_approved_at) === day);
+      const approved = (data?.approvedProposals ?? []).filter((p: any) => p.closed_day === day);
       const closed = (data?.orders ?? []).filter((o: any) => dayOf(o.service_date) === day);
       const dayProposals = (data?.proposals ?? []).filter((p: any) => dayOf(p.created_at) === day);
       out.push({
@@ -113,7 +120,7 @@ function RelatorioDiario() {
         items: [
           ...(data?.approvedProposals ?? []).map((p: any) => ({
             id: p.id,
-            day: dayOf(p.budget_approved_at),
+            day: p.closed_day,
             primary: [p.code, p.clients?.name, "Orçamento aprovado"].filter(Boolean).join(" · "),
             secondary: p.total_value ? `€ ${Number(p.total_value).toFixed(2)}` : undefined,
           })),
@@ -184,6 +191,7 @@ function RelatorioDiario() {
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full sm:w-44" />
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { setFrom(today()); setTo(today()); }}>Hoje</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(6)); setTo(today()); }}>Últimos 7 dias</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(14)); setTo(today()); }}>Últimos 15 dias</Button>
           <Button variant="outline" onClick={() => { setFrom(daysAgo(29)); setTo(today()); }}>Últimos 30 dias</Button>
