@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { QuickViewDialog } from "@/components/QuickViewDialog";
 
 
-const PAYMENT_METHOD_OPTIONS = ["Dinheiro", "Link Cartão", "Pay Pal"];
+const PAYMENT_METHOD_OPTIONS = ["Dinheiro", "Link Cartão Pay Pal"];
 
 export const Route = createFileRoute("/voucher")({
   component: Voucher,
