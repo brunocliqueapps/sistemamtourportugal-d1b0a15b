@@ -177,7 +177,11 @@ function PainelMotorista() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Dia iniciado"); qc.invalidateQueries({ queryKey: ["pm-shifts"] }); },
+    onSuccess: () => {
+      toast.success("Dia iniciado");
+      qc.invalidateQueries({ queryKey: ["pm-shifts"] });
+      qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
+    },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível iniciar o dia"),
   });
 
