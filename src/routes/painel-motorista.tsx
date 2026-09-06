@@ -160,6 +160,8 @@ function PainelMotorista() {
   }, [openShift?.id]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
+  const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
+
 
   const startDay = useMutation({
     mutationFn: async () => {
