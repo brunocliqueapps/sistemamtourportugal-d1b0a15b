@@ -458,7 +458,7 @@ function Clientes() {
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
                 <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Número de pessoas</Label><Input type="number" min={0} value={form.passengers ?? ""} onChange={(e) => { setForm({ ...form, passengers: e.target.value }); setHasUnsavedChanges(true); }} /></div>
+                <div><Label>Número de pessoas</Label><Input type="text" inputMode="numeric" placeholder="0" value={form.passengers ?? ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm({ ...form, passengers: v }); setHasUnsavedChanges(true); }} /></div>
               </div>
             </div>
 
