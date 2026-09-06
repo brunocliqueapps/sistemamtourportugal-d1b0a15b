@@ -319,23 +319,37 @@ function PainelMotorista() {
 
   const addMov = useMutation({
     mutationFn: async () => {
-      if (!mov.vehicle_id) throw new Error("Escolha o veículo");
-      if (!mov.amount) throw new Error("Indique o valor");
-      if (mov.entry_date < weekStart || mov.entry_date > weekEnd) throw new Error("A data tem de estar dentro da semana");
-      const { error } = await (supabase.from("car_settlement_entries") as any).insert({
-        vehicle_id: mov.vehicle_id,
+      if (!movVehicleId) throw new Error("Nenhum veículo associado a este motorista");
+      if (!Number(entry.amount)) throw new Error("Valor obrigatório.");
+      if (entry.kind === "entrada" && !entry.origin) throw new Error("Selecione a origem.");
+      if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
+      const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
+      if (isOther && !entry.other_label.trim()) throw new Error("Indique qual é o 'Outros'.");
+      const entryDate = entry.entry_date || weekStart;
+      if (entryDate < weekStart || entryDate > weekEnd) throw new Error("A data tem de estar dentro da semana");
+      const payload: any = {
+        vehicle_id: movVehicleId,
         week_start: weekStart,
-        kind: mov.kind,
-        amount: Number(mov.amount),
-        description: mov.description || null,
-        entry_date: mov.entry_date,
-        created_by: user!.id,
-      });
-      if (error) throw error;
+        kind: entry.kind,
+        amount: Number(entry.amount),
+        description: entry.description || null,
+        origin: entry.kind === "entrada" ? entry.origin : null,
+        cost_center_id: entry.kind === "saida" && entry.cost_center_id !== "outros" ? entry.cost_center_id : null,
+        other_label: isOther ? entry.other_label.trim() : null,
+        invoice_number: entry.invoice_number.trim() || null,
+        entry_date: entryDate,
+      };
+      if (editingEntryId) {
+        const { error } = await (supabase.from("car_settlement_entries") as any).update(payload).eq("id", editingEntryId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("car_settlement_entries") as any).insert({ ...payload, created_by: user!.id });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Lançamento registado");
-      setMov((m) => ({ ...m, amount: "", description: "" }));
+      toast.success(editingEntryId ? "Lançamento atualizado" : "Lançamento registado");
+      setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível registar"),
