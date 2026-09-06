@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -453,6 +453,11 @@ function AcertoCarro() {
             <Input type="date" value={weekStart} onChange={(e) => e.target.value && setWeekStart(iso(mondayOf(new Date(e.target.value + "T12:00:00"))))} className="w-40" />
             <Button size="icon" variant="outline" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button>
             <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
+            {isAdmin && (
+              <Button asChild variant="outline">
+                <Link to="/painel-motorista">Painel do Motorista</Link>
+              </Button>
+            )}
           </div>
         }
       />

@@ -21,6 +21,7 @@ import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 import { usePermissions } from "@/lib/permissions";
+import { useDriverScope } from "@/lib/driver-scope";
 import { Pencil, Unlock, Save, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -95,12 +96,21 @@ function Voucher() {
 
 
   const { isAdmin } = usePermissions();
+  const driverScope = useDriverScope();
   const refetchAll = () => { refetchProps(); refetchValidated(); refetchSaved(); };
   const openProposal = (x: any) => { setClientId(x.client_id); setProposalId(x.id); setHasUnsavedChanges(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const finalizedIds = useFinalizedProposalIds();
-  const activeVouchers = useMemo(() => (validated as any[]).filter((x: any) => !finalizedIds.has(x.id)), [validated, finalizedIds]);
-  const historyVouchers = useMemo(() => (validated as any[]).filter((x: any) => finalizedIds.has(x.id)), [validated, finalizedIds]);
+  const scopedValidated = useMemo(
+    () => (validated as any[]).filter((x: any) => driverScope.allowProposal(x.id)),
+    [validated, driverScope],
+  );
+  const scopedSaved = useMemo(
+    () => (saved as any[]).filter((x: any) => driverScope.allowProposal(x.id)),
+    [saved, driverScope],
+  );
+  const activeVouchers = useMemo(() => scopedValidated.filter((x: any) => !finalizedIds.has(x.id)), [scopedValidated, finalizedIds]);
+  const historyVouchers = useMemo(() => scopedValidated.filter((x: any) => finalizedIds.has(x.id)), [scopedValidated, finalizedIds]);
 
   const c: any = useMemo(() => clientOptions.find((x: any) => x.id === clientId), [clientOptions, clientId]);
   const p: any = useMemo(() => props.find((x: any) => x.id === proposalId), [props, proposalId]);
@@ -131,6 +141,7 @@ function Voucher() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title="Voucher" description="Descritivo completo da viagem, com todos os dados do cliente." actions={
+        driverScope.isDriverOnly ? undefined : (
         <Button
           className="gradient-gold text-gold-foreground"
           onClick={() => {
@@ -144,12 +155,13 @@ function Voucher() {
         >
           <Plus className="h-4 w-4 mr-1" /> Voucher
         </Button>
+        )
       } />
 
       <Card className="p-4 w-full sm:w-auto mb-4">
         <div className="text-xs text-muted-foreground">Total de vouchers</div>
-        <div className="text-2xl font-bold">{(saved as any[]).length + activeVouchers.length + historyVouchers.length}</div>
-        <div className="text-xs text-muted-foreground mt-1">{(saved as any[]).length} salvos · {activeVouchers.length} validados · {historyVouchers.length} finalizados</div>
+        <div className="text-2xl font-bold">{scopedSaved.length + activeVouchers.length + historyVouchers.length}</div>
+        <div className="text-xs text-muted-foreground mt-1">{scopedSaved.length} salvos · {activeVouchers.length} validados · {historyVouchers.length} finalizados</div>
       </Card>
 
       <Card className="p-4 space-y-4">
@@ -397,7 +409,7 @@ function Voucher() {
         <Table>
           <TableHeader><TableRow><TableHead>Nº</TableHead><TableHead>Cliente</TableHead><TableHead>Salvo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(saved as any[]).map((x: any) => (
+            {scopedSaved.map((x: any) => (
               <TableRow key={x.id}>
                 <TableCell className="font-mono text-xs">{shortCode(x.code)}</TableCell>
                 <TableCell>{x.clients?.name ?? "—"}</TableCell>
@@ -409,7 +421,7 @@ function Voucher() {
                 </TableCell>
               </TableRow>
             ))}
-            {(saved as any[]).length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher salvo.</TableCell></TableRow>}
+            {scopedSaved.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhum voucher salvo.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
