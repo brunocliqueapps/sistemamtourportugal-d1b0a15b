@@ -462,7 +462,16 @@ function PainelMotorista() {
       incomeTotal: week.in, expenseTotal: week.out, rentalCost: 0,
       netProfit: week.in - week.out,
       driverPct: null, driverAmount: week.in - week.out, companyAmount: 0,
-      details: kmDetail || null, closedAt: null,
+      shifts: [...(weekShifts as any[])]
+        .sort((a, b) => String(a.shift_date).localeCompare(String(b.shift_date)))
+        .map((s) => ({
+          date: s.shift_date,
+          kmInitial: s.km_initial,
+          kmFinal: s.km_final,
+          type: s.operation_type,
+          closed: !!s.closed_at,
+        })),
+      details: kmDetail || null, closedAt: weekSettlement?.closed_at ?? null,
     }).catch((e) => toast.error(e.message));
   }
 
