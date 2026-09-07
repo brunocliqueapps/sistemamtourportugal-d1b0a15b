@@ -85,10 +85,12 @@ function ServicosPrivados() {
   const saveEdit = useMutation({
     mutationFn: async () => {
       if (!editing) return;
+      const hasClient = !!(editing.client_id && editing.client_id !== "__none");
       const payload: any = {
-        client_id: editing.client_id && editing.client_id !== "__none" ? editing.client_id : null,
-        oc_code: editing.oc_code,
-        voucher_code: editing.voucher_code,
+        client_id: hasClient ? editing.client_id : null,
+        // Sem cliente não se cria número de OS nem voucher.
+        oc_code: hasClient ? editing.oc_code : null,
+        voucher_code: hasClient ? editing.voucher_code : null,
         service_date: editing.service_date,
         start_time: editing.start_time,
         origin: editing.origin,
