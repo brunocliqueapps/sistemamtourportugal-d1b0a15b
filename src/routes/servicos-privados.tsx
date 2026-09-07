@@ -868,8 +868,6 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
     mutationFn: async () => {
       if (!form.service_date) throw new Error("Data é obrigatória.");
       const payload: any = {
-        oc_code: form.oc_code || null,
-        voucher_code: form.voucher_code || null,
         client_id: form.client_id && form.client_id !== "__none" ? form.client_id : null,
         driver_id: form.driver_id || null,
         vehicle_id: form.vehicle_id || null,
