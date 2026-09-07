@@ -559,10 +559,11 @@ function AcertoCarro() {
 
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t pt-3">
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 border-t pt-3">
                   <div><div className="text-xs text-muted-foreground">Total entradas</div><div className="font-semibold text-emerald-600">{eur(r.incomeTotal)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Total saídas</div><div className="font-semibold text-destructive">{eur(r.expenseTotal)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Aluguer</div><div className="font-semibold">{r.rentalCost > 0 ? `− ${eur(r.rentalCost)}` : "—"}</div></div>
