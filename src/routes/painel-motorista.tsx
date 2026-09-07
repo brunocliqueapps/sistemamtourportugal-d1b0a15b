@@ -198,6 +198,7 @@ function PainelMotorista() {
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
   const [editShiftId, setEditShiftId] = useState<string | null>(null);
+  const [dayOpen, setDayOpen] = useState(false);
   const editingShift: any = useMemo(
     () => (editShiftId ? (weekShifts as any[]).find((s) => s.id === editShiftId) ?? null : null),
     [editShiftId, weekShifts],
@@ -213,6 +214,14 @@ function PainelMotorista() {
     return (vehicles as any[]).length ? (vehicles as any[])[0].id : "";
   }, [myVehicleLinks, vehicles]);
 
+  /** Último KM final registado — fica pré-preenchido no KM inicial do serviço seguinte. */
+  const lastKmFinal = useMemo(() => {
+    const withKm = (weekShifts as any[])
+      .filter((s) => s.km_final != null)
+      .sort((a, b) => String(b.shift_date).localeCompare(String(a.shift_date)) || String(b.start_time ?? "").localeCompare(String(a.start_time ?? "")));
+    return withKm.length ? String(withKm[0].km_final) : "";
+  }, [weekShifts]);
+
   useEffect(() => {
     if (targetShift) {
       setDayForm({
@@ -223,9 +232,9 @@ function PainelMotorista() {
         notes: targetShift.notes ?? "",
       });
     } else {
-      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
+      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: lastKmFinal, km_final: "", notes: "" });
     }
-  }, [targetShift?.id, defaultVehicleId]);
+  }, [targetShift?.id, defaultVehicleId, lastKmFinal]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
