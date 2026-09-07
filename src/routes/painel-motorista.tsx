@@ -397,10 +397,12 @@ function PainelMotorista() {
   );
   const roteiros = useMemo(() => (services as any[]).filter((s) => !!s.proposal_id), [services]);
 
+  /** Contagem por tipo: os serviços lançados no dia contam pelo tipo escolhido. */
+  const shiftsOfType = (t: string) => (shifts as any[]).filter((s) => (s.operation_type ?? "tvde") === t).length;
   const counts: Record<Kind, number> = {
-    tvde: shifts.length,
-    privado: privados.length,
-    roteiro: roteiros.length,
+    tvde: shiftsOfType("tvde"),
+    privado: shiftsOfType("privado") + privados.length,
+    roteiro: shiftsOfType("interno") + roteiros.length,
   };
 
   const myVehicleIds = useMemo(
