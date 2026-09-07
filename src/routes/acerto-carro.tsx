@@ -436,6 +436,15 @@ function AcertoCarro() {
       incomes: r.allIncomes, expenses: r.allExpenses,
       incomeTotal: r.incomeTotal, expenseTotal: r.expenseTotal, rentalCost: r.rentalCost,
       netProfit: r.netProfit, driverPct: r.pct, driverAmount: r.driverAmount, companyAmount: r.companyAmount,
+      shifts: [...(r.vShifts as any[])]
+        .sort((a, b) => String(a.shift_date).localeCompare(String(b.shift_date)))
+        .map((s: any) => ({
+          date: s.shift_date,
+          kmInitial: s.km_initial,
+          kmFinal: s.km_final,
+          type: s.operation_type,
+          closed: !!s.closed_at,
+        })),
       details: r.details, closedAt: r.settlement?.closed_at ?? null,
     }).catch((e) => toast.error(e.message));
   }
