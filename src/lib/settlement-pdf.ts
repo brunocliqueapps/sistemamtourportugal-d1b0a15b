@@ -117,6 +117,29 @@ export async function generateSettlementPdf(d: SettlementPdfData) {
     margin: { left: 40, right: 40 },
   });
 
+  if (d.shifts && d.shifts.length) {
+    const typeLabel = (t?: string | null) =>
+      t === "tvde" ? "TVDE" : t === "privado" ? "Serviço privado" : t === "interno" ? "Roteiro Mtour" : (t || "—");
+    const km = (a?: number | null, b?: number | null) =>
+      a != null && b != null ? String(Number(b) - Number(a)) : "—";
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 16,
+      head: [["Data", "Tipo de serviço", "KM inicial", "KM final", "KM percorridos", "Estado"]],
+      body: d.shifts.map((s) => [
+        fmtDate(s.date),
+        typeLabel(s.type),
+        s.kmInitial != null ? String(s.kmInitial) : "—",
+        s.kmFinal != null ? String(s.kmFinal) : "—",
+        km(s.kmInitial, s.kmFinal),
+        s.closed ? "Encerrado" : "Em curso",
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: NAVY, textColor: 255 },
+      columnStyles: { 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" } },
+      margin: { left: 40, right: 40 },
+    });
+  }
+
   const resume: string[][] = [
     ["Total entradas", eur(d.incomeTotal)],
     ["Total saídas", `- ${eur(d.expenseTotal)}`],
