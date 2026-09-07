@@ -857,7 +857,7 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
   });
 
   const emptyForm = () => ({
-    oc_code: "", voucher_code: "",
+    
     client_id: "", driver_id: "", vehicle_id: "",
     service_date: new Date().toISOString().slice(0, 10), start_time: "",
     origin: "", destination: "", passengers: "", sale_value: 0, notes: "",
