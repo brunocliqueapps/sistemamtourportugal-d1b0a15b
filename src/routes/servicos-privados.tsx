@@ -948,3 +948,53 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
     </Dialog>
   );
 }
+
+/** Criação rápida de cliente (nome/telefone/email) a partir do serviço privado. */
+function QuickClientButton({ onCreated }: { onCreated: (id: string) => void }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: "", phone: "", email: "" });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!f.name.trim()) throw new Error("Indique o nome do cliente.");
+      const { data, error } = await supabase
+        .from("clients")
+        .insert({ name: f.name.trim(), phone: f.phone || null, email: f.email || null, status: "novo" } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data!.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Cliente criado");
+      setF({ name: "", phone: "", email: "" });
+      setOpen(false);
+      qc.invalidateQueries();
+      onCreated(id);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <Button type="button" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-1" /> Cliente
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div><Label>Nome *</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => create.mutate()} disabled={create.isPending}>Criar e selecionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
