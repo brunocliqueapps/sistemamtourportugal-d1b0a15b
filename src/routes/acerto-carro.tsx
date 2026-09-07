@@ -539,10 +539,12 @@ function AcertoCarro() {
                         {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Saídas</div>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[520px] text-xs sm:text-sm">
                       <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
                         {(r.allExpenses as LineRow[]).map((l, i) => (
