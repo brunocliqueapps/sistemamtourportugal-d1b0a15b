@@ -900,13 +900,16 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="col-span-2"><Label>Cliente</Label>
-            <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
-                {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
+                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <QuickClientButton onCreated={(id) => setForm({ ...form, client_id: id })} />
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Sem cliente, o serviço fica registado com as informações básicas e o comercial completa mais tarde.
             </p>
