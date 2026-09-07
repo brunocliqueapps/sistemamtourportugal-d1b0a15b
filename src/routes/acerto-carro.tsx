@@ -522,9 +522,10 @@ function AcertoCarro() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Entradas</div>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[520px] text-xs sm:text-sm">
                       <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
                         {(r.allIncomes as LineRow[]).map((l, i) => (
