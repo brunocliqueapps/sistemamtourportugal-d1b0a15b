@@ -509,18 +509,18 @@ function PainelMotorista() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {KINDS.map((k) => (
           <button
             key={k.key}
             onClick={() => setKind(kind === k.key ? null : k.key)}
-            className={`text-left rounded-lg border p-4 transition-colors ${
+            className={`min-w-0 text-left rounded-lg border p-3 sm:p-4 transition-colors ${
               kind === k.key ? "border-primary bg-primary/5" : "border-border hover:bg-accent"
             }`}
           >
-            <div className="text-sm font-medium">{k.label}</div>
-            <div className="mt-1 text-2xl font-bold">{counts[k.key]}</div>
-            <div className="text-xs text-muted-foreground">hoje</div>
+            <div className="text-[11px] sm:text-sm font-medium leading-tight break-words">{k.label}</div>
+            <div className="mt-1 text-xl sm:text-2xl font-bold">{counts[k.key]}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">hoje</div>
           </button>
         ))}
       </div>
@@ -528,91 +528,25 @@ function PainelMotorista() {
       {/* Lançamento do dia */}
       {myDriver && (
         <Card className="p-4 sm:p-6 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4" /> {editingShift ? `Editar serviço · ${fmtDate(editingShift.shift_date)}` : "Lançamento do dia"}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
+            <div className="min-w-0 font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0" /> <span className="truncate">Lançamento do dia</span>
             </div>
-            <div className="flex items-center gap-2">
-              {editingShift && (
-                <Button size="sm" variant="ghost" onClick={() => setEditShiftId(null)}>
-                  <X className="h-4 w-4 mr-1" /> Cancelar edição
-                </Button>
-              )}
-              <Badge variant="outline">{targetShift ? (targetShift.closed_at ? "encerrado" : "em curso") : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) neste dia` : "não iniciado"}</Badge>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label>Veículo</Label>
-              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
-                {dayForm.vehicle_id ? vehicleLabel(dayForm.vehicle_id) : "Sem veículo atribuído"}
-              </div>
-              {!defaultVehicleId && (
-                <p className="text-xs text-muted-foreground">Nenhum veículo associado a este motorista. Peça ao administrador para associar em Cadastros → Veículos.</p>
-              )}
-            </div>
-
-
-            <div className="space-y-1">
-              <Label>Tipo de serviço</Label>
-              <Select value={dayForm.operation_type} onValueChange={(v) => setDayForm({ ...dayForm, operation_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {SERVICE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>KM inicial</Label>
-              <Input type="number" value={dayForm.km_initial} onChange={(e) => setDayForm({ ...dayForm, km_initial: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>KM final</Label>
-              <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!targetShift} />
-            </div>
-            <div className="space-y-1 sm:col-span-2 lg:col-span-4">
-              <Label>Notas do dia</Label>
-              <Input value={dayForm.notes} onChange={(e) => setDayForm({ ...dayForm, notes: e.target.value })} placeholder="Ocorrências, observações…" />
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge variant="outline" className="hidden sm:inline-flex">
+                {openShift ? "em curso" : (shifts as any[]).length ? `${(shifts as any[]).length} serviço(s) neste dia` : "não iniciado"}
+              </Badge>
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={() => { setEditShiftId(null); setDayOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Lançamento
+              </Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {!targetShift ? (
-              <>
-                <Button
-                  onClick={() => startDay.mutate()}
-                  disabled={startDay.isPending || !canStartDay}
-                >
-                  Iniciar serviço
-                </Button>
-                {!canStartDay && (
-                  <span className="text-xs text-muted-foreground">
-                    Preencha tipo de serviço e KM inicial.
-                  </span>
-                )}
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending}>
-                  Guardar lançamento
-                </Button>
-                {!targetShift.closed_at && (
-                  <>
-                    <Button
-                      onClick={() => saveDay.mutate(true)}
-                      disabled={saveDay.isPending || dayForm.km_final === ""}
-                    >
-                      Encerrar serviço com KM final
-                    </Button>
-                    {dayForm.km_final === "" && (
-                      <span className="text-xs text-muted-foreground">Indique o KM final para encerrar e poder iniciar outro serviço.</span>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+          <div className="text-xs text-muted-foreground">
+            Veículo: <span className="font-mono">{defaultVehicleId ? vehicleLabel(defaultVehicleId) : "sem veículo atribuído"}</span>
+            {openShift && <> · serviço em curso (KM {openShift.km_initial ?? "—"}) — abra o lançamento para encerrar com o KM final.</>}
           </div>
+
 
           {/* Histórico da semana */}
           <div className="space-y-2 pt-2">
