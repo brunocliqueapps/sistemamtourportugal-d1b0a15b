@@ -289,7 +289,7 @@ function AcertoCarro() {
 
 
       return {
-        vehicle: v, driver, driverId, isRental, rentalCost,
+        vehicle: v, driver, driverId, isRental, rentalCost, vShifts,
         allIncomes, allExpenses, incomeTvde, incomeServices, incomeManual,
         incomeTotal, expenseTotal, netProfit, pct, driverAmount, companyAmount,
         settlement, hasActivity: allIncomes.length > 0 || allExpenses.length > 0,
