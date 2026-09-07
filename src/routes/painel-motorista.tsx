@@ -188,6 +188,18 @@ function PainelMotorista() {
         .order("created_at")).data ?? [],
   });
 
+  /** Acerto da semana do motorista: o resumo PDF só abre depois de o admin fechar. */
+  const { data: weekSettlement = null } = useQuery({
+    queryKey: ["pm-settlement", myDriver?.id, weekStart],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await (supabase.from("car_settlements") as any)
+        .select("id,closed_at")
+        .eq("week_start", weekStart)
+        .eq("driver_id", myDriver!.id)
+        .maybeSingle()).data ?? null,
+  });
+
   const { data: costCenters = [] } = useQuery({
     queryKey: ["pm-cost-centers"],
     queryFn: async () =>
@@ -462,7 +474,16 @@ function PainelMotorista() {
       incomeTotal: week.in, expenseTotal: week.out, rentalCost: 0,
       netProfit: week.in - week.out,
       driverPct: null, driverAmount: week.in - week.out, companyAmount: 0,
-      details: kmDetail || null, closedAt: null,
+      shifts: [...(weekShifts as any[])]
+        .sort((a, b) => String(a.shift_date).localeCompare(String(b.shift_date)))
+        .map((s) => ({
+          date: s.shift_date,
+          kmInitial: s.km_initial,
+          kmFinal: s.km_final,
+          type: s.operation_type,
+          closed: !!s.closed_at,
+        })),
+      details: kmDetail || null, closedAt: weekSettlement?.closed_at ?? null,
     }).catch((e) => toast.error(e.message));
   }
 
@@ -641,7 +662,9 @@ function PainelMotorista() {
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-              <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              {(isAdmin || !!weekSettlement?.closed_at) && (
+                <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              )}
               <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
                 <Plus className="h-4 w-4 mr-1" /> Lançamento
               </Button>
