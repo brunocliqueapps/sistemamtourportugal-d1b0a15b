@@ -662,7 +662,9 @@ function PainelMotorista() {
             <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-              <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              {(isAdmin || !!weekSettlement?.closed_at) && (
+                <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              )}
               <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
                 <Plus className="h-4 w-4 mr-1" /> Lançamento
               </Button>
