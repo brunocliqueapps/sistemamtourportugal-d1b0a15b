@@ -188,6 +188,18 @@ function PainelMotorista() {
         .order("created_at")).data ?? [],
   });
 
+  /** Acerto da semana do motorista: o resumo PDF só abre depois de o admin fechar. */
+  const { data: weekSettlement = null } = useQuery({
+    queryKey: ["pm-settlement", myDriver?.id, weekStart],
+    enabled: !!myDriver?.id,
+    queryFn: async () =>
+      (await (supabase.from("car_settlements") as any)
+        .select("id,closed_at")
+        .eq("week_start", weekStart)
+        .eq("driver_id", myDriver!.id)
+        .maybeSingle()).data ?? null,
+  });
+
   const { data: costCenters = [] } = useQuery({
     queryKey: ["pm-cost-centers"],
     queryFn: async () =>
