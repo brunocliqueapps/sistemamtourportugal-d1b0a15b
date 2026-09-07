@@ -242,8 +242,14 @@ function ServicosPrivados() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{s.service_date} {s.start_time?.slice(0, 5)}</TableCell>
                   <TableCell>
-                    <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
-                    <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
+                    {s.client_id && s.oc_code ? (
+                      <>
+                        <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
+                        <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {s.clients?.name ?? <Badge variant="outline" className="border-amber-500 text-amber-600">A completar pelo comercial</Badge>}
