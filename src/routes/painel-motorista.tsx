@@ -290,6 +290,7 @@ function PainelMotorista() {
     onSuccess: (close) => {
       toast.success(close ? "Serviço encerrado" : "Lançamento guardado");
       setEditShiftId(null);
+      setDayOpen(false);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-entries"] });
