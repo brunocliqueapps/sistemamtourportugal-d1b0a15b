@@ -85,10 +85,12 @@ function ServicosPrivados() {
   const saveEdit = useMutation({
     mutationFn: async () => {
       if (!editing) return;
+      const hasClient = !!(editing.client_id && editing.client_id !== "__none");
       const payload: any = {
-        client_id: editing.client_id && editing.client_id !== "__none" ? editing.client_id : null,
-        oc_code: editing.oc_code,
-        voucher_code: editing.voucher_code,
+        client_id: hasClient ? editing.client_id : null,
+        // Sem cliente não se cria número de OS nem voucher.
+        oc_code: hasClient ? editing.oc_code : null,
+        voucher_code: hasClient ? editing.voucher_code : null,
         service_date: editing.service_date,
         start_time: editing.start_time,
         origin: editing.origin,
@@ -240,8 +242,14 @@ function ServicosPrivados() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{s.service_date} {s.start_time?.slice(0, 5)}</TableCell>
                   <TableCell>
-                    <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
-                    <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
+                    {s.client_id && s.oc_code ? (
+                      <>
+                        <Link to="/oc/$id" params={{ id: s.id }} className="font-mono text-primary hover:underline">{s.oc_code}</Link>
+                        <div className="text-xs text-muted-foreground">{s.voucher_code}</div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {s.clients?.name ?? <Badge variant="outline" className="border-amber-500 text-amber-600">A completar pelo comercial</Badge>}
@@ -312,20 +320,21 @@ function ServicosPrivados() {
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Editar serviço {editing?.client_id ? editing?.oc_code ?? "" : "(a completar)"}</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Cliente</Label>
-                <Select value={editing.client_id ?? "__none"} onValueChange={(v) => setEditing({ ...editing, client_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Sem cliente (a completar)</SelectItem>
-                    {clientList.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={editing.client_id ?? "__none"} onValueChange={(v) => setEditing({ ...editing, client_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem cliente (a completar)</SelectItem>
+                      {clientList.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <QuickClientButton onCreated={(id) => setEditing({ ...editing, client_id: id })} />
+                </div>
               </div>
-              <div><Label>Nº OS</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
-              <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
               <div><Label>Hora</Label><Input type="time" value={editing.start_time?.slice(0, 5) ?? ""} onChange={(e) => setEditing({ ...editing, start_time: e.target.value })} /></div>
               <div><Label>Origem</Label><Input value={editing.origin ?? ""} onChange={(e) => setEditing({ ...editing, origin: e.target.value })} /></div>
@@ -848,7 +857,7 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
   });
 
   const emptyForm = () => ({
-    oc_code: "", voucher_code: "",
+    
     client_id: "", driver_id: "", vehicle_id: "",
     service_date: new Date().toISOString().slice(0, 10), start_time: "",
     origin: "", destination: "", passengers: "", sale_value: 0, notes: "",
@@ -859,8 +868,6 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
     mutationFn: async () => {
       if (!form.service_date) throw new Error("Data é obrigatória.");
       const payload: any = {
-        oc_code: form.oc_code || null,
-        voucher_code: form.voucher_code || null,
         client_id: form.client_id && form.client_id !== "__none" ? form.client_id : null,
         driver_id: form.driver_id || null,
         vehicle_id: form.vehicle_id || null,
@@ -893,13 +900,16 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
         <DialogHeader><DialogTitle>Novo serviço privado</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="col-span-2"><Label>Cliente</Label>
-            <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
-                {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={form.client_id || undefined} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Sem cliente — o comercial completa depois</SelectItem>
+                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <QuickClientButton onCreated={(id) => setForm({ ...form, client_id: id })} />
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Sem cliente, o serviço fica registado com as informações básicas e o comercial completa mais tarde.
             </p>
@@ -936,5 +946,55 @@ function NewPrivateServiceDialog({ open, onClose }: { open: boolean; onClose: ()
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Criação rápida de cliente (nome/telefone/email) a partir do serviço privado. */
+function QuickClientButton({ onCreated }: { onCreated: (id: string) => void }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: "", phone: "", email: "" });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!f.name.trim()) throw new Error("Indique o nome do cliente.");
+      const { data, error } = await supabase
+        .from("clients")
+        .insert({ name: f.name.trim(), phone: f.phone || null, email: f.email || null, status: "novo" } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data!.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Cliente criado");
+      setF({ name: "", phone: "", email: "" });
+      setOpen(false);
+      qc.invalidateQueries();
+      onCreated(id);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <Button type="button" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-1" /> Cliente
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div><Label>Nome *</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => create.mutate()} disabled={create.isPending}>Criar e selecionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

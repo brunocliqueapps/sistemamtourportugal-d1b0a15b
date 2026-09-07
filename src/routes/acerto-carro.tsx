@@ -522,9 +522,10 @@ function AcertoCarro() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Entradas</div>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[520px] text-xs sm:text-sm">
                       <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Origem</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
                         {(r.allIncomes as LineRow[]).map((l, i) => (
@@ -538,10 +539,12 @@ function AcertoCarro() {
                         {r.allIncomes.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Sem entradas.</TableCell></TableRow>}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Saídas</div>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[520px] text-xs sm:text-sm">
                       <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Custo</TableHead><TableHead>Detalhe</TableHead><TableHead className="text-right">Valor</TableHead>{isAdmin && <TableHead className="w-16" />}</TableRow></TableHeader>
                       <TableBody>
                         {(r.allExpenses as LineRow[]).map((l, i) => (
@@ -556,10 +559,11 @@ function AcertoCarro() {
 
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t pt-3">
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 border-t pt-3">
                   <div><div className="text-xs text-muted-foreground">Total entradas</div><div className="font-semibold text-emerald-600">{eur(r.incomeTotal)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Total saídas</div><div className="font-semibold text-destructive">{eur(r.expenseTotal)}</div></div>
                   <div><div className="text-xs text-muted-foreground">Aluguer</div><div className="font-semibold">{r.rentalCost > 0 ? `− ${eur(r.rentalCost)}` : "—"}</div></div>
