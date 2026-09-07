@@ -260,6 +260,7 @@ function PainelMotorista() {
     },
     onSuccess: () => {
       toast.success("Serviço iniciado");
+      setDayOpen(false);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
     },
