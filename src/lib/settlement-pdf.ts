@@ -13,7 +13,16 @@ export interface SettlementLine {
   amount: number;
 }
 
+export interface SettlementShift {
+  date: string;
+  kmInitial?: number | null;
+  kmFinal?: number | null;
+  type?: string | null;
+  closed?: boolean;
+}
+
 export interface SettlementPdfData {
+  shifts?: SettlementShift[];
   weekStart: string;
   weekEnd: string;
   vehicleLabel: string;
