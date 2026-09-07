@@ -570,7 +570,7 @@ function PainelMotorista() {
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
                     <div className="ml-auto flex items-center">
-                      <Button size="icon" variant="ghost" title="Ver / editar este serviço" onClick={() => { setDayDate(s.shift_date); setEditShiftId(s.id); }}>
+                      <Button size="icon" variant="ghost" title="Ver / editar este serviço" onClick={() => { setDayDate(s.shift_date); setEditShiftId(s.id); setDayOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" title="Eliminar este serviço" onClick={() => { if (confirm("Eliminar este serviço registado?")) delShift.mutate(s.id); }}>
