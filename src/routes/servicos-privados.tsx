@@ -320,20 +320,21 @@ function ServicosPrivados() {
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Editar serviço {editing?.oc_code}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Editar serviço {editing?.client_id ? editing?.oc_code ?? "" : "(a completar)"}</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Cliente</Label>
-                <Select value={editing.client_id ?? "__none"} onValueChange={(v) => setEditing({ ...editing, client_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Sem cliente (a completar)</SelectItem>
-                    {clientList.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={editing.client_id ?? "__none"} onValueChange={(v) => setEditing({ ...editing, client_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem cliente (a completar)</SelectItem>
+                      {clientList.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <QuickClientButton onCreated={(id) => setEditing({ ...editing, client_id: id })} />
+                </div>
               </div>
-              <div><Label>Nº OS</Label><Input value={editing.oc_code ?? ""} onChange={(e) => setEditing({ ...editing, oc_code: e.target.value })} /></div>
-              <div><Label>Voucher</Label><Input value={editing.voucher_code ?? ""} onChange={(e) => setEditing({ ...editing, voucher_code: e.target.value })} /></div>
               <div><Label>Data</Label><Input type="date" value={editing.service_date ?? ""} onChange={(e) => setEditing({ ...editing, service_date: e.target.value })} /></div>
               <div><Label>Hora</Label><Input type="time" value={editing.start_time?.slice(0, 5) ?? ""} onChange={(e) => setEditing({ ...editing, start_time: e.target.value })} /></div>
               <div><Label>Origem</Label><Input value={editing.origin ?? ""} onChange={(e) => setEditing({ ...editing, origin: e.target.value })} /></div>
