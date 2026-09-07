@@ -723,6 +723,81 @@ function PainelMotorista() {
         </div>
       </Card>
 
+      {/* Popup do lançamento do dia (mesmo padrão do + Lançamento) */}
+      <Dialog open={dayOpen} onOpenChange={(o) => { if (!o) { setDayOpen(false); setEditShiftId(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingShift ? `Editar serviço · ${fmtDate(editingShift.shift_date)}` : targetShift ? "Serviço em curso" : `Novo serviço · ${fmtDate(dayDate)}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Veículo</Label>
+              <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
+                {dayForm.vehicle_id ? vehicleLabel(dayForm.vehicle_id) : "Sem veículo atribuído"}
+              </div>
+              {!defaultVehicleId && (
+                <p className="text-xs text-muted-foreground mt-1">Nenhum veículo associado a este motorista. Peça ao administrador para associar em Cadastros → Veículos.</p>
+              )}
+            </div>
+            <div>
+              <Label>Tipo de serviço</Label>
+              <Select value={dayForm.operation_type} onValueChange={(v) => setDayForm({ ...dayForm, operation_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SERVICE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>KM inicial</Label>
+                <Input type="number" value={dayForm.km_initial} onChange={(e) => setDayForm({ ...dayForm, km_initial: e.target.value })} />
+                {!targetShift && lastKmFinal && (
+                  <p className="text-xs text-muted-foreground mt-1">Pré-preenchido com o último KM final ({lastKmFinal}).</p>
+                )}
+              </div>
+              <div>
+                <Label>KM final</Label>
+                <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!targetShift} />
+              </div>
+            </div>
+            <div>
+              <Label>Notas do dia</Label>
+              <Input value={dayForm.notes} onChange={(e) => setDayForm({ ...dayForm, notes: e.target.value })} placeholder="Ocorrências, observações…" />
+            </div>
+            {!targetShift && !canStartDay && (
+              <p className="text-xs text-muted-foreground">Preencha tipo de serviço e KM inicial.</p>
+            )}
+            {targetShift && !targetShift.closed_at && dayForm.km_final === "" && (
+              <p className="text-xs text-muted-foreground">Indique o KM final para encerrar e poder iniciar outro serviço.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDayOpen(false); setEditShiftId(null); }}>
+              <X className="h-4 w-4 mr-1" /> Fechar
+            </Button>
+            {!targetShift ? (
+              <Button className="gradient-gold text-gold-foreground" onClick={() => startDay.mutate()} disabled={startDay.isPending || !canStartDay}>
+                Iniciar serviço
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => saveDay.mutate(false)} disabled={saveDay.isPending}>Guardar</Button>
+                {!targetShift.closed_at && (
+                  <Button className="gradient-gold text-gold-foreground" onClick={() => saveDay.mutate(true)} disabled={saveDay.isPending || dayForm.km_final === ""}>
+                    Encerrar com KM final
+                  </Button>
+                )}
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       <Dialog open={entryOpen} onOpenChange={(o) => { if (!o) { setEntryOpen(false); setEditingEntryId(null); setEntry({ ...EMPTY_ENTRY }); } }}>
         <DialogContent>
           <DialogHeader>
