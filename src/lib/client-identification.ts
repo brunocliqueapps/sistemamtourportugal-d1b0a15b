@@ -41,3 +41,12 @@ export function effectivePaymentResponsible(proposal: any): PaymentResponsible |
   if (proposal?.payment_responsible_partner_id !== c.partner_id) return null;
   return v;
 }
+
+export type ColumnState = "loading" | "present" | "absent" | "error";
+/** Interpreta o resultado de um select read-only (limit 0) sobre as colunas novas. */
+export function columnStateFromResult(res: { error: { code?: string; message?: string } | null }): ColumnState {
+  if (!res.error) return "present"; // tabela vazia também devolve sucesso
+  const code = res.error.code ?? "";
+  if (code === "42703" || code === "PGRST204" || /column .* does not exist/i.test(res.error.message ?? "")) return "absent";
+  return "error";
+}
