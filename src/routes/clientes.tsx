@@ -22,6 +22,7 @@ import { useNextClientNumber } from "@/lib/next-client-number";
 import { daysBetween } from "@/lib/payment-terms";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
+import { CLIENT_IDENTIFICATION_OPTIONS, clientIdentificationOf, validateClientIdentification } from "@/lib/client-identification";
 
 
 
@@ -107,9 +108,22 @@ function Clientes() {
   });
 
 
+  const { data: partnersList = [] } = useQuery({
+    queryKey: ["partners", "active-mini"],
+    queryFn: async () => (await supabase.from("partners").select("id,name,active").order("name")).data ?? [],
+  });
+  // As colunas de identificação só existem após a migração aditiva; até lá não são enviadas.
+  const hasIdentCols = (clients as any[]).length > 0 && "client_identification" in (clients as any[])[0];
+
   const save = useMutation({
     mutationFn: async () => {
+      const identErr = validateClientIdentification(form);
+      if (identErr) throw new Error(identErr);
+      const ident = clientIdentificationOf(form);
+      if (!hasIdentCols && ident === "parceiro") throw new Error("Cliente Parceiro requer a atualização da base de dados (migração pendente).");
       const payload: any = { ...form };
+      delete payload.client_identification; delete payload.partner_id;
+      if (hasIdentCols) { payload.client_identification = ident; payload.partner_id = ident === "parceiro" ? form.partner_id : null; }
       delete payload.client_number; // número de cliente é fixo
       delete payload.id; delete payload.created_at; delete payload.updated_at; delete payload.lead_id;
       const pax = payload.passengers === "" || payload.passengers == null ? null : Number(payload.passengers);
@@ -457,6 +471,28 @@ function Clientes() {
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
                 <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
                 <div><Label>Número de pessoas</Label><Input type="text" inputMode="numeric" placeholder="0" value={form.passengers ?? ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm({ ...form, passengers: v }); setHasUnsavedChanges(true); }} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Identificação do Cliente</Label>
+                  <Select value={clientIdentificationOf(form)} onValueChange={(v) => { setForm({ ...form, client_identification: v, partner_id: v === "parceiro" ? form.partner_id ?? null : null }); setHasUnsavedChanges(true); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CLIENT_IDENTIFICATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {clientIdentificationOf(form) === "parceiro" && (
+                  <div>
+                    <Label>Parceiro *</Label>
+                    <Select value={form.partner_id ?? ""} onValueChange={(v) => { setForm({ ...form, partner_id: v }); setHasUnsavedChanges(true); }}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar parceiro" /></SelectTrigger>
+                      <SelectContent>
+                        {(partnersList as any[]).filter((pt) => pt.active !== false || pt.id === form.partner_id).map((pt) => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
 
