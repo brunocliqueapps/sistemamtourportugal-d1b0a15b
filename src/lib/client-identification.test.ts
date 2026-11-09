@@ -28,3 +28,10 @@ describe("responsável pelo pagamento", () => {
     expect(effectivePaymentResponsible({ clients: { partner_id: "p1" }, payment_responsible: "cliente", payment_responsible_partner_id: "p1" })).toBeNull();
   });
 });
+
+import { columnStateFromResult } from "./client-identification";
+describe("deteção da coluna", () => {
+  it("tabela vazia já migrada → presente", () => expect(columnStateFromResult({ error: null })).toBe("present"));
+  it("migração ausente → ausente", () => expect(columnStateFromResult({ error: { code: "42703", message: "column clients.client_identification does not exist" } })).toBe("absent"));
+  it("erro real → erro", () => expect(columnStateFromResult({ error: { code: "PGRST301", message: "JWT expired" } })).toBe("error"));
+});

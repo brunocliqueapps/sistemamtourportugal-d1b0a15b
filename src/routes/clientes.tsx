@@ -22,7 +22,7 @@ import { useNextClientNumber } from "@/lib/next-client-number";
 import { daysBetween } from "@/lib/payment-terms";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-import { CLIENT_IDENTIFICATION_OPTIONS, clientIdentificationOf, validateClientIdentification } from "@/lib/client-identification";
+import { columnStateFromResult, CLIENT_IDENTIFICATION_OPTIONS, clientIdentificationOf, validateClientIdentification } from "@/lib/client-identification";
 
 
 
@@ -113,14 +113,22 @@ function Clientes() {
     queryFn: async () => (await supabase.from("partners").select("id,name,active").order("name")).data ?? [],
   });
   // As colunas de identificação só existem após a migração aditiva; até lá não são enviadas.
-  const hasIdentCols = (clients as any[]).length > 0 && "client_identification" in (clients as any[])[0];
+  const { data: identColState = "loading" } = useQuery({
+    queryKey: ["schema", "clients.client_identification"],
+    queryFn: async () => columnStateFromResult(await supabase.from("clients").select("client_identification,partner_id" as any).limit(0)),
+  });
+  const hasIdentCols = identColState === "present";
 
   const save = useMutation({
     mutationFn: async () => {
       const identErr = validateClientIdentification(form);
       if (identErr) throw new Error(identErr);
       const ident = clientIdentificationOf(form);
-      if (!hasIdentCols && ident === "parceiro") throw new Error("Cliente Parceiro requer a atualização da base de dados (migração pendente).");
+      if (ident === "parceiro" && identColState !== "present") throw new Error(
+        identColState === "loading" ? "A verificar a base de dados, tenta novamente." :
+        identColState === "error" ? "Não foi possível verificar a base de dados. Tenta novamente." :
+        "Cliente Parceiro requer a atualização da base de dados (migração pendente).");
+      if (identColState === "loading" || identColState === "error") throw new Error("A verificar a base de dados, tenta novamente.");
       const payload: any = { ...form };
       delete payload.client_identification; delete payload.partner_id;
       if (hasIdentCols) { payload.client_identification = ident; payload.partner_id = ident === "parceiro" ? form.partner_id : null; }
@@ -468,11 +476,8 @@ function Clientes() {
 
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground">Dados do cliente</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-3">
-                <div><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
-                <div><Label>Número de pessoas</Label><Input type="text" inputMode="numeric" placeholder="0" value={form.passengers ?? ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm({ ...form, passengers: v }); setHasUnsavedChanges(true); }} /></div>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2"><Label>Nome *</Label><Input value={form.name ?? ""} onChange={(e) => { setForm({ ...form, name: e.target.value }); setHasUnsavedChanges(true); }} /></div>
                 <div>
                   <Label>Identificação do Cliente</Label>
                   <Select value={clientIdentificationOf(form)} onValueChange={(v) => { setForm({ ...form, client_identification: v, partner_id: v === "parceiro" ? form.partner_id ?? null : null }); setHasUnsavedChanges(true); }}>
@@ -493,6 +498,7 @@ function Clientes() {
                     </Select>
                   </div>
                 )}
+                <div><Label>Número de pessoas</Label><Input type="text" inputMode="numeric" placeholder="0" value={form.passengers ?? ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm({ ...form, passengers: v }); setHasUnsavedChanges(true); }} /></div>
               </div>
             </div>
 
