@@ -23,6 +23,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FechamentoRouteImport } from './routes/fechamento'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as ImportarRouteImport } from './routes/importar'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as MensagensRouteImport } from './routes/mensagens'
 import { Route as OcRouteImport } from './routes/oc'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
@@ -35,8 +36,10 @@ import { Route as RoteirosPersonalizadosRouteImport } from './routes/roteiros-pe
 import { Route as ServicosPrivadosRouteImport } from './routes/servicos-privados'
 import { Route as TvdeRouteImport } from './routes/tvde'
 import { Route as VoucherRouteImport } from './routes/voucher'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as OcIdRouteImport } from './routes/oc.$id'
 import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicWhatsappEvolutionRouteImport } from './routes/api/public/whatsapp/evolution'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -110,6 +113,11 @@ const ImportarRoute = ImportarRouteImport.update({
   path: '/importar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MensagensRoute = MensagensRouteImport.update({
   id: '/mensagens',
   path: '/mensagens',
@@ -170,6 +178,12 @@ const VoucherRoute = VoucherRouteImport.update({
   path: '/voucher',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OcIdRoute = OcIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -178,6 +192,11 @@ const OcIdRoute = OcIdRouteImport.update({
 const PesquisaTokenRoute = PesquisaTokenRouteImport.update({
   id: '/pesquisa/$token',
   path: '/pesquisa/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWhatsappEvolutionRoute =
@@ -208,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
@@ -220,8 +240,10 @@ export interface FileRoutesByFullPath {
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -240,6 +262,7 @@ export interface FileRoutesByTo {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
@@ -252,8 +275,10 @@ export interface FileRoutesByTo {
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -273,6 +298,7 @@ export interface FileRoutesById {
   '/fechamento': typeof FechamentoRoute
   '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
+  '/mcp': typeof McpRoute
   '/mensagens': typeof MensagensRoute
   '/oc': typeof OcRouteWithChildren
   '/orcamento': typeof OrcamentoRoute
@@ -285,8 +311,10 @@ export interface FileRoutesById {
   '/servicos-privados': typeof ServicosPrivadosRoute
   '/tvde': typeof TvdeRoute
   '/voucher': typeof VoucherRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/oc/$id': typeof OcIdRoute
   '/pesquisa/$token': typeof PesquisaTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/whatsapp/evolution': typeof ApiPublicWhatsappEvolutionRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -307,6 +335,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/mensagens'
     | '/oc'
     | '/orcamento'
@@ -319,8 +348,10 @@ export interface FileRouteTypes {
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
+    | '/.well-known/oauth-protected-resource'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/.lovable/oauth/consent'
     | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -339,6 +370,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/mensagens'
     | '/oc'
     | '/orcamento'
@@ -351,8 +383,10 @@ export interface FileRouteTypes {
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
+    | '/.well-known/oauth-protected-resource'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/.lovable/oauth/consent'
     | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   id:
@@ -371,6 +405,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/importar'
+    | '/mcp'
     | '/mensagens'
     | '/oc'
     | '/orcamento'
@@ -383,8 +418,10 @@ export interface FileRouteTypes {
     | '/servicos-privados'
     | '/tvde'
     | '/voucher'
+    | '/.well-known/oauth-protected-resource'
     | '/oc/$id'
     | '/pesquisa/$token'
+    | '/.lovable/oauth/consent'
     | '/api/public/whatsapp/evolution'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -404,6 +441,7 @@ export interface RootRouteChildren {
   FechamentoRoute: typeof FechamentoRoute
   FinanceiroRoute: typeof FinanceiroRoute
   ImportarRoute: typeof ImportarRoute
+  McpRoute: typeof McpRoute
   MensagensRoute: typeof MensagensRoute
   OcRoute: typeof OcRouteWithChildren
   OrcamentoRoute: typeof OrcamentoRoute
@@ -416,7 +454,9 @@ export interface RootRouteChildren {
   ServicosPrivadosRoute: typeof ServicosPrivadosRoute
   TvdeRoute: typeof TvdeRoute
   VoucherRoute: typeof VoucherRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PesquisaTokenRoute: typeof PesquisaTokenRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicWhatsappEvolutionRoute: typeof ApiPublicWhatsappEvolutionRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -521,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mensagens': {
       id: '/mensagens'
       path: '/mensagens'
@@ -605,6 +652,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VoucherRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/oc/$id': {
       id: '/oc/$id'
       path: '/$id'
@@ -617,6 +671,13 @@ declare module '@tanstack/react-router' {
       path: '/pesquisa/$token'
       fullPath: '/pesquisa/$token'
       preLoaderRoute: typeof PesquisaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/whatsapp/evolution': {
@@ -661,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   FechamentoRoute: FechamentoRoute,
   FinanceiroRoute: FinanceiroRoute,
   ImportarRoute: ImportarRoute,
+  McpRoute: McpRoute,
   MensagensRoute: MensagensRoute,
   OcRoute: OcRouteWithChildren,
   OrcamentoRoute: OrcamentoRoute,
@@ -673,7 +735,10 @@ const rootRouteChildren: RootRouteChildren = {
   ServicosPrivadosRoute: ServicosPrivadosRoute,
   TvdeRoute: TvdeRoute,
   VoucherRoute: VoucherRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PesquisaTokenRoute: PesquisaTokenRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicWhatsappEvolutionRoute: ApiPublicWhatsappEvolutionRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }

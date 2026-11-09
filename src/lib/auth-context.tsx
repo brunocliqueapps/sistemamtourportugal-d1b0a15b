@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 interface AuthCtx {
   user: User | null;
@@ -10,6 +11,13 @@ interface AuthCtx {
   signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+}
+
+// Keeps a pending agent-authorization (consent) page as the return target after login.
+function returnUrl(fallback: string): string {
+  const raw = new URLSearchParams(window.location.search).get("next");
+  const next = raw ? oauthReturnPath(raw) : "/";
+  return new URL(next !== "/" ? next : fallback, window.location.origin).href;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -46,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: { name },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: returnUrl("/"),
         },
       });
       return { error: error?.message ?? null };
@@ -54,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle: async () => {
       await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin + "/dashboard" },
+        options: { redirectTo: returnUrl("/dashboard") },
       });
     },
     signOut: async () => {

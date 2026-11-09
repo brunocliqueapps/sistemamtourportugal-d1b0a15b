@@ -19,6 +19,7 @@ import { ThemeProvider } from "../lib/theme";
 import { AppShell } from "../components/layout/AppShell";
 import { Toaster } from "../components/ui/sonner";
 import { UnsavedChangesProvider } from "../lib/unsaved-changes-context";
+import { oauthReturnPath } from "../lib/oauth-return-path";
 
 
 function NotFoundComponent() {
@@ -127,13 +128,18 @@ function AuthGate({ children }: { children: ReactNode }) {
   const nav = useNavigate();
   const loc = useLocation();
   const isAuthRoute = loc.pathname === "/" || loc.pathname === "/registro";
-  const isPublicRoute = loc.pathname.startsWith("/pesquisa/");
+  const isPublicRoute = loc.pathname.startsWith("/pesquisa/") || loc.pathname.startsWith("/.lovable/");
 
   useEffect(() => {
     if (isPublicRoute) return;
     if (loading) return;
     if (!user && !isAuthRoute) nav({ to: "/" });
-    if (user && isAuthRoute) nav({ to: "/dashboard" });
+    if (user && isAuthRoute) {
+      const rawNext = new URLSearchParams(window.location.search).get("next");
+      const next = rawNext ? oauthReturnPath(rawNext) : "/";
+      if (next !== "/") window.location.assign(next);
+      else nav({ to: "/dashboard" });
+    }
   }, [user, loading, isAuthRoute, nav]);
 
   if (isPublicRoute) return <>{children}</>;
