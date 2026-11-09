@@ -128,7 +128,6 @@ function Clientes() {
         identColState === "loading" ? "A verificar a base de dados, tenta novamente." :
         identColState === "error" ? "Não foi possível verificar a base de dados. Tenta novamente." :
         "Cliente Parceiro requer a atualização da base de dados (migração pendente).");
-      if (identColState === "loading" || identColState === "error") throw new Error("A verificar a base de dados, tenta novamente.");
       const payload: any = { ...form };
       delete payload.client_identification; delete payload.partner_id;
       if (hasIdentCols) { payload.client_identification = ident; payload.partner_id = ident === "parceiro" ? form.partner_id : null; }
