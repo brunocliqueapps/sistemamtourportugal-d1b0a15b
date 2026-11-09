@@ -24,6 +24,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 import { usePermissions } from "@/lib/permissions";
+import { PAYMENT_RESPONSIBLE_OPTIONS, effectivePaymentResponsible, isPartnerClient } from "@/lib/client-identification";
 
 
 
@@ -78,6 +79,8 @@ function Orcamento() {
     queryKey: ["proposals-orcamento"],
     queryFn: async () => (await supabase.from("proposals").select("*, clients(*), regions(name), tour_routes(name)").order("created_at", { ascending: false })).data ?? [],
   });
+  const { data: partnersList = [] } = useQuery({ queryKey: ["partners", "active-mini"], queryFn: async () => (await supabase.from("partners").select("id,name,active").order("name")).data ?? [] });
+  const [payResp, setPayResp] = useState<string>("");
   const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: async () => (await supabase.from("regions").select("*")).data ?? [] });
   const { data: routes = [] } = useQuery({ queryKey: ["tour_routes", "list-mini"], queryFn: async () => (await supabase.from("tour_routes").select("*")).data ?? [] });
   const { data: followups = [], refetch: refetchFollowups } = useQuery({
@@ -201,6 +204,20 @@ function Orcamento() {
     return true;
   }
 
+
+  async function savePaymentResponsible() {
+    if (!p) return;
+    const pid = p.clients?.partner_id;
+    if (!isPartnerClient(p.clients) || !pid) return toast.error("Este cliente não é Cliente Parceiro.");
+    if (payResp !== "cliente" && payResp !== "parceiro") return toast.error("Indica o responsável pelo pagamento.");
+    if (!("payment_responsible" in p)) return toast.error("Requer a atualização da base de dados (migração pendente).");
+    const { error } = await supabase.from("proposals")
+      .update({ payment_responsible: payResp, payment_responsible_partner_id: pid } as any)
+      .eq("id", p.id).eq("client_id", p.client_id);
+    if (error) return toast.error(error.message);
+    toast.success("Responsável pelo pagamento guardado");
+    refetch();
+  }
 
   async function setBudgetStatus(status: "aprovado" | "analise" | "recusado") {
     if (!p) return;
@@ -491,6 +508,22 @@ function Orcamento() {
                 </div>
               )}
 
+              {p.budget_status === "aprovado" && isPartnerClient(p.clients) && (
+                <div className="rounded-md border border-gold/40 p-3 space-y-2">
+                  <div className="text-sm font-semibold">Responsável pelo pagamento</div>
+                  <div className="text-xs text-muted-foreground">Cliente Parceiro · Parceiro: <span className="font-medium text-foreground">{(partnersList as any[]).find((x) => x.id === p.clients?.partner_id)?.name ?? "—"}</span></div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <Select value={payResp} onValueChange={setPayResp}>
+                      <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_RESPONSIBLE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" onClick={savePaymentResponsible} disabled={!payResp}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
+                  </div>
+                  {effectivePaymentResponsible(p) && <div className="text-xs text-muted-foreground">Guardado: {PAYMENT_RESPONSIBLE_OPTIONS.find((o) => o.value === effectivePaymentResponsible(p))?.label}</div>}
+                </div>
+              )}
               {p.budget_approved_at && <div className="text-xs text-muted-foreground">Aprovado em {new Date(p.budget_approved_at).toLocaleDateString("pt-PT")} · Recebimento: {p.budget_receipt_info ?? "—"}</div>}
               {p.budget_analysis_at && <div className="text-xs text-muted-foreground">Em análise desde {new Date(p.budget_analysis_at).toLocaleDateString("pt-PT")}{p.budget_analysis_info ? ` · ${p.budget_analysis_info}` : ""}</div>}
               {p.budget_refused_at && <div className="text-xs text-muted-foreground">Recusado em {new Date(p.budget_refused_at).toLocaleDateString("pt-PT")} · Motivo: {p.budget_refusal_reason ?? "—"}</div>}
