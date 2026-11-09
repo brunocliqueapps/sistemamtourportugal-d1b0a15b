@@ -122,6 +122,7 @@ function Orcamento() {
     setAnalysisInfo(pr?.budget_analysis_info ?? "");
     setAction("");
     setStatusDate(today());
+    setPayResp(effectivePaymentResponsible(pr) ?? "");
     setHasUnsavedChanges(false);
   }
 
