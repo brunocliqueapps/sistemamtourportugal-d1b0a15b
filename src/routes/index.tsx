@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/layout/Logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +27,7 @@ function AuthPage() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup" | "recover">("signin");
   const [email, setEmail] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,7 +107,7 @@ function AuthPage() {
             {mode !== "recover" && (
               <div>
                 <Label htmlFor="password">Senha</Label>
-                <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+                <div className="relative"><Input id="password" type={showPw ? "text" : "password"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" /><button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Ocultar senha" : "Mostrar senha"} className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground">{showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
               </div>
             )}
             <Button type="submit" disabled={busy} className="w-full gradient-gold text-gold-foreground hover:opacity-90">
