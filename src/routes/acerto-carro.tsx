@@ -201,7 +201,9 @@ function AcertoCarro() {
     return vehicles.map((v: any) => {
       const vShifts = shifts.filter((s: any) => s.vehicle_id === v.id);
       const vShiftIds = new Set(vShifts.map((s: any) => s.id));
-      const vEarnings = earnings.filter((e: any) => vShiftIds.has(e.tvde_shift_id));
+      // A daily closing total already includes the platform earnings for that shift.
+      const reportedShiftIds = new Set(manual.filter((m: any) => m.vehicle_id === v.id && m.shift_id).map((m: any) => m.shift_id));
+      const vEarnings = earnings.filter((e: any) => vShiftIds.has(e.tvde_shift_id) && !reportedShiftIds.has(e.tvde_shift_id));
       const vOrders = orders.filter((o: any) => o.vehicle_id === v.id);
       const vExpenses = expensesRaw.filter((e: any) => vehicleOfExpense(e) === v.id);
       const vManual = manual.filter((m: any) => m.vehicle_id === v.id);
@@ -540,8 +542,8 @@ function AcertoCarro() {
                         {(r.allIncomes as LineRow[]).map((l, i) => (
                           <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
                             {isAdmin && <TableCell className="text-right whitespace-nowrap">
-                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
-                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                              {l.manual && !l.manual.shift_id && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !l.manual?.shift_id && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
                             </TableCell>}
                           </TableRow>
                         ))}
@@ -559,8 +561,8 @@ function AcertoCarro() {
                         {(r.allExpenses as LineRow[]).map((l, i) => (
                           <TableRow key={i}><TableCell className="whitespace-nowrap">{l.date ? fmtDate(l.date) : "—"}</TableCell><TableCell>{l.label}</TableCell><TableCell className="text-muted-foreground">{l.detail}</TableCell><TableCell className="text-right">{eur(l.amount)}</TableCell>
                             {isAdmin && <TableCell className="text-right whitespace-nowrap">
-                              {l.manual && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
-                              {l.srcId && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
+                              {l.manual && !l.manual.shift_id && !closed && <button className="text-primary mr-2" title="Editar" onClick={() => openEdit(r, l.manual)}><Pencil className="h-3.5 w-3.5" /></button>}
+                              {l.srcId && !l.manual?.shift_id && !closed && <button className="text-destructive" title="Eliminar" onClick={() => { if (confirm("Eliminar este registo?")) delRow.mutate(l); }}><Trash2 className="h-3.5 w-3.5" /></button>}
                             </TableCell>}
                           </TableRow>
                         ))}

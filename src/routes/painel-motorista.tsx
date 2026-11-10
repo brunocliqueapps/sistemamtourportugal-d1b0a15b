@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { fmtDate } from "@/lib/format-date";
-import { TRIP_PROPOSAL_COLS, tripRange } from "@/lib/trip-dates";
+import { TRIP_PROPOSAL_COLS, tripRange, itineraryDays, dayLabel } from "@/lib/trip-dates";
 import { generateSettlementPdf, type SettlementLine } from "@/lib/settlement-pdf";
 import { Car, ChevronLeft, ChevronRight, Clock, FileDown, MapPin, Pencil, Plus, Ticket, Trash2, Users, Wallet, X } from "lucide-react";
 
@@ -32,7 +32,8 @@ export const Route = createFileRoute("/painel-motorista")({
   }),
 });
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const localTime = (value?: string) => (value ? new Date(value) : new Date()).toTimeString().slice(0, 5);
 const eur = (n: number) => `€ ${Number(n || 0).toFixed(2)}`;
 function mondayOf(d: Date) {
   const x = new Date(d);
@@ -139,14 +140,15 @@ function PainelMotorista() {
   }, [allVehicles, myVehicleLinks]);
 
 
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isPending: servicesLoading, error: servicesError } = useQuery({
     queryKey: ["pm-services", myDriver?.id, dayDate],
     enabled: !!myDriver?.id,
     queryFn: async () => {
-      const { data } = await (supabase.from("service_orders") as any)
+      const { data, error } = await (supabase.from("service_orders") as any)
         .select(`*, clients(name,phone), vehicles(plate,brand,model), proposals(${TRIP_PROPOSAL_COLS})`)
         .eq("driver_id", myDriver!.id)
         .order("start_time", { ascending: true });
+      if (error) throw error;
       return (data ?? []).filter((s: any) => {
         const { start, end } = tripRange(s);
         if (!start) return false;
@@ -207,6 +209,20 @@ function PainelMotorista() {
   });
 
 
+  const { data: itineraryNames } = useQuery({
+    queryKey: ["pm-itinerary-names"],
+    enabled: !!myDriver?.id,
+    queryFn: async () => {
+      const [regions, routes] = await Promise.all([
+        supabase.from("regions").select("id,name"),
+        supabase.from("tour_routes").select("id,name"),
+      ]);
+      if (regions.error) throw regions.error;
+      if (routes.error) throw routes.error;
+      return { regions: Object.fromEntries(regions.data.map((r) => [r.id, r.name])), routes: Object.fromEntries(routes.data.map((r) => [r.id, r.name])) };
+    },
+  });
+
   /* ---------- Lançamento do dia ---------- */
   const openShift: any = useMemo(() => (shifts as any[]).find((s) => !s.closed_at) ?? null, [shifts]);
   const [editShiftId, setEditShiftId] = useState<string | null>(null);
@@ -217,7 +233,7 @@ function PainelMotorista() {
   );
   /** Turno em edição: o escolhido no histórico ou o turno aberto de hoje. */
   const targetShift: any = editingShift ?? openShift;
-  const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "" });
+  const [dayForm, setDayForm] = useState({ vehicle_id: "", operation_type: "tvde", km_initial: "", km_final: "", notes: "", start_time: localTime(), service_description: "", total_revenue: "", service_order_id: "" });
 
   // Veículo sugerido: o principal atribuído ao motorista, ou o único que tiver
   const defaultVehicleId = useMemo(() => {
@@ -242,16 +258,36 @@ function PainelMotorista() {
         km_initial: targetShift.km_initial != null ? String(targetShift.km_initial) : "",
         km_final: targetShift.km_final != null ? String(targetShift.km_final) : "",
         notes: targetShift.notes ?? "",
+        start_time: localTime(targetShift.start_time),
+        service_description: targetShift.service_description ?? "",
+        total_revenue: targetShift.total_revenue != null ? String(targetShift.total_revenue) : "",
+        service_order_id: targetShift.service_order_id ?? "",
       });
     } else {
-      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: lastKmFinal, km_final: "", notes: "" });
+      setDayForm({ vehicle_id: defaultVehicleId, operation_type: "tvde", km_initial: lastKmFinal, km_final: "", notes: "", start_time: localTime(), service_description: "", total_revenue: "", service_order_id: "" });
     }
-  }, [targetShift?.id, defaultVehicleId, lastKmFinal]);
+  }, [targetShift?.id, defaultVehicleId, lastKmFinal, dayDate, myDriver?.id, dayOpen]);
 
   const num = (v: string) => (v === "" ? null : Number(v));
   const canStartDay = !!dayForm.vehicle_id && !!dayForm.operation_type && dayForm.km_initial !== "";
 
 
+
+  function servicePayload() {
+    if (!dayForm.start_time) throw new Error("Indique a hora de início");
+    if (!Number.isFinite(Number(dayForm.km_initial)) || Number(dayForm.km_initial) < 0 || dayForm.km_initial === "") throw new Error("Indique um KM inicial válido");
+    if (dayForm.km_final !== "" && (!Number.isFinite(Number(dayForm.km_final)) || Number(dayForm.km_final) < Number(dayForm.km_initial))) throw new Error("O KM final deve ser igual ou superior ao inicial");
+    if (dayForm.operation_type === "privado" && !dayForm.service_description.trim()) throw new Error("Descreva o serviço privado");
+    const needsRevenue = dayForm.operation_type === "privado" || (dayForm.operation_type === "tvde" && dayForm.km_final !== "");
+    if (needsRevenue && (dayForm.total_revenue === "" || !Number.isFinite(Number(dayForm.total_revenue)) || Number(dayForm.total_revenue) < 0)) throw new Error("Indique um faturamento válido (zero se não houve faturamento)");
+    if (dayForm.operation_type === "interno" && !roteiros.some((s: any) => s.id === dayForm.service_order_id)) throw new Error("Selecione uma OS deste motorista para o dia");
+    return {
+      start_time: new Date(`${dayDate}T${dayForm.start_time}:00`).toISOString(),
+      service_description: dayForm.operation_type === "privado" ? dayForm.service_description.trim() : null,
+      total_revenue: needsRevenue ? Number(dayForm.total_revenue) : null,
+      service_order_id: dayForm.operation_type === "interno" ? dayForm.service_order_id : null,
+    };
+  }
 
   const startDay = useMutation({
     mutationFn: async () => {
@@ -264,7 +300,7 @@ function PainelMotorista() {
         vehicle_id: dayForm.vehicle_id,
         operation_type: dayForm.operation_type,
         shift_date: dayDate,
-        start_time: new Date().toISOString(),
+        ...servicePayload(),
         km_initial: num(dayForm.km_initial),
         notes: dayForm.notes || null,
       });
@@ -272,6 +308,7 @@ function PainelMotorista() {
     },
     onSuccess: () => {
       toast.success("Serviço iniciado");
+      qc.invalidateQueries({ queryKey: ["pm-entries"] });
       setDayOpen(false);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
@@ -284,6 +321,7 @@ function PainelMotorista() {
       if (!targetShift) throw new Error("Não há lançamento selecionado");
       if (close && dayForm.km_final === "") throw new Error("Indique o KM final para encerrar o serviço");
       const payload: any = {
+        ...servicePayload(),
         vehicle_id: dayForm.vehicle_id || null,
         operation_type: dayForm.operation_type,
         km_initial: num(dayForm.km_initial),
@@ -313,8 +351,8 @@ function PainelMotorista() {
 
   /* ---------- Entradas e saídas da semana (mesmo formulário do Acerto do Carro) ---------- */
   const movVehicleId = useMemo(
-    () => defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "",
-    [defaultVehicleId, openShift?.vehicle_id, shifts],
+    () => (dayOpen ? dayForm.vehicle_id : "") || defaultVehicleId || openShift?.vehicle_id || (shifts as any[])[0]?.vehicle_id || "",
+    [dayOpen, dayForm.vehicle_id, defaultVehicleId, openShift?.vehicle_id, shifts],
   );
   const [entryOpen, setEntryOpen] = useState(false);
   const [entry, setEntry] = useState<EntryDraft>({ ...EMPTY_ENTRY });
@@ -322,7 +360,7 @@ function PainelMotorista() {
 
   function openNewEntry() {
     setEditingEntryId(null);
-    setEntry({ ...EMPTY_ENTRY, entry_date: today >= weekStart && today <= weekEnd ? today : weekStart });
+    setEntry({ ...EMPTY_ENTRY, entry_date: dayDate });
     setEntryOpen(true);
   }
   function openEditEntry(m: any) {
@@ -346,7 +384,7 @@ function PainelMotorista() {
   const addMov = useMutation({
     mutationFn: async () => {
       if (!movVehicleId) throw new Error("Nenhum veículo associado a este motorista");
-      if (!Number(entry.amount)) throw new Error("Valor obrigatório.");
+      if (!Number.isFinite(Number(entry.amount)) || Number(entry.amount) <= 0) throw new Error("Valor obrigatório.");
       if (entry.kind === "entrada" && !entry.origin) throw new Error("Selecione a origem.");
       if (entry.kind === "saida" && !entry.cost_center_id) throw new Error("Selecione o centro de custo.");
       const isOther = entry.kind === "entrada" ? entry.origin === "Outros" : entry.cost_center_id === "outros";
@@ -354,7 +392,7 @@ function PainelMotorista() {
       const entryDate = entry.entry_date || weekStart;
       if (entryDate < weekStart || entryDate > weekEnd) throw new Error("A data tem de estar dentro da semana");
       const payload: any = {
-        vehicle_id: movVehicleId,
+        vehicle_id: editingEntryId ? (entries as any[]).find((e) => e.id === editingEntryId)?.vehicle_id ?? movVehicleId : movVehicleId,
         week_start: weekStart,
         kind: entry.kind,
         amount: Number(entry.amount),
@@ -398,6 +436,7 @@ function PainelMotorista() {
     },
     onSuccess: () => {
       toast.success("Serviço removido");
+      qc.invalidateQueries({ queryKey: ["pm-entries"] });
       setEditShiftId(null);
       qc.invalidateQueries({ queryKey: ["pm-shifts"] });
       qc.invalidateQueries({ queryKey: ["pm-week-shifts"] });
@@ -419,15 +458,22 @@ function PainelMotorista() {
     roteiro: shiftsOfType("interno") + roteiros.length,
   };
 
+  useEffect(() => {
+    if (dayOpen && dayForm.operation_type === "interno" && !dayForm.service_order_id && roteiros.length === 1) {
+      setDayForm((form) => ({ ...form, service_order_id: roteiros[0].id }));
+    }
+  }, [dayOpen, dayForm.operation_type, dayForm.service_order_id, roteiros]);
+
   const myVehicleIds = useMemo(
     () => new Set([
-      ...(shifts as any[]).map((s) => s.vehicle_id),
+      ...(myVehicleLinks as any[]).map((s) => s.vehicle_id),
+      ...(weekShifts as any[]).map((s) => s.vehicle_id),
       ...(services as any[]).map((s) => s.vehicle_id),
     ].filter(Boolean)),
-    [shifts, services],
+    [weekShifts, services, myVehicleLinks],
   );
   const myEntries = useMemo(
-    () => (entries as any[]).filter((e) => myVehicleIds.size === 0 || myVehicleIds.has(e.vehicle_id)),
+    () => (entries as any[]).filter((e) => myVehicleIds.has(e.vehicle_id)),
     [entries, myVehicleIds],
   );
 
@@ -569,6 +615,77 @@ function PainelMotorista() {
           </div>
 
 
+      {/* Entradas e saídas da semana */}
+        <section className="border-t pt-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
+              {(isAdmin || !!weekSettlement?.closed_at) && (
+                <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
+              )}
+              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
+                <Plus className="h-4 w-4 mr-1" /> Entrada / saída
+              </Button>
+            </div>
+
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            Veículo: <span className="font-mono">{movVehicleId ? vehicleLabel(movVehicleId) : "sem veículo atribuído"}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-md border border-border p-3">
+              <div className="text-xs text-muted-foreground">Entradas</div>
+              <div className="text-lg font-bold text-emerald-600">{eur(week.in)}</div>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="text-xs text-muted-foreground">Saídas</div>
+              <div className="text-lg font-bold text-destructive">{eur(week.out)}</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {myEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
+            ) : (
+              myEntries.map((e: any) => {
+                const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
+                const label = e.kind === "entrada"
+                  ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
+                  : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
+                const mine = !e.shift_id && (e.created_by === user?.id || isAdmin);
+                return (
+                  <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
+                    <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
+                    <span className="font-medium">{eur(e.amount)}</span>
+                    <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
+                    <span>{label}</span>
+                    {e.shift_id && <Badge variant="secondary">Faturamento do serviço</Badge>}
+                    {e.invoice_number && <span className="text-muted-foreground">Fatura {e.invoice_number}</span>}
+                    <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
+                    {mine && (
+                      <div className="ml-auto flex items-center">
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openEditEntry(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Eliminar" onClick={() => { if (confirm("Eliminar este lançamento?")) delMov.mutate(e.id); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+
+          <Button asChild variant="outline" size="sm"><Link to="/acerto-carro">Abrir Acerto do Carro</Link></Button>
+        </section>
+
+
           {/* Histórico da semana */}
           <div className="space-y-2 pt-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -582,12 +699,14 @@ function PainelMotorista() {
                 const km = s.km_initial != null && s.km_final != null ? Number(s.km_final) - Number(s.km_initial) : null;
                 return (
                   <div key={s.id} className="rounded-md border border-border p-3 text-sm flex flex-wrap items-center gap-3">
-                    <span className="font-medium">{fmtDate(s.shift_date)}</span>
+                    <span className="font-medium">{fmtDate(s.shift_date)}{s.start_time ? ` · ${localTime(s.start_time)}` : ""}</span>
                     <span className="font-mono">{s.vehicles?.plate ?? "—"}</span>
                     <span className="text-muted-foreground">
                       {SERVICE_TYPES.find((t) => t.value === s.operation_type)?.label ?? s.operation_type ?? "—"}
                     </span>
                     <span className="text-muted-foreground">KM {s.km_initial ?? "—"} → {s.km_final ?? "—"}</span>
+                    {s.total_revenue != null && <span>Faturamento: {eur(s.total_revenue)}</span>}
+                    {s.service_description && <span>{s.service_description}</span>}
                     {km != null && <span className="text-muted-foreground">({km} km)</span>}
                     <Badge variant="outline">{s.closed_at ? "encerrado" : "em curso"}</Badge>
                     <div className="ml-auto flex items-center">
@@ -655,77 +774,6 @@ function PainelMotorista() {
         </Card>
       )}
 
-      {/* Entradas e saídas da semana */}
-      {myDriver && (
-        <Card className="p-4 sm:p-6 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Entradas e saídas da semana</div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{fmtDate(weekStart)} → {fmtDate(weekEnd)}</Badge>
-              {(isAdmin || !!weekSettlement?.closed_at) && (
-                <Button size="sm" variant="outline" onClick={weekPdf}><FileDown className="h-4 w-4 mr-1" /> Resumo PDF</Button>
-              )}
-              <Button size="sm" className="gradient-gold text-gold-foreground" onClick={openNewEntry}>
-                <Plus className="h-4 w-4 mr-1" /> Lançamento
-              </Button>
-            </div>
-
-          </div>
-
-          <div className="text-xs text-muted-foreground">
-            Veículo: <span className="font-mono">{movVehicleId ? vehicleLabel(movVehicleId) : "sem veículo atribuído"}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-md border border-border p-3">
-              <div className="text-xs text-muted-foreground">Entradas</div>
-              <div className="text-lg font-bold text-emerald-600">{eur(week.in)}</div>
-            </div>
-            <div className="rounded-md border border-border p-3">
-              <div className="text-xs text-muted-foreground">Saídas</div>
-              <div className="text-lg font-bold text-destructive">{eur(week.out)}</div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {myEntries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem lançamentos nesta semana.</p>
-            ) : (
-              myEntries.map((e: any) => {
-                const cc = (costCenters as any[]).find((c) => c.id === e.cost_center_id);
-                const label = e.kind === "entrada"
-                  ? (e.origin === "Outros" && e.other_label ? `Outros · ${e.other_label}` : (e.origin || "Lançamento manual"))
-                  : (cc?.name ?? (e.other_label ? `Outros · ${e.other_label}` : "Saída manual"));
-                const mine = e.created_by === user?.id || isAdmin;
-                return (
-                  <div key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-sm">
-                    <Badge variant="outline">{e.kind === "entrada" ? "Entrada" : "Saída"}</Badge>
-                    <span className="font-medium">{eur(e.amount)}</span>
-                    <span className="text-muted-foreground">{fmtDate(e.entry_date ?? String(e.created_at).slice(0, 10))}</span>
-                    <span>{label}</span>
-                    {e.invoice_number && <span className="text-muted-foreground">Fatura {e.invoice_number}</span>}
-                    <span className="text-muted-foreground truncate">{e.description ?? ""}</span>
-                    {mine && (
-                      <div className="ml-auto flex items-center">
-                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openEditEntry(e)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" title="Eliminar" onClick={() => { if (confirm("Eliminar este lançamento?")) delMov.mutate(e.id); }}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-
-          <Button asChild variant="outline" size="sm"><Link to="/acerto-carro">Abrir Acerto do Carro</Link></Button>
-        </Card>
-      )}
-
       <Card className="p-4 sm:p-6 space-y-3">
         <div className="font-semibold flex items-center gap-2"><Ticket className="h-4 w-4" /> Ordens de Serviço de hoje</div>
         {(services as any[]).length === 0 ? (
@@ -748,13 +796,17 @@ function PainelMotorista() {
 
       {/* Popup do lançamento do dia (mesmo padrão do + Lançamento) */}
       <Dialog open={dayOpen} onOpenChange={(o) => { if (!o) { setDayOpen(false); setEditShiftId(null); } }}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingShift ? `Editar serviço · ${fmtDate(editingShift.shift_date)}` : targetShift ? "Serviço em curso" : `Novo serviço · ${fmtDate(dayDate)}`}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Data de início</Label><Input type="date" value={dayDate} disabled /></div>
+              <div><Label htmlFor="service-start">Hora de início</Label><Input id="service-start" type="time" value={dayForm.start_time} onChange={(e) => setDayForm({ ...dayForm, start_time: e.target.value })} /></div>
+            </div>
             <div>
               <Label>Veículo</Label>
               <div className="h-10 flex items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-mono">
@@ -773,6 +825,32 @@ function PainelMotorista() {
                 </SelectContent>
               </Select>
             </div>
+            {dayForm.operation_type === "privado" && (
+              <div><Label htmlFor="private-description">Qual o serviço privado?</Label><Input id="private-description" value={dayForm.service_description} onChange={(e) => setDayForm({ ...dayForm, service_description: e.target.value })} placeholder="Descreva o serviço realizado" /></div>
+            )}
+            {dayForm.operation_type === "interno" && (
+              <div className="space-y-3">
+                <Label>Ordem de serviço do motorista</Label>
+                <Select value={dayForm.service_order_id} onValueChange={(v) => setDayForm({ ...dayForm, service_order_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a OS do roteiro" /></SelectTrigger>
+                  <SelectContent>{roteiros.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.oc_code ?? s.service_code} · {s.clients?.name ?? "Cliente"}</SelectItem>)}</SelectContent>
+                </Select>
+                {servicesLoading ? <p className="text-sm text-muted-foreground">A carregar as OS do motorista…</p> : servicesError ? <p className="text-sm text-destructive">Não foi possível carregar as OS. Tente novamente.</p> : !roteiros.length && <p className="text-sm text-muted-foreground">Sem OS de roteiro atribuída a este motorista para esta data.</p>}
+                {roteiros.filter((s: any) => s.id === dayForm.service_order_id).map((s: any) => (
+                  <div key={s.id} className="rounded-md border p-3 space-y-2 text-sm">
+                    <div className="font-medium">{s.proposals?.title ?? "Programação do roteiro"}</div>
+                    <div>{s.start_time?.slice(0, 5)} · {s.origin ?? "—"} → {s.destination ?? "—"}</div>
+                    <div>{s.passengers ?? s.proposals?.passengers ?? 0} passageiros · {s.vehicles?.plate ?? "Sem veículo"}</div>
+                    {s.proposals?.arrival_date && <div>Chegada: {fmtDate(s.proposals.arrival_date)} · {s.proposals.arrival_time} · {s.proposals.arrival_place}</div>}
+                    {itineraryDays(s.proposals).map((d, i) => <div key={`${d.date}-${i}`} className="whitespace-pre-line"><strong>{fmtDate(d.date)}</strong> · {dayLabel(s.proposals, d, itineraryNames) || "Sem descrição"}</div>)}
+                    {s.proposals?.departure_date && <div>Partida: {fmtDate(s.proposals.departure_date)} · {s.proposals.departure_time} · {s.proposals.departure_place}</div>}
+                    {s.itinerary && <p className="whitespace-pre-line">{s.itinerary}</p>}
+                    {s.notes && <p className="whitespace-pre-line">{s.notes}</p>}
+                    <Link to="/oc/$id" params={{ id: s.id }} className="text-primary underline">Ver OS completa</Link>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>KM inicial</Label>
@@ -785,6 +863,15 @@ function PainelMotorista() {
                 <Label>KM final</Label>
                 <Input type="number" value={dayForm.km_final} onChange={(e) => setDayForm({ ...dayForm, km_final: e.target.value })} disabled={!targetShift} />
               </div>
+            </div>
+            {(dayForm.operation_type === "privado" || (dayForm.operation_type === "tvde" && dayForm.km_final !== "")) && (
+              <div><Label htmlFor="service-revenue">Total de faturamento (€)</Label><Input id="service-revenue" type="number" min="0" step="0.01" value={dayForm.total_revenue} onChange={(e) => setDayForm({ ...dayForm, total_revenue: e.target.value })} /><p className="text-xs text-muted-foreground mt-1">Incluído automaticamente nas entradas ao encerrar o serviço.</p></div>
+            )}
+            <div className="border-t pt-3 space-y-2">
+              <div className="font-medium text-sm">Entradas e saídas · fechamento do carro</div>
+              <p className="text-xs text-muted-foreground">Registe os custos e outras entradas deste dia antes de encerrar.</p>
+              <Button variant="outline" onClick={openNewEntry} disabled={!movVehicleId}><Plus className="h-4 w-4 mr-1" /> Adicionar entrada / saída</Button>
+              {myEntries.filter((e: any) => e.entry_date === dayDate && e.vehicle_id === dayForm.vehicle_id).map((e: any) => <div key={e.id} className="text-sm">{e.kind === "entrada" ? "Entrada" : "Saída"} · {eur(e.amount)} · {e.description || e.origin || e.other_label}</div>)}
             </div>
             <div>
               <Label>Notas do dia</Label>

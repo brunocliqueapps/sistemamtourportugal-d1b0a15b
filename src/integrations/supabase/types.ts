@@ -118,6 +118,7 @@ export type Database = {
       }
       car_settlement_entries: {
         Row: {
+          shift_id: string | null
           amount: number
           cost_center_id: string | null
           created_at: string
@@ -133,6 +134,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          shift_id?: string | null
           amount?: number
           cost_center_id?: string | null
           created_at?: string
@@ -148,6 +150,7 @@ export type Database = {
           week_start: string
         }
         Update: {
+          shift_id?: string | null
           amount?: number
           cost_center_id?: string | null
           created_at?: string
@@ -163,6 +166,13 @@ export type Database = {
           week_start?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "car_settlement_entries_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: true
+            referencedRelation: "tvde_shifts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "car_settlement_entries_cost_center_id_fkey"
             columns: ["cost_center_id"]
@@ -2480,6 +2490,9 @@ export type Database = {
       }
       tvde_shifts: {
         Row: {
+          service_description: string | null
+          total_revenue: number | null
+          service_order_id: string | null
           closed_at: string | null
           closed_by: string | null
           created_at: string | null
@@ -2497,6 +2510,9 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          service_description?: string | null
+          total_revenue?: number | null
+          service_order_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string | null
@@ -2514,6 +2530,9 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          service_description?: string | null
+          total_revenue?: number | null
+          service_order_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string | null
@@ -2531,6 +2550,13 @@ export type Database = {
           vehicle_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tvde_shifts_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tvde_shifts_driver_id_fkey"
             columns: ["driver_id"]
