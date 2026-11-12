@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
-import { buildDays, daysBetween, paymentSchedule, suggestPaymentTerms, withDefaultStageDates, type ItineraryDay } from "./payment-terms";
+import { visibleItineraryDays, daysBetween, paymentSchedule, suggestPaymentTerms, withDefaultStageDates, type ItineraryDay } from "./payment-terms";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "./format-date";
 
@@ -213,13 +213,7 @@ function travelBlock(doc: jsPDF, p: any, y: number) {
 
 function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa", dayNotes?: any[]) {
   const saved: ItineraryDay[] = Array.isArray(p.itinerary) ? p.itinerary : [];
-  // Garante que todos os dias do período aparecem, mesmo os que ficaram sem texto
-  const days = buildDays(p.itinerary_start, p.itinerary_end, saved);
-  const all = days.length ? days : saved;
-  const dayNumber = new Map<string, number>(
-    all.map((d, i) => [String(d?.date ?? "").slice(0, 10), i + 1]),
-  );
-  const list = all.filter((d) => !d?.deleted);
+  const list = visibleItineraryDays(p.itinerary_start, p.itinerary_end, saved);
   if (!list.length) return y;
   const fallback = p.tour_routes?.name ?? p.private_service_text ?? "";
   const noteFor = (d: any) => {
@@ -236,7 +230,7 @@ function itineraryBlock(doc: jsPDF, p: any, y: number, columnLabel = "Programa",
     body: list.map((d) => {
       const base = (d.text && d.text.trim()) || ((d.mode ?? "sugestao") === "sugestao" ? fallback : "") || "—";
       const note = noteFor(d);
-      const n = dayNumber.get(String(d.date ?? "").slice(0, 10)) ?? 0;
+      const n = d.dayNumber;
       return [
         `Dia ${n}\n${fmtDate(d.date) || "—"}`,
         note ? `${base}\n\nObservações: ${note}` : base,

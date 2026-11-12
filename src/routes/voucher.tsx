@@ -18,7 +18,7 @@ import { generateVoucherPdf } from "@/lib/proposal-pdf";
 import { shortCode } from "@/lib/codes";
 import { fmtDate } from "@/lib/format-date";
 import { useUnsavedChanges } from "@/lib/unsaved-changes-context";
-import { paymentSchedule, withDefaultStageDates } from "@/lib/payment-terms";
+import { paymentSchedule, withDefaultStageDates, visibleItineraryDays } from "@/lib/payment-terms";
 import { useFinalizedProposalIds } from "@/lib/finalized";
 import { usePermissions } from "@/lib/permissions";
 import { useDriverScope } from "@/lib/driver-scope";
@@ -248,12 +248,13 @@ function Voucher() {
               <Table>
                 <TableHeader><TableRow><TableHead className="w-32">Data</TableHead><TableHead>Serviço contratado</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {p.itinerary.map((d: any, i: number) => {
+                  {visibleItineraryDays(p.itinerary_start, p.itinerary_end, p.itinerary).map((d) => {
                     const currentNote = localNotes.find((n: any) => n.date === d.date)?.note || "";
                     
                     return (
-                      <TableRow key={i}>
+                      <TableRow key={d.date}>
                         <TableCell className="align-top">
+                          <div className="text-xs text-muted-foreground">Dia {d.dayNumber}</div>
                           <div className="font-mono text-xs">{fmtDate(d.date)}</div>
                         </TableCell>
                         <TableCell className="space-y-3">
@@ -486,16 +487,15 @@ function Voucher() {
             key: "itinerary",
             label: "Serviços contratados",
             fullWidth: true,
-            format: (v: any) => {
+            format: (v: any, r: any) => {
               const full = Array.isArray(v) ? v : [];
-              const list = full.filter((d: any) => !d.deleted);
+              const list = visibleItineraryDays(r?.itinerary_start, r?.itinerary_end, full);
               if (!list.length) return "—";
-              const dayNumberMap = new Map(full.map((d: any, i: number) => [d.date, i + 1]));
               return (
                 <div className="space-y-2">
                   {list.map((d: any, i: number) => (
                     <div key={`${d.date}-${i}`} className="border-b border-border/50 pb-2 last:border-0">
-                      <div className="text-xs text-muted-foreground">Dia {dayNumberMap.get(d.date) ?? i + 1} · {fmtDate(d.date) || "—"}</div>
+                      <div className="text-xs text-muted-foreground">Dia {d.dayNumber} · {fmtDate(d.date) || "—"}</div>
                       <div className="break-words">{d.text?.trim() || "—"}</div>
                     </div>
                   ))}
@@ -507,8 +507,9 @@ function Voucher() {
             key: "voucher_day_notes",
             label: "Orientações por dia",
             fullWidth: true,
-            format: (v: any) => {
-              const notes = Array.isArray(v) ? v.filter((n: any) => n.note?.trim()) : [];
+            format: (v: any, r: any) => {
+              const dates = new Set(visibleItineraryDays(r?.itinerary_start, r?.itinerary_end, Array.isArray(r?.itinerary) ? r.itinerary : []).map((d) => d.date));
+              const notes = Array.isArray(v) ? v.filter((n: any) => n.note?.trim() && dates.has(n.date)) : [];
               if (!notes.length) return "—";
               return (
                 <div className="space-y-2">

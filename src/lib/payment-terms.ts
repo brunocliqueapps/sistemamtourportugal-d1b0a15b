@@ -37,6 +37,13 @@ export function buildDays(start?: string | null, end?: string | null, existing: 
   return out;
 }
 
+/** Dias emitidos: respeita exclusões sem renumerar os dias restantes. */
+export function visibleItineraryDays(start?: string | null, end?: string | null, saved: ItineraryDay[] = []) {
+  const rebuilt = buildDays(start, end, saved);
+  const all = rebuilt.length ? rebuilt : saved;
+  return all.map((day, index) => ({ ...day, dayNumber: index + 1 })).filter((day) => !day.deleted);
+}
+
 
 /** Condições de pagamento sugeridas conforme a duração. */
 export function suggestPaymentTerms(days: number): string {
