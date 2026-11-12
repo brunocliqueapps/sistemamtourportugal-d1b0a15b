@@ -61,6 +61,7 @@ function Orcamento() {
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges();
   const { isAdmin } = usePermissions();
   const [selected, setSelected] = useState<string>("");
+  const [proposalFilter, setProposalFilter] = useState("todas");
 
   const [value, setValue] = useState<string>("");
   const [terms, setTerms] = useState<string>("");
@@ -92,7 +93,24 @@ function Orcamento() {
   const finishedIds = useMemo(() => new Set([
     ...(props as any[]).filter((x: any) => x.budget_status === "aprovado" || finalizedIds.has(x.id)).map((x: any) => x.id),
   ]), [props, finalizedIds]);
-  const selectableProps = useMemo(() => (props as any[]).filter((x: any) => (!x.budget_validated_at && !finalizedIds.has(x.id)) || x.id === selected), [props, selected, finalizedIds]);
+  function proposalSituation(x: any) {
+    if (finalizedIds.has(x.id)) return "concluidas";
+    if (x.budget_validated_at || x.budget_status === "aprovado") return "fechadas";
+    if (x.budget_status === "recusado") return "recusadas";
+    if (x.budget_status === "analise") return "analise";
+    return "rascunhos";
+  }
+  const situationLabels: Record<string, string> = {
+    todas: "Todas as propostas",
+    rascunhos: "Rascunhos / Orçamentos salvos",
+    analise: "Em análise",
+    fechadas: "Vendas fechadas",
+    recusadas: "Recusadas",
+    concluidas: "Serviços concluídos",
+  };
+  const selectableProps = (props as any[]).filter((x: any) =>
+    proposalFilter === "todas" || proposalSituation(x) === proposalFilter
+  );
   const savedBudgets = useMemo(() => (props as any[]).filter((x: any) => x.budget_saved_at && !x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const validatedActive = useMemo(() => (props as any[]).filter((x: any) => x.budget_validated_at && !finalizedIds.has(x.id)), [props, finalizedIds]);
   const historyProps = useMemo(() => (props as any[]).filter((x: any) => finalizedIds.has(x.id)), [props, finalizedIds]);
@@ -282,6 +300,7 @@ function Orcamento() {
             setSelected("");
             setAction("");
             window.scrollTo({ top: 0, behavior: "smooth" });
+            setProposalFilter("todas");
             setOpen(true);
           }}
         >
@@ -335,6 +354,22 @@ function Orcamento() {
 
       <Card className="p-4 space-y-4">
         <div className="space-y-1">
+          <Label htmlFor="proposal-situation">Filtrar propostas por situação</Label>
+          <Select value={proposalFilter} onValueChange={setProposalFilter}>
+            <SelectTrigger id="proposal-situation" className="w-full sm:w-80">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(situationLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {selectableProps.length} proposta(s) disponível(is). Pesquise por número ou dados do cliente.
+          </p>
+        </div>
+        <div className="space-y-1">
           <Label>Proposta</Label>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -361,7 +396,7 @@ function Orcamento() {
               }}>
                 <CommandInput placeholder="Nº da proposta, nº de cliente, nome, email, telefone ou NIF…" />
                 <CommandList>
-                  <CommandEmpty>Nenhuma proposta encontrada.</CommandEmpty>
+                  <CommandEmpty>Nenhuma proposta encontrada. Tente outra pesquisa ou selecione Todas as propostas.</CommandEmpty>
                   {(selectableProps as any[]).map((x: any) => (
                     <CommandItem
                       key={x.id}
@@ -376,6 +411,7 @@ function Orcamento() {
                       <span className="font-mono text-xs mr-2">{shortCode(x.code)}</span>
                       {x.clients?.name ?? "—"}
                       {x.clients?.client_number ? <span className="text-muted-foreground ml-1">· {shortCode(x.clients.client_number)}</span> : null}
+                      <Badge variant="outline" className="ml-auto text-xs">{situationLabels[proposalSituation(x)]}</Badge>
                     </CommandItem>
                   ))}
                 </CommandList>
